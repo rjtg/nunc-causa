@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-event-record
+      author: codex
+      changes:
+        - createTable:
+            tableName: event_records
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: aggregate_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: metadata
+                  type: jsonb
+                  constraints:
+                    nullable: true
+              - column:
+                  name: sequence
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: occurred_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
