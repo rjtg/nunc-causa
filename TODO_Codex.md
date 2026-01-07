@@ -5,6 +5,9 @@ Each task should be worked in its own branch and submitted as a pull request.
 
 Check a box when complete.
 
+All code should be written in Kotlin, not Java.
+Use src/main/kotlin and src/test/kotlin.
+
 ---
 
 ## Bootstrap and Scaffolding
