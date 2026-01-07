@@ -30,6 +30,11 @@ role-specific responsibilities, and maintains a complete event history and audit
 
 ## Technology Stack
 
+Implementation language: Kotlin
+- Use Kotlin data classes for events and projections
+- Use Kotlin classes for aggregates and services
+- Use constructor-based injection
+
 ### Kotlin / Spring
 - Kotlin (JVM 21)
 - Spring Boot 3.x
