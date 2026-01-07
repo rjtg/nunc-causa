@@ -9,7 +9,7 @@ Check a box when complete.
 
 ## Bootstrap and Scaffolding
 
-[ ] Create Spring Boot 3 + Spring Modulith multi-module project (see ARCHITECTURE.md)
+[ ] Create Spring Boot 3 + Spring Modulith multi-module project using gradle kotlinscript as a build system (see ARCHITECTURE.md)
 [ ] Add main application class (`CausaApplication`) to causa-web
 [ ] Add `/health` endpoint returning `{ "status": "ok" }`
 
