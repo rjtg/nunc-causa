@@ -30,8 +30,13 @@ role-specific responsibilities, and maintains a complete event history and audit
 
 ## Technology Stack
 
-### Java / Spring
-- Java 21
+Implementation language: Kotlin
+- Use Kotlin data classes for events and projections
+- Use Kotlin classes for aggregates and services
+- Use constructor-based injection
+
+### Kotlin / Spring
+- Kotlin (JVM 21)
 - Spring Boot 3.x
 - Spring Modulith (for module enforcement + event publication)
 - Spring Web (REST + SSE)

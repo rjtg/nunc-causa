@@ -5,13 +5,16 @@ Each task should be worked in its own branch and submitted as a pull request.
 
 Check a box when complete.
 
+All code should be written in Kotlin, not Java.
+Use src/main/kotlin and src/test/kotlin.
+
 ---
 
 ## Bootstrap and Scaffolding
 
-[ ] Create Spring Boot 3 + Spring Modulith multi-module project using gradle kotlinscript as a build system (see ARCHITECTURE.md)
-[ ] Add main application class (`CausaApplication`) to causa-web
-[ ] Add `/health` endpoint returning `{ "status": "ok" }`
+[x] Create Spring Boot 3 + Spring Modulith multi-module project using gradle kotlinscript as a build system (see ARCHITECTURE.md)
+[x] Add main application class (`CausaApplication`) to causa-web
+[x] Add `/health` endpoint returning `{ "status": "ok" }`
 
 ---
 
@@ -39,10 +42,10 @@ Check a box when complete.
 
 ## REST Endpoints (causa-web)
 
+[ ] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
 [ ] Create `POST /issues` endpoint calling create-issue command
 [ ] Create `GET /issues/{id}` using projection read model
 [ ] Add basic projection: issue header + phases list
-[ ] Add OpenAPI / Swagger doc generation
 
 ---
 
