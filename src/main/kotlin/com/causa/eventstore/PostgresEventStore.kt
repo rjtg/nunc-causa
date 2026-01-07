@@ -3,9 +3,11 @@ package com.causa.eventstore
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.sql.Types
 import java.util.UUID
+import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 
+@Profile("postgres")
 @Repository
 class PostgresEventStore(
     private val jdbcTemplate: JdbcTemplate,
@@ -15,7 +17,7 @@ class PostgresEventStore(
     override fun loadStream(aggregateId: String): List<EventRecord> {
         val sql = """
             select id, aggregate_id, type, payload, metadata, sequence, occurred_at
-            from event_records
+            from events
             where aggregate_id = ?
             order by sequence
         """.trimIndent()
@@ -42,8 +44,25 @@ class PostgresEventStore(
         expectedSequence: Long,
         events: List<EventRecord>,
     ) {
+        val currentSequenceSql = """
+            select coalesce(max(sequence), 0)
+            from events
+            where aggregate_id = ?
+        """.trimIndent()
+        val currentSequence = jdbcTemplate.queryForObject(
+            currentSequenceSql,
+            Long::class.java,
+            aggregateId,
+        ) ?: 0
+
+        if (currentSequence != expectedSequence) {
+            throw OptimisticConcurrencyException(
+                "Expected sequence $expectedSequence but found $currentSequence for aggregate $aggregateId",
+            )
+        }
+
         val sql = """
-            insert into event_records
+            insert into events
                 (id, aggregate_id, type, payload, metadata, sequence, occurred_at)
             values
                 (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?)
