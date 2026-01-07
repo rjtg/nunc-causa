@@ -21,7 +21,7 @@ Use src/main/kotlin and src/test/kotlin.
 ## Event Store Foundation
 
 [x] Create `EventStore` interface with `loadStream` + `appendToStream`
-[ ] Implement `PostgresEventStore` using Spring JDBC template
+[x] Implement `PostgresEventStore` using Spring JDBC template
 [ ] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
 [ ] Add optimistic concurrency version check
 [ ] Wire EventStore via `@Profile("dev")`

@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.spring") version "1.9.23"
 }
 
-group = "com.causa"
+group = "sh.nunc"
 version = "0.0.1-SNAPSHOT"
 
 repositories {
@@ -29,6 +29,7 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.liquibase:liquibase-core")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
