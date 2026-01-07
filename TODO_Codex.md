@@ -17,7 +17,7 @@ Check a box when complete.
 
 ## Event Store Foundation
 
-[ ] Create `EventStore` interface with `loadStream` + `appendToStream`
+[x] Create `EventStore` interface with `loadStream` + `appendToStream`
 [ ] Implement `PostgresEventStore` using Spring JDBC template
 [ ] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
 [ ] Add optimistic concurrency version check
@@ -87,4 +87,3 @@ Check a box when complete.
 - Write complete code, not pseudocode
 - Prefer small commits and PRs
 - Ask for tests if applicable
-
