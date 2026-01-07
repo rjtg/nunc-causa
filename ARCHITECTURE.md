@@ -30,8 +30,8 @@ role-specific responsibilities, and maintains a complete event history and audit
 
 ## Technology Stack
 
-### Java / Spring
-- Java 21
+### Kotlin / Spring
+- Kotlin (JVM 21)
 - Spring Boot 3.x
 - Spring Modulith (for module enforcement + event publication)
 - Spring Web (REST + SSE)
