@@ -22,9 +22,9 @@ Use src/main/kotlin and src/test/kotlin.
 
 [x] Create `EventStore` interface with `loadStream` + `appendToStream`
 [x] Implement `PostgresEventStore` using Spring JDBC template
-[ ] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
-[ ] Add optimistic concurrency version check
-[ ] Wire EventStore via `@Profile("dev")`
+[x] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
+[x] Add optimistic concurrency version check
+[x] Wire EventStore via `@Profile("dev")`
 
 ---
 

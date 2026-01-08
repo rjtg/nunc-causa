@@ -4,7 +4,7 @@ databaseChangeLog:
       author: codex
       changes:
         - createTable:
-            tableName: event_records
+            tableName: events
             columns:
               - column:
                   name: id
