@@ -14,7 +14,7 @@ Use src/main/kotlin and src/test/kotlin.
 
 [x] Create Spring Boot 3 + Spring Modulith multi-module project using gradle kotlinscript as a build system (see ARCHITECTURE.md)
 [x] Add main application class (`CausaApplication`) to causa-web
-[x] Add `/health` endpoint returning `{ "status": "ok" }`
+[x] Expose health via Spring Actuator (`/actuator/health`)
 
 ---
 
