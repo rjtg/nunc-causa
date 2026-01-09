@@ -50,6 +50,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add `GET /issues` with filters for owner/assignee/team member
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
+[x] Add controller tests for issue endpoints and filters
 
 ---
 
@@ -66,6 +67,8 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Create issue list projection table
 [x] Create projection updater reacting to events
 [x] Add repository for reading list projections
+[x] Add projection rebuild job for existing event streams
+[x] Ensure projection updates are reliable (retry/outbox/async rebuild)
 
 ---
 

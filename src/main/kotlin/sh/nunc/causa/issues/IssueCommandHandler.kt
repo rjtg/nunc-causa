@@ -73,8 +73,23 @@ class IssueCommandHandler(
 
         val history = eventStore.loadStream(issueId.value)
         val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
-        projectionUpdater.rebuild(issue)
+        rebuildProjection(issue)
 
         return issueId
+    }
+
+    private fun rebuildProjection(issue: Issue) {
+        var attempt = 0
+        var lastError: Exception? = null
+        while (attempt < 3) {
+            try {
+                projectionUpdater.rebuild(issue)
+                return
+            } catch (ex: Exception) {
+                lastError = ex
+                attempt += 1
+            }
+        }
+        throw IllegalStateException("Failed to rebuild issue projection after retries", lastError)
     }
 }

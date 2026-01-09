@@ -6,6 +6,8 @@ interface EventStore {
 
     fun listAggregateIds(aggregateType: String): List<String>
 
+    fun listAggregateIdsByEventTypes(eventTypes: List<String>): List<String>
+
     fun appendToStream(
         aggregateId: String,
         expectedSequence: Long,

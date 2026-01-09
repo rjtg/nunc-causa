@@ -50,6 +50,21 @@ class PostgresEventStore(
         return jdbcTemplate.query(sql, { rs, _ -> rs.getString("aggregate_id") }, aggregateType)
     }
 
+    override fun listAggregateIdsByEventTypes(eventTypes: List<String>): List<String> {
+        if (eventTypes.isEmpty()) {
+            return emptyList()
+        }
+        val placeholders = eventTypes.joinToString(", ") { "?" }
+        val sql = """
+            select distinct aggregate_id
+            from events
+            where type in ($placeholders)
+            order by aggregate_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, { rs, _ -> rs.getString("aggregate_id") }, *eventTypes.toTypedArray())
+    }
+
     override fun appendToStream(
         aggregateId: String,
         expectedSequence: Long,

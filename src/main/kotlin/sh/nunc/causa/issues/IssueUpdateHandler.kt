@@ -92,7 +92,22 @@ class IssueUpdateHandler(
         )
 
         val issue = loadIssue(issueId)
-        projectionUpdater.rebuild(issue)
+        rebuildProjection(issue)
+    }
+
+    private fun rebuildProjection(issue: Issue) {
+        var attempt = 0
+        var lastError: Exception? = null
+        while (attempt < 3) {
+            try {
+                projectionUpdater.rebuild(issue)
+                return
+            } catch (ex: Exception) {
+                lastError = ex
+                attempt += 1
+            }
+        }
+        throw IllegalStateException("Failed to rebuild issue projection after retries", lastError)
     }
 
     private fun loadIssue(issueId: IssueId): Issue {
