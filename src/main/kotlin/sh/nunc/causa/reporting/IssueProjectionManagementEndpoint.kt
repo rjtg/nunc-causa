@@ -1,25 +1,24 @@
 package sh.nunc.causa.reporting
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.boot.ApplicationArguments
-import org.springframework.boot.ApplicationRunner
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.actuate.endpoint.annotation.Endpoint
+import org.springframework.boot.actuate.endpoint.annotation.Selector
+import org.springframework.boot.actuate.endpoint.annotation.WriteOperation
 import org.springframework.stereotype.Component
 import sh.nunc.causa.eventstore.EventStore
 import sh.nunc.causa.issues.Issue
 import sh.nunc.causa.issues.IssueEventMapper
 import sh.nunc.causa.issues.IssueEventTypes
-import sh.nunc.causa.issues.IssueId
 
 @Component
-@ConditionalOnProperty("causa.projections.rebuild-on-startup", havingValue = "true")
-class IssueProjectionRebuildRunner(
+@Endpoint(id = "issue-projections")
+class IssueProjectionManagementEndpoint(
     private val eventStore: EventStore,
     private val projectionRebuildService: ProjectionRebuildService,
     private val objectMapper: ObjectMapper,
-) : ApplicationRunner {
-
-    override fun run(args: ApplicationArguments?) {
+) {
+    @WriteOperation
+    fun rebuildAll(): Map<String, Any> {
         val eventMapper = IssueEventMapper(objectMapper)
         val ids = eventStore.listAggregateIdsByEventTypes(IssueEventTypes.all)
         ids.forEach { id ->
@@ -28,5 +27,18 @@ class IssueProjectionRebuildRunner(
             val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
             projectionRebuildService.rebuildIssue(issue)
         }
+        return mapOf("rebuilt" to ids.size)
+    }
+
+    @WriteOperation
+    fun rebuild(@Selector issueId: String): Map<String, Any> {
+        val eventMapper = IssueEventMapper(objectMapper)
+        val history = eventStore.loadStream(issueId)
+        if (history.isEmpty()) {
+            return mapOf("rebuilt" to 0)
+        }
+        val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
+        projectionRebuildService.rebuildIssue(issue)
+        return mapOf("rebuilt" to 1, "issueId" to issueId)
     }
 }
