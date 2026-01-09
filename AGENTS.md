@@ -27,9 +27,10 @@
 
 ## Commit & Pull Request Guidelines
 - No strict commit convention is documented; use short, imperative messages (e.g., "Add issue aggregate").
+- Before updating an existing PR, verify it is still open (e.g., `gh pr view <number>` or `gh pr status`).
 - PRs should describe the change, reference related tasks in `TODO_Codex.md`, and note any new endpoints or migrations.
 
 ## Architecture Overview
 - The system is an event-sourced modular monolith using Spring Modulith.
 - Event storage is currently a Postgres-backed implementation; see `sh/nunc/causa/eventstore`.
-- REST endpoints live in `sh/nunc/causa/web` (e.g., `/health`).
+- REST endpoints live in `sh/nunc/causa/web`; operational health is exposed via `/actuator/health`.
