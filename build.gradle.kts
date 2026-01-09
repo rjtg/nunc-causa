@@ -40,6 +40,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-models-jakarta:2.2.22")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("com.h2database:h2")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

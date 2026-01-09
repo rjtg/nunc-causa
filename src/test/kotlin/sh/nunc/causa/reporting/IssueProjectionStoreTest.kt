@@ -3,8 +3,10 @@ package sh.nunc.causa.reporting
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest
-import org.springframework.context.annotation.Import
+import org.springframework.boot.SpringBootConfiguration
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.jdbc.core.JdbcTemplate
 import sh.nunc.causa.issues.Issue
 import sh.nunc.causa.issues.IssueId
@@ -13,12 +15,21 @@ import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.Task
 import sh.nunc.causa.issues.TaskStatus
 
-@JdbcTest
-@Import(IssueProjectionStore::class)
-class IssueProjectionStoreTest(
-    private val jdbcTemplate: JdbcTemplate,
-    private val store: IssueProjectionStore,
-) {
+@SpringBootTest(
+    classes = [IssueProjectionStoreTest.TestApp::class],
+    properties = ["spring.liquibase.enabled=false"],
+)
+class IssueProjectionStoreTest {
+    @org.springframework.beans.factory.annotation.Autowired
+    private lateinit var jdbcTemplate: JdbcTemplate
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private lateinit var store: IssueProjectionStore
+    @SpringBootConfiguration
+    @EnableAutoConfiguration
+    @ComponentScan("sh.nunc.causa.reporting")
+    class TestApp
+
     @Test
     fun `rebuild writes projections and reads detail`() {
         createSchema()
