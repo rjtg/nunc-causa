@@ -38,6 +38,12 @@ class IssueEventMapper(
                 objectMapper.treeToValue(record.payload, IssueCreated::class.java)
             PhaseAdded::class.simpleName ->
                 objectMapper.treeToValue(record.payload, PhaseAdded::class.java)
+            IssueOwnerAssigned::class.simpleName ->
+                objectMapper.treeToValue(record.payload, IssueOwnerAssigned::class.java)
+            PhaseAssigneeAssigned::class.simpleName ->
+                objectMapper.treeToValue(record.payload, PhaseAssigneeAssigned::class.java)
+            TaskAdded::class.simpleName ->
+                objectMapper.treeToValue(record.payload, TaskAdded::class.java)
             else -> error("Unknown event type: ${record.type}")
         }
     }

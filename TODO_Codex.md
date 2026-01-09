@@ -42,10 +42,13 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## REST Endpoints (causa-web)
 
-[ ] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
-[ ] Create `POST /issues` endpoint calling create-issue command
-[ ] Create `GET /issues/{id}` using projection read model
-[ ] Add basic projection: issue header + phases list
+[x] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
+[x] Create `POST /issues` endpoint calling create-issue command
+[x] Create `GET /issues/{id}` using projection read model
+[x] Add basic projection: issue header + phases list
+[x] Add `GET /issues` with filters for owner/assignee/team member
+[x] Add `GET /issues` filter for project id
+[x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
 
 ---
 
@@ -72,6 +75,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add user module for real auth
 [ ] Add comments
 [ ] Add task-level granularity in dev phases
+[ ] Model projects and link issues to a project
 
 ---
 

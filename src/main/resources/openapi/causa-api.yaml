@@ -30,6 +30,27 @@ paths:
         - Issues
       summary: List issues
       operationId: listIssues
+      parameters:
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: assignee
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: member
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Issue list
@@ -60,42 +81,124 @@ paths:
                 $ref: '#/components/schemas/IssueResponse'
         '404':
           description: Issue not found
-  /issues/{issueId}/history:
-    get:
+  /issues/{issueId}/owner:
+    patch:
       tags:
         - Issues
-      summary: Get issue history
-      operationId: getIssueHistory
+      summary: Assign issue owner
+      operationId: assignIssueOwner
       parameters:
         - name: issueId
           in: path
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignOwnerRequest'
       responses:
         '200':
-          description: Issue event history
+          description: Owner assigned
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/IssueHistoryEntry'
+                $ref: '#/components/schemas/IssueResponse'
         '404':
           description: Issue not found
-  /stream/updates:
-    get:
+  /issues/{issueId}/phases:
+    post:
       tags:
-        - Updates
-      summary: Stream live updates via SSE
-      operationId: streamUpdates
+        - Issues
+      summary: Add a phase to an issue
+      operationId: addPhase
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPhaseRequest'
       responses:
         '200':
-          description: Server-sent event stream
+          description: Phase added
           content:
-            text/event-stream:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/IssueResponse'
+        '404':
+          description: Issue not found
+  /issues/{issueId}/phases/{phaseId}/assignee:
+    patch:
+      tags:
+        - Issues
+      summary: Assign a phase assignee
+      operationId: assignPhaseAssignee
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAssigneeRequest'
+      responses:
+        '200':
+          description: Assignee updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueResponse'
+        '404':
+          description: Issue or phase not found
+  /issues/{issueId}/phases/{phaseId}/tasks:
+    post:
+      tags:
+        - Issues
+      summary: Add a task to a phase
+      operationId: addTask
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTaskRequest'
+      responses:
+        '200':
+          description: Task added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueResponse'
+        '404':
+          description: Issue or phase not found
 components:
   schemas:
     CreateIssueRequest:
@@ -109,10 +212,45 @@ components:
           type: string
         owner:
           type: string
+        projectId:
+          type: string
         phases:
           type: array
           items:
             $ref: '#/components/schemas/CreatePhaseRequest'
+    AssignOwnerRequest:
+      type: object
+      required:
+        - owner
+      properties:
+        owner:
+          type: string
+    AssignAssigneeRequest:
+      type: object
+      required:
+        - assignee
+      properties:
+        assignee:
+          type: string
+    AddPhaseRequest:
+      type: object
+      required:
+        - name
+        - assignee
+      properties:
+        name:
+          type: string
+        assignee:
+          type: string
+    AddTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        assignee:
+          type: string
     CreatePhaseRequest:
       type: object
       required:
@@ -138,6 +276,8 @@ components:
           type: string
         owner:
           type: string
+        projectId:
+          type: string
         phases:
           type: array
           items:
@@ -160,6 +300,8 @@ components:
           type: string
         owner:
           type: string
+        projectId:
+          type: string
         phaseCount:
           type: integer
           format: int32
@@ -169,25 +311,6 @@ components:
             - NOT_STARTED
             - IN_PROGRESS
             - DONE
-    IssueHistoryEntry:
-      type: object
-      required:
-        - sequence
-        - type
-        - occurredAt
-        - payload
-      properties:
-        sequence:
-          type: integer
-          format: int64
-        type:
-          type: string
-        occurredAt:
-          type: string
-          format: date-time
-        payload:
-          type: object
-          additionalProperties: true
     PhaseResponse:
       type: object
       required:
@@ -195,10 +318,34 @@ components:
         - name
         - assignee
         - status
+        - tasks
       properties:
         id:
           type: string
         name:
+          type: string
+        assignee:
+          type: string
+        status:
+          type: string
+          enum:
+            - NOT_STARTED
+            - IN_PROGRESS
+            - DONE
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+    TaskResponse:
+      type: object
+      required:
+        - id
+        - title
+        - status
+      properties:
+        id:
+          type: string
+        title:
           type: string
         assignee:
           type: string

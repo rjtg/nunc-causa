@@ -18,6 +18,7 @@ class IssueRehydrationTest {
                 issueId = issueId.value,
                 title = "Improve login flow",
                 owner = "alice",
+                projectId = null,
             ),
             PhaseAdded(
                 issueId = issueId.value,

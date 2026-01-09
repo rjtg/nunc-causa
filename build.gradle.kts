@@ -34,7 +34,10 @@ dependencies {
     implementation("org.liquibase:liquibase-core")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.22")
+    implementation("io.swagger.core.v3:swagger-models-jakarta:2.2.22")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

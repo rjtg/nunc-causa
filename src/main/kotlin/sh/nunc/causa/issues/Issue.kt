@@ -4,6 +4,7 @@ data class Issue(
     val id: IssueId,
     val title: String,
     val owner: String,
+    val projectId: String?,
     val phases: List<Phase>,
     val version: Long,
 ) {
@@ -14,6 +15,7 @@ data class Issue(
             var issueId: IssueId? = null
             var title = ""
             var owner = ""
+            var projectId: String? = null
             val phases = mutableListOf<Phase>()
             var version = 0L
 
@@ -23,6 +25,7 @@ data class Issue(
                         issueId = IssueId(event.issueId)
                         title = event.title
                         owner = event.owner
+                        projectId = event.projectId
                     }
                     is PhaseAdded -> {
                         phases.add(
@@ -31,8 +34,33 @@ data class Issue(
                                 name = event.name,
                                 assignee = event.assignee,
                                 status = event.status,
+                                tasks = emptyList(),
                             ),
                         )
+                    }
+                    is IssueOwnerAssigned -> {
+                        owner = event.owner
+                    }
+                    is PhaseAssigneeAssigned -> {
+                        val index = phases.indexOfFirst { it.id == event.phaseId }
+                        if (index >= 0) {
+                            val phase = phases[index]
+                            phases[index] = phase.copy(assignee = event.assignee)
+                        }
+                    }
+                    is TaskAdded -> {
+                        val index = phases.indexOfFirst { it.id == event.phaseId }
+                        if (index >= 0) {
+                            val phase = phases[index]
+                            phases[index] = phase.copy(
+                                tasks = phase.tasks + Task(
+                                    id = event.taskId,
+                                    title = event.title,
+                                    assignee = event.assignee,
+                                    status = event.status,
+                                ),
+                            )
+                        }
                     }
                 }
                 version = envelope.sequence
@@ -42,6 +70,7 @@ data class Issue(
                 id = issueId ?: error("IssueCreated event is required to rebuild Issue"),
                 title = title,
                 owner = owner,
+                projectId = projectId,
                 phases = phases.toList(),
                 version = version,
             )
