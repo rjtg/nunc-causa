@@ -6,6 +6,7 @@ import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
+import sh.nunc.causa.reporting.IssueProjectionUpdater
 
 data class CreateIssueCommand(
     val title: String,
@@ -22,6 +23,7 @@ data class CreatePhaseCommand(
 @Service
 class IssueCommandHandler(
     private val eventStore: EventStore,
+    private val projectionUpdater: IssueProjectionUpdater,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -68,6 +70,10 @@ class IssueCommandHandler(
             expectedSequence = 0,
             events = events,
         )
+
+        val history = eventStore.loadStream(issueId.value)
+        val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
+        projectionUpdater.rebuild(issue)
 
         return issueId
     }

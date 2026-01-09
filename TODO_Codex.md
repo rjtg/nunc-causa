@@ -46,6 +46,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Create `POST /issues` endpoint calling create-issue command
 [x] Create `GET /issues/{id}` using projection read model
 [x] Add basic projection: issue header + phases list
+[x] Switch issue reads and listing to use projection read models
 [x] Add `GET /issues` with filters for owner/assignee/team member
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
@@ -62,9 +63,9 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Projections
 
-[ ] Create issue list projection table
-[ ] Create projection updater reacting to events
-[ ] Add repository for reading list projections
+[x] Create issue list projection table
+[x] Create projection updater reacting to events
+[x] Add repository for reading list projections
 
 ---
 

@@ -14,12 +14,13 @@ class IssueEventMapper(
         event: IssueEvent,
         occurredAt: Instant,
     ): EventRecord {
+        val metadata = objectMapper.createObjectNode().put("aggregateType", "issue")
         return EventRecord(
             id = UUID.randomUUID(),
             aggregateId = aggregateId.value,
             type = event::class.simpleName ?: "UnknownEvent",
             payload = objectMapper.valueToTree(event),
-            metadata = null,
+            metadata = metadata,
             sequence = sequence,
             occurredAt = occurredAt,
         )

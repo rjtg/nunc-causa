@@ -1,0 +1,107 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-issue-projections
+      author: codex
+      changes:
+        - createTable:
+            tableName: issue_projection
+            columns:
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: owner
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phase_count
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: issue_phase_projection
+            columns:
+              - column:
+                  name: phase_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignee
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: issue_task_projection
+            columns:
+              - column:
+                  name: task_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: phase_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignee
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false

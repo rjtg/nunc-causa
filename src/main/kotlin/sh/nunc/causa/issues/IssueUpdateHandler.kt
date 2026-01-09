@@ -6,10 +6,12 @@ import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
 import sh.nunc.causa.eventstore.EventStore
+import sh.nunc.causa.reporting.IssueProjectionUpdater
 
 @Service
 class IssueUpdateHandler(
     private val eventStore: EventStore,
+    private val projectionUpdater: IssueProjectionUpdater,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -88,6 +90,9 @@ class IssueUpdateHandler(
             expectedSequence = currentSequence,
             events = listOf(record),
         )
+
+        val issue = loadIssue(issueId)
+        projectionUpdater.rebuild(issue)
     }
 
     private fun loadIssue(issueId: IssueId): Issue {

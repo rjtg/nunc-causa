@@ -39,14 +39,15 @@ class PostgresEventStore(
         }, aggregateId)
     }
 
-    override fun listAggregateIds(): List<String> {
+    override fun listAggregateIds(aggregateType: String): List<String> {
         val sql = """
             select distinct aggregate_id
             from events
+            where metadata ->> 'aggregateType' = ?
             order by aggregate_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ -> rs.getString("aggregate_id") }
+        return jdbcTemplate.query(sql, { rs, _ -> rs.getString("aggregate_id") }, aggregateType)
     }
 
     override fun appendToStream(

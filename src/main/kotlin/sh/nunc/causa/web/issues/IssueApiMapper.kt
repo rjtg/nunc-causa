@@ -1,18 +1,18 @@
 package sh.nunc.causa.web.issues
 
-import sh.nunc.causa.issues.Issue
-import sh.nunc.causa.issues.Phase
 import sh.nunc.causa.issues.PhaseStatus
-import sh.nunc.causa.issues.Task
 import sh.nunc.causa.issues.TaskStatus
+import sh.nunc.causa.reporting.IssueProjection
+import sh.nunc.causa.reporting.PhaseProjection
+import sh.nunc.causa.reporting.TaskProjection
 import sh.nunc.causa.web.model.IssueResponse
 import sh.nunc.causa.web.model.IssueSummary
 import sh.nunc.causa.web.model.PhaseResponse
 import sh.nunc.causa.web.model.TaskResponse
 
-fun Issue.toResponse(): IssueResponse {
+fun IssueProjection.toResponse(): IssueResponse {
     return IssueResponse(
-        id = id.value,
+        id = id,
         title = title,
         owner = owner,
         projectId = projectId,
@@ -21,27 +21,18 @@ fun Issue.toResponse(): IssueResponse {
     )
 }
 
-fun Issue.toSummary(): IssueSummary {
+fun IssueProjection.toSummary(): IssueSummary {
     return IssueSummary(
-        id = id.value,
+        id = id,
         title = title,
         owner = owner,
         projectId = projectId,
-        phaseCount = phases.size,
-        status = phases.toIssueStatus().toIssueStatusEnum(),
+        phaseCount = phaseCount,
+        status = status.toIssueStatusEnum(),
     )
 }
 
-private fun List<Phase>.toIssueStatus(): PhaseStatus {
-    if (isEmpty()) return PhaseStatus.NOT_STARTED
-    return when {
-        all { it.status == PhaseStatus.DONE } -> PhaseStatus.DONE
-        all { it.status == PhaseStatus.NOT_STARTED } -> PhaseStatus.NOT_STARTED
-        else -> PhaseStatus.IN_PROGRESS
-    }
-}
-
-private fun Phase.toResponse(): PhaseResponse {
+private fun PhaseProjection.toResponse(): PhaseResponse {
     return PhaseResponse(
         id = id,
         name = name,
@@ -51,7 +42,7 @@ private fun Phase.toResponse(): PhaseResponse {
     )
 }
 
-private fun Task.toResponse(): TaskResponse {
+private fun TaskProjection.toResponse(): TaskResponse {
     return TaskResponse(
         id = id,
         title = title,
