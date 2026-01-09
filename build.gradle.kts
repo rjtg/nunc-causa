@@ -1,6 +1,7 @@
 plugins {
     id("org.springframework.boot") version "3.2.5"
     id("io.spring.dependency-management") version "1.1.4"
+    id("org.openapi.generator") version "7.5.0"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
 }
@@ -33,6 +34,7 @@ dependencies {
     implementation("org.liquibase:liquibase-core")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("jakarta.validation:jakarta.validation-api:3.0.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
@@ -45,4 +47,36 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+val openApiSpec = layout.projectDirectory.file("src/main/resources/openapi/causa-api.yaml")
+val openApiOutputDir = layout.buildDirectory.dir("generated/openapi")
+
+openApiGenerate {
+    generatorName.set("kotlin-spring")
+    inputSpec.set(openApiSpec.asFile.absolutePath)
+    outputDir.set(openApiOutputDir.get().asFile.absolutePath)
+    apiPackage.set("sh.nunc.causa.web.api")
+    modelPackage.set("sh.nunc.causa.web.model")
+    invokerPackage.set("sh.nunc.causa.web.invoker")
+    configOptions.set(
+        mapOf(
+            "interfaceOnly" to "true",
+            "useTags" to "true",
+            "enumPropertyNaming" to "UPPERCASE",
+            "useSpringBoot3" to "true",
+            "dateLibrary" to "java8",
+            "serializationLibrary" to "jackson",
+        ),
+    )
+}
+
+sourceSets {
+    main {
+        kotlin.srcDir(openApiOutputDir.map { it.dir("src/main/kotlin") })
+    }
+}
+
+tasks.named("compileKotlin") {
+    dependsOn("openApiGenerate")
 }

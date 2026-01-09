@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: Causa API
+  version: 0.1.0
+  description: API for issue tracking and phase workflows.
+servers:
+  - url: /
+paths:
+  /issues:
+    post:
+      tags:
+        - Issues
+      summary: Create a new issue
+      operationId: createIssue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIssueRequest'
+      responses:
+        '201':
+          description: Issue created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueResponse'
+    get:
+      tags:
+        - Issues
+      summary: List issues
+      operationId: listIssues
+      responses:
+        '200':
+          description: Issue list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueSummary'
+  /issues/{issueId}:
+    get:
+      tags:
+        - Issues
+      summary: Get issue by id
+      operationId: getIssue
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issue details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueResponse'
+        '404':
+          description: Issue not found
+  /issues/{issueId}/history:
+    get:
+      tags:
+        - Issues
+      summary: Get issue history
+      operationId: getIssueHistory
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issue event history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueHistoryEntry'
+        '404':
+          description: Issue not found
+  /stream/updates:
+    get:
+      tags:
+        - Updates
+      summary: Stream live updates via SSE
+      operationId: streamUpdates
+      responses:
+        '200':
+          description: Server-sent event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+components:
+  schemas:
+    CreateIssueRequest:
+      type: object
+      required:
+        - title
+        - owner
+        - phases
+      properties:
+        title:
+          type: string
+        owner:
+          type: string
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreatePhaseRequest'
+    CreatePhaseRequest:
+      type: object
+      required:
+        - name
+        - assignee
+      properties:
+        name:
+          type: string
+        assignee:
+          type: string
+    IssueResponse:
+      type: object
+      required:
+        - id
+        - title
+        - owner
+        - phases
+        - version
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        owner:
+          type: string
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseResponse'
+        version:
+          type: integer
+          format: int64
+    IssueSummary:
+      type: object
+      required:
+        - id
+        - title
+        - owner
+        - phaseCount
+        - status
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        owner:
+          type: string
+        phaseCount:
+          type: integer
+          format: int32
+        status:
+          type: string
+          enum:
+            - NOT_STARTED
+            - IN_PROGRESS
+            - DONE
+    IssueHistoryEntry:
+      type: object
+      required:
+        - sequence
+        - type
+        - occurredAt
+        - payload
+      properties:
+        sequence:
+          type: integer
+          format: int64
+        type:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+    PhaseResponse:
+      type: object
+      required:
+        - id
+        - name
+        - assignee
+        - status
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        assignee:
+          type: string
+        status:
+          type: string
+          enum:
+            - NOT_STARTED
+            - IN_PROGRESS
+            - DONE
