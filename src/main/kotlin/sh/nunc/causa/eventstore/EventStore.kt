@@ -4,7 +4,7 @@ interface EventStore {
 
     fun loadStream(aggregateId: String): List<EventRecord>
 
-    fun listAggregateIds(): List<String>
+    fun listAggregateIds(aggregateType: String): List<String>
 
     fun appendToStream(
         aggregateId: String,

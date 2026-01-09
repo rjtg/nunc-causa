@@ -8,8 +8,9 @@ import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
 import sh.nunc.causa.issues.IssueCommandHandler
 import sh.nunc.causa.issues.IssueId
-import sh.nunc.causa.issues.IssueReadService
 import sh.nunc.causa.issues.IssueUpdateHandler
+import sh.nunc.causa.reporting.IssueProjectionReader
+import sh.nunc.causa.reporting.IssueProjection
 import sh.nunc.causa.web.api.IssuesApi
 import sh.nunc.causa.web.model.AddPhaseRequest
 import sh.nunc.causa.web.model.AddTaskRequest
@@ -23,7 +24,7 @@ import sh.nunc.causa.web.model.IssueSummary
 class IssuesController(
     private val issueCommandHandler: IssueCommandHandler,
     private val issueUpdateHandler: IssueUpdateHandler,
-    private val issueReadService: IssueReadService,
+    private val issueProjectionReader: IssueProjectionReader,
 ) : IssuesApi {
 
     override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueResponse> {
@@ -41,7 +42,7 @@ class IssuesController(
             ),
         )
 
-        val issue = issueReadService.getIssue(issueId)
+        val issue = loadIssue(issueId.value)
         return ResponseEntity.status(HttpStatus.CREATED).body(issue.toResponse())
     }
 
@@ -55,7 +56,7 @@ class IssuesController(
         member: String?,
         projectId: String?,
     ): ResponseEntity<List<IssueSummary>> {
-        val issues = issueReadService.listIssues(owner, assignee, member, projectId)
+        val issues = issueProjectionReader.listIssues(owner, assignee, member, projectId)
         return ResponseEntity.ok(issues.map { it.toSummary() })
     }
 
@@ -112,8 +113,9 @@ class IssuesController(
         return ResponseEntity.ok(loadIssue(issueId).toResponse())
     }
 
-    private fun loadIssue(issueId: String) = withNotFound {
-        issueReadService.getIssue(IssueId(issueId))
+    private fun loadIssue(issueId: String): IssueProjection = withNotFound {
+        issueProjectionReader.getIssue(IssueId(issueId))
+            ?: throw NoSuchElementException("Issue $issueId not found")
     }
 
     private fun <T> withNotFound(block: () -> T): T {
