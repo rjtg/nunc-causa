@@ -115,6 +115,13 @@ Each module should:
 
 ---
 
+## Testing
+- Use JUnit for unit and integration tests
+- Use MockK for mocking in Kotlin-focused tests
+- Add end-to-end tests as the API stabilizes
+
+---
+
 ## Future Roadmap (Non-binding)
 - Add comments and attachments
 - User groups / permissions
