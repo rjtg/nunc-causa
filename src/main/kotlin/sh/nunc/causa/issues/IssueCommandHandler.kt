@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service
 data class CreateIssueCommand(
     val title: String,
     val owner: String,
+    val projectId: String?,
     val phases: List<CreatePhaseCommand>,
 )
 
@@ -39,6 +40,7 @@ class IssueCommandHandler(
                     issueId = issueId.value,
                     title = command.title,
                     owner = command.owner,
+                    projectId = command.projectId,
                 ),
                 occurredAt = occurredAt,
             ),
