@@ -24,19 +24,19 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Implement `PostgresEventStore` using Spring JDBC template
 [x] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
 [x] Add optimistic concurrency version check
-[x] Wire EventStore via `@Profile("dev")`
+[x] Wire EventStore via `@Profile("postgres")`
 
 ---
 
 ## Domain: Issues and Phases
 
-[ ] Define Issue aggregate class
-[ ] Define Issue identifier value type
-[ ] Define Phase entity model + status enum
-[ ] Add `IssueCreated` and `PhaseAdded` domain events
-[ ] Add command handler service for creating an issue
-[ ] Store events via EventStore
-[ ] Test rebuilding Issue aggregate from event stream
+[x] Define Issue aggregate class
+[x] Define Issue identifier value type
+[x] Define Phase entity model + status enum
+[x] Add `IssueCreated` and `PhaseAdded` domain events
+[x] Add command handler service for creating an issue
+[x] Store events via EventStore
+[x] Test rebuilding Issue aggregate from event stream
 
 ---
 
