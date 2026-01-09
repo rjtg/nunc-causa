@@ -35,6 +35,7 @@ dependencies {
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("dev.failsafe:failsafe:3.3.2")
     implementation("jakarta.validation:jakarta.validation-api:3.0.2")
     implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.22")
     implementation("io.swagger.core.v3:swagger-models-jakarta:2.2.22")

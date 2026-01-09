@@ -6,12 +6,12 @@ import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
 import sh.nunc.causa.eventstore.EventStore
-import sh.nunc.causa.reporting.IssueProjectionUpdater
+import sh.nunc.causa.reporting.ProjectionRebuildService
 
 @Service
 class IssueUpdateHandler(
     private val eventStore: EventStore,
-    private val projectionUpdater: IssueProjectionUpdater,
+    private val projectionRebuildService: ProjectionRebuildService,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -92,22 +92,7 @@ class IssueUpdateHandler(
         )
 
         val issue = loadIssue(issueId)
-        rebuildProjection(issue)
-    }
-
-    private fun rebuildProjection(issue: Issue) {
-        var attempt = 0
-        var lastError: Exception? = null
-        while (attempt < 3) {
-            try {
-                projectionUpdater.rebuild(issue)
-                return
-            } catch (ex: Exception) {
-                lastError = ex
-                attempt += 1
-            }
-        }
-        throw IllegalStateException("Failed to rebuild issue projection after retries", lastError)
+        projectionRebuildService.rebuildIssue(issue)
     }
 
     private fun loadIssue(issueId: IssueId): Issue {

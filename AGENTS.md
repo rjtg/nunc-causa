@@ -30,6 +30,10 @@
 - Before updating an existing PR, verify it is still open (e.g., `gh pr view <number>` or `gh pr status`).
 - PRs should describe the change, reference related tasks in `TODO_Codex.md`, and note any new endpoints or migrations.
 
+## Reliability & Operations Notes
+- Use Failsafe (`dev.failsafe:failsafe`) for retry/fallback policies around projection rebuilds.
+- Projection management operations are exposed via Actuator endpoints (e.g., `/actuator/issue-projections`).
+
 ## Architecture Overview
 - The system is an event-sourced modular monolith using Spring Modulith.
 - Event storage is currently a Postgres-backed implementation; see `sh/nunc/causa/eventstore`.

@@ -51,6 +51,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
 [x] Add controller tests for issue endpoints and filters
+[x] Add actuator endpoint for projection management (rebuild)
 
 ---
 
@@ -69,6 +70,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add repository for reading list projections
 [x] Add projection rebuild job for existing event streams
 [x] Ensure projection updates are reliable (retry/outbox/async rebuild)
+[x] Use Failsafe policies for projection rebuild retries/fallbacks
 
 ---
 

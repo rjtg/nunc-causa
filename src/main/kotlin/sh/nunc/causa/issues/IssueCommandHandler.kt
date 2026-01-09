@@ -6,7 +6,7 @@ import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
-import sh.nunc.causa.reporting.IssueProjectionUpdater
+import sh.nunc.causa.reporting.ProjectionRebuildService
 
 data class CreateIssueCommand(
     val title: String,
@@ -23,7 +23,7 @@ data class CreatePhaseCommand(
 @Service
 class IssueCommandHandler(
     private val eventStore: EventStore,
-    private val projectionUpdater: IssueProjectionUpdater,
+    private val projectionRebuildService: ProjectionRebuildService,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -73,23 +73,8 @@ class IssueCommandHandler(
 
         val history = eventStore.loadStream(issueId.value)
         val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
-        rebuildProjection(issue)
+        projectionRebuildService.rebuildIssue(issue)
 
         return issueId
-    }
-
-    private fun rebuildProjection(issue: Issue) {
-        var attempt = 0
-        var lastError: Exception? = null
-        while (attempt < 3) {
-            try {
-                projectionUpdater.rebuild(issue)
-                return
-            } catch (ex: Exception) {
-                lastError = ex
-                attempt += 1
-            }
-        }
-        throw IllegalStateException("Failed to rebuild issue projection after retries", lastError)
     }
 }
