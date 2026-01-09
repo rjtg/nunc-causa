@@ -69,8 +69,8 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Create projection updater reacting to events
 [x] Add repository for reading list projections
 [x] Add projection rebuild job for existing event streams
-[x] Ensure projection updates are reliable (retry/outbox/async rebuild)
-[x] Use Failsafe policies for projection rebuild retries/fallbacks
+[x] Ensure projection updates have retry policies
+[ ] Add fallback strategy for projection rebuild failures (outbox/async queue)
 
 ---
 

@@ -49,7 +49,7 @@ Implementation language: Kotlin
   - Per-aggregate event streams
   - Optimistic concurrency via versioning
 - Projection tables managed by the reporting module
-- Projection rebuilds use Failsafe retry policies and can be triggered via Actuator management endpoints
+- Projection rebuilds use Failsafe retry policies and can be triggered via Actuator management endpoints; fallback/outbox remains TODO
 - Projection rebuild endpoints require a dedicated permission (e.g., `PROJECTION_MANAGE`)
 - Alternate event stores may be plugged in via Spring profiles
 
