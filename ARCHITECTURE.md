@@ -50,6 +50,7 @@ Implementation language: Kotlin
   - Optimistic concurrency via versioning
 - Projection tables managed by the reporting module
 - Projection rebuilds use Failsafe retry policies and can be triggered via Actuator management endpoints
+- Projection rebuild endpoints require a dedicated permission (e.g., `PROJECTION_MANAGE`)
 - Alternate event stores may be plugged in via Spring profiles
 
 ### Frontend Integration
@@ -129,4 +130,3 @@ Each module should:
 - Evolutionary path toward more distributed event processing
 - Human-friendly API surface
 - Full traceability of issue development
-
