@@ -11,7 +11,7 @@ import sh.nunc.causa.issues.IssueEventMapper
 import sh.nunc.causa.issues.IssueEventTypes
 
 @Component
-@Endpoint(id = "issue-projections")
+@Endpoint(id = "issueprojections")
 class IssueProjectionManagementEndpoint(
     private val eventStore: EventStore,
     private val projectionRebuildService: ProjectionRebuildService,

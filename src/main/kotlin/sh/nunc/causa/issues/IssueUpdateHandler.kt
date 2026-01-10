@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import sh.nunc.causa.eventstore.EventStore
 import sh.nunc.causa.reporting.ProjectionRebuildService
@@ -12,6 +13,7 @@ import sh.nunc.causa.reporting.ProjectionRebuildService
 class IssueUpdateHandler(
     private val eventStore: EventStore,
     private val projectionRebuildService: ProjectionRebuildService,
+    private val eventPublisher: ApplicationEventPublisher,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -93,6 +95,7 @@ class IssueUpdateHandler(
 
         val issue = loadIssue(issueId)
         projectionRebuildService.rebuildIssue(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(issueId.value))
     }
 
     private fun loadIssue(issueId: IssueId): Issue {

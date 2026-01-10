@@ -57,9 +57,9 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Real-Time Updates
 
-[ ] Create `/stream/updates` SSE endpoint
-[ ] Create UiUpdatePublisher listening for domain/application events
-[ ] Push minimal `ISSUE_UPDATED` events to connected sessions
+[x] Create `/stream/updates` SSE endpoint
+[x] Create UiUpdatePublisher listening for domain/application events
+[x] Push minimal `ISSUE_UPDATED` events to connected sessions
 
 ---
 

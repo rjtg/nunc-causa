@@ -20,6 +20,7 @@ import sh.nunc.causa.reporting.IssueProjectionReader
 import sh.nunc.causa.reporting.PhaseProjection
 
 @WebMvcTest(IssuesController::class)
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
 class IssuesControllerTest(
     @Autowired private val mockMvc: MockMvc,
 ) {

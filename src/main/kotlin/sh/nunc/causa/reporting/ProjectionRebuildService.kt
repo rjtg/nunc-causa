@@ -18,8 +18,8 @@ class ProjectionRebuildService(
         .build()
 
     fun rebuildIssue(issue: Issue) {
-        Failsafe.with(retryPolicy).run {
+        Failsafe.with(retryPolicy).run(dev.failsafe.function.CheckedRunnable {
             projectionUpdater.rebuild(issue)
-        }
+        })
     }
 }

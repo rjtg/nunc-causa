@@ -1,5 +1,6 @@
 package sh.nunc.causa.web
 
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.Customizer
@@ -12,12 +13,12 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                csrf.ignoringRequestMatchers("/actuator/**")
+                csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint())
             }
             .authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    .requestMatchers("/actuator/issue-projections/**").hasAuthority("PROJECTION_MANAGE")
+                    .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                    .requestMatchers(EndpointRequest.to("issueprojections")).hasAuthority("PROJECTION_MANAGE")
                     .anyRequest().permitAll()
             }
             .httpBasic(Customizer.withDefaults())
