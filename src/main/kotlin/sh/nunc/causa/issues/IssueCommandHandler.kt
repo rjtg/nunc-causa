@@ -1,11 +1,12 @@
 package sh.nunc.causa.issues
 
-import sh.nunc.causa.eventstore.EventStore
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
+import sh.nunc.causa.eventstore.EventStore
 import sh.nunc.causa.reporting.ProjectionRebuildService
 
 data class CreateIssueCommand(
@@ -24,6 +25,7 @@ data class CreatePhaseCommand(
 class IssueCommandHandler(
     private val eventStore: EventStore,
     private val projectionRebuildService: ProjectionRebuildService,
+    private val eventPublisher: ApplicationEventPublisher,
     private val objectMapper: ObjectMapper,
     private val clock: Clock = Clock.systemUTC(),
 ) {
@@ -74,6 +76,7 @@ class IssueCommandHandler(
         val history = eventStore.loadStream(issueId.value)
         val issue = Issue.rehydrate(history.map { eventMapper.toEnvelope(it) })
         projectionRebuildService.rebuildIssue(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(issueId.value))
 
         return issueId
     }

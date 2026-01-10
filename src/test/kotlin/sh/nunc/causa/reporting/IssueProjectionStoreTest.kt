@@ -20,6 +20,9 @@ import sh.nunc.causa.issues.TaskStatus
     properties = ["spring.liquibase.enabled=false"],
 )
 class IssueProjectionStoreTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private lateinit var eventStore: sh.nunc.causa.eventstore.EventStore
+
     @org.springframework.beans.factory.annotation.Autowired
     private lateinit var jdbcTemplate: JdbcTemplate
 

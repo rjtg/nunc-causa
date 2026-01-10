@@ -32,7 +32,7 @@
 
 ## Reliability & Operations Notes
 - Use Failsafe (`dev.failsafe:failsafe`) for retry/fallback policies around projection rebuilds.
-- Projection management operations are exposed via Actuator endpoints (e.g., `/actuator/issue-projections`) and require `PROJECTION_MANAGE`.
+- Projection management operations are exposed via Actuator endpoints (e.g., `/actuator/issueprojections`) and require `PROJECTION_MANAGE`.
 
 ## Architecture Overview
 - The system is an event-sourced modular monolith using Spring Modulith.
