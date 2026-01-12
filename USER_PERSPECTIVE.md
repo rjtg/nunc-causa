@@ -117,6 +117,12 @@ Each persona enters the system with different goals and expectations.
 
 Avoid overwhelming any user with unnecessary detail.
 
+**De-risking blind spots:**  
+Keep the lane-focused “My Work”, but always include a one-click **Context** panel that shows:
+- upstream/downstream dependencies
+- current phase, blockers, assignees
+- last 5 activity events
+
 ### 2.2 Process is Automatic, Driven by Phase Status
 Examples:
 - Dev finish → Causa transitions to Acceptance Testing automatically
@@ -124,18 +130,23 @@ Examples:
 
 Users nudge **their** part forward; they do not manage the whole flow.
 
-### 2.3 Everything is Real-Time
-Changes appear instantly via:
-- SSE push updates
-- Global freshness indicators
-
-No manual refresh mental tax.
+### 2.3 Real-Time Is Optional, Not Default
+Default to polling for most screens and use SSE only where it clearly matters
+(queues, active issue page). When SSE is enabled, show a **Last updated** timestamp
+and re-fetch on reconnect to ensure eventual UI correctness.
 
 ### 2.4 History is Transparent but Unobtrusive
 Users browse the timeline:
 - Who changed what, and when?
 - Why is this phase blocked?
 - What reverted last week?
+
+**De-risking signal vs noise:**  
+Keep two layers of history:
+- **Activity feed (domain meaningful):** e.g., “QA failed”, “Phase reopened”, “Owner changed rollout plan”
+- **Audit trail (technical):** field diffs and who changed what
+
+Keep them separate in UI and storage.
 
 ### 2.5 Ownership is Clear
 - One accountable owner

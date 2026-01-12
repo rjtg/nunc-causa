@@ -165,8 +165,10 @@ Examples of read models:
     - phases with assignees and statuses
     - dev tasks per phase
 
-- **Issue history projection**:
-  - human-readable changelog derived from events.
+- **Activity feed**:
+  - domain-meaningful timeline (e.g., QA failed, phase reopened)
+- **Audit trail**:
+  - technical history from Envers (field diffs and who changed what)
 
 - **Per-user work views**:
   - dev tasks assigned to a developer,
@@ -197,9 +199,13 @@ The external interface is a REST API. Typical endpoints:
 
 REST responses should be based on **read models**, not raw audit logs.
 
-### 5.2 Live update via SSE
+### 5.2 Live update via SSE (optional)
 
-There is an SSE endpoint like `/stream/updates` that pushes updates to clients.
+Default to polling (ETags or short polling) and add SSE only where it clearly
+matters (queues, active issue page). If SSE is enabled, show a **Last updated**
+timestamp and re-fetch on reconnect to ensure eventual UI correctness.
+
+An SSE endpoint like `/stream/updates` can push updates to clients.
 
 Typical SSE messages include:
 

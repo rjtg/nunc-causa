@@ -23,7 +23,7 @@ role-specific responsibilities, and maintains a complete audit trail.
 - **Automation is optional**: per-issue opt-in controls whether transitions are automatic or manual.
 - **Modular monolith** using Spring Modulith.
 - **REST** is used for external interaction (OpenAPI documented).
-- **SSE (Server-Sent Events)** delivers live UI updates.
+- **SSE (Server-Sent Events)** is optional; default to polling with ETags and add SSE only where needed.
 - Persistence is **pluggable** so storage can evolve.
 
 ---
@@ -76,6 +76,9 @@ Each module should:
 ### Audit History
 - Envers captures entity revisions for issue/phase/task history
 - History views are derived from audit tables
+
+### Activity Feed
+- Domain-meaningful activity feed derived from application events (separate from audit trail)
 
 ### Search Indexing
 - Hibernate Search provides full-text search across issues, phases, and tasks
