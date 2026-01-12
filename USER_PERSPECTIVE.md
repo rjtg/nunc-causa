@@ -1,0 +1,280 @@
+# Causa — User Perspective & Usage Philosophy
+
+This document describes how different users experience Causa, what they care about, and how they interact with issues, phases, and tasks.
+
+It focuses on real-world workflow rather than domain model.
+
+---
+
+## 1. User Personas (Mental Models)
+
+Causa revolves around four main user personas.  
+Each persona enters the system with different goals and expectations.
+
+---
+
+### 1.1 Responsible Owner (the “Issue Owner”)
+
+**Mental model:**  
+“I’m accountable for making sure this issue gets solved, even if others do most of the work.”
+
+**Primary needs:**
+- Create issues
+- Define phases (based on templates)
+- Assign people to phases
+- Monitor progress across all roles
+- Unblock problems / chase stakeholders
+- Close the issue when everything is done
+
+**Key UI touchpoints:**
+- Issue dashboard: all owned issues with health indicators
+- Issue detail: timeline, phases, assignees, blockers
+- Phase configuration editor
+
+**Pain avoided:**
+- No manual update chasing
+- No scattered information
+- Visibility and control without micromanaging
+
+---
+
+### 1.2 Developer
+
+**Mental model:**  
+“I need to know which fix I have to implement today.”
+
+**Primary needs:**
+- See just the relevant development phase
+- Clear task list with status
+- Understand requirements/acceptance criteria from upstream phase
+- Mark tasks in progress/done
+- Report blockers/questions (comments later)
+
+**Key UI touchpoints:**
+- My Work → Developer Tasks
+- Phase task list
+- Lightweight task detail
+
+**Pain avoided:**
+- No forced visibility into the whole process
+- No ambiguous tasks
+- Automatic progress acknowledgment
+
+---
+
+### 1.3 Tester (Acceptance / QA)
+
+**Mental model:**  
+“I verify the fix actually solves the problem.”
+
+**Primary needs:**
+- Know when testing is ready to start
+- See instructions or acceptance criteria
+- Report failure quickly (regression loop)
+- Approve a phase when satisfied
+
+**Key touchpoints:**
+- My Work → Testing Queue
+- Acceptance phase page
+- One-click: “Pass”, “Fail/Return to dev”
+
+**Pain avoided:**
+- No stale testing tasks
+- No context hunting
+- System tells them when to start
+
+---
+
+### 1.4 Rollout Manager
+
+**Mental model:**  
+“I handle the deployment into the real world.”
+
+**Primary needs:**
+- Preview approved/ready work
+- Confirm rollout readiness
+- Execute staged rollout (if scope included)
+- Mark rollout done
+
+**Touchpoints:**
+- My Work → Rollout Tasks
+- Rollout phase detail
+- Optional checklist (configurable)
+
+**Pain avoided:**
+- No ambiguity about testing completion
+- No risk deploying the wrong version
+
+---
+
+## 2. Core UX Principles
+
+### 2.1 Users See Their Lens of the Issue
+- Developers see tasks  
+- Testers see validation  
+- Rollout sees deployment  
+- Owners see the full map
+
+Avoid overwhelming any user with unnecessary detail.
+
+### 2.2 Process is Automatic, Driven by Phase Status
+Examples:
+- Dev finish → Causa transitions to Acceptance Testing automatically
+- Tester approval → Rollout becomes actionable
+
+Users nudge **their** part forward; they do not manage the whole flow.
+
+### 2.3 Everything is Real-Time
+Changes appear instantly via:
+- SSE push updates
+- Global freshness indicators
+
+No manual refresh mental tax.
+
+### 2.4 History is Transparent but Unobtrusive
+Users browse the timeline:
+- Who changed what, and when?
+- Why is this phase blocked?
+- What reverted last week?
+
+### 2.5 Ownership is Clear
+- One accountable owner
+- Distributed responsibility across roles
+- No invisible responsibility zones
+
+---
+
+## 3. Key UI Surfaces
+
+### 3.1 Home: “My Work”
+Personalized, role-aware.  
+Tiles or tabs:
+- Development Tasks
+- Testing Queue
+- Rollout Queue
+- My Owned Issues
+- Recently Updated
+
+Where most users start their day.
+
+### 3.2 Issue List
+For owners and coordinators:
+- Filter by status (Analysis, Dev, Test, Rollout, Done)
+- Red flags if blockers/regressions
+- Live attributes (phase count, completion %)
+
+Useful for triage.
+
+### 3.3 Issue Detail View
+The nervous system.
+
+Sections:
+- Overview (status + next action)
+- Phases lane (timeline or columns)
+- Tasks under phases
+- Comments/log (optional later)
+- Event history
+- Configuration (owners)
+
+Visual cues show:
+- What’s done
+- What’s active
+- What’s waiting
+- What’s blocked
+
+### 3.4 Phase View
+Single-phase deep dive:
+- Assignee + role
+- Status
+- Tasks
+- Checklist / inputs
+- “Start → Progress → Done”
+
+This is the dev/tester workspace.
+
+### 3.5 Activity Stream (Optional Later)
+Light feed:
+- Task completions
+- Phase failures
+- Rollout start
+Aligned with event sourcing.
+
+---
+
+## 4. Example User Journeys
+
+### 4.1 Create & Run an Issue (Owner)
+1. Create new issue
+2. Title + description
+3. Select workflow template
+4. Assign roles to phases
+5. Dev tasks appear
+6. Testing/rollout trigger automatically
+7. Owner closes after last phase
+
+Owner configures — others execute.
+
+### 4.2 Developer Daily Flow
+- Open My Work
+- “2 in progress, 3 to do”
+- Work → mark done
+- Acceptance triggers
+- Move to next task
+
+Developer never touches rollout/testing unless they choose to look.
+
+### 4.3 Tester Flow
+- My Work → Acceptance Queue
+- Blockers fall away automatically
+- Pass → Moves to rollout  
+- Fail → Returns to dev + logs event
+
+Tester never asks “Is it ready?”
+
+### 4.4 Rollout Flow
+- Rollout phase turns ready
+- View checklist
+- Mark done
+- Issue nearly wrapped
+
+### 4.5 What Happens on Failure
+- Tester fails → Dev reopens
+- Owner notified
+- Status rolls back
+- UI shows “Returned to development”
+
+Users see only what is relevant.
+
+---
+
+## 5. What Users Should Never Have to Do
+- Manually set issue status
+- Guess who to notify
+- Change unrelated phases
+- Recreate work already captured
+- Stitch together Slack/Excel/Word
+
+Causa provides structure so humans solve problems.
+
+---
+
+## 6. Long-Term UX Spine (Future)
+Not required up front, but aligned:
+
+- Saved templates per team
+- Workload balancing (e.g., QA overloaded)
+- SLA timers
+- Comments, attachments
+- Risk/severity metadata
+- Incident timelines
+- ML suggestions
+- Structured retrospectives (e.g., 8D)
+
+Optional growth directions.
+
+---
+
+## 7. Summary in One Line
+
+> **Causa is an opinionated process tool where each user sees only the work that is theirs —  
+> but the owner sees the whole story.**
