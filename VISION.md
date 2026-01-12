@@ -218,7 +218,7 @@ Typical SSE messages include:
 - `ISSUE_UPDATED`
 - `PHASE_STATUS_CHANGED`
 - `TASK_STATUS_CHANGED`
-- (later) `NEW_COMMENT`
+- `NEW_COMMENT`
 
 These messages are triggered by domain/application events. The UI is responsible
 for updating its local state accordingly, but the structure of the messages

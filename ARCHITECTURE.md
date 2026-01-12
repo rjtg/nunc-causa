@@ -129,7 +129,7 @@ Each module should:
   - ISSUE_UPDATED
   - PHASE_STATUS_CHANGED
   - TASK_STATUS_CHANGED
-  - NEW_COMMENT (later)
+  - NEW_COMMENT
 
 ---
 

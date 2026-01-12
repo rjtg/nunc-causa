@@ -60,7 +60,7 @@ other role types and queue views.
 - Clear task list with status
 - Understand requirements/acceptance criteria from upstream phase
 - Mark tasks in progress/done
-- Report blockers/questions (comments later)
+- Report blockers/questions via discussion thread
 
 **Key UI touchpoints:**
 - My Work → Developer Tasks
@@ -196,7 +196,7 @@ Sections:
 - Overview (status + next action)
 - Phases lane (timeline or columns)
 - Tasks under phases
-- Comments/log (optional later)
+- Comments/log (team discussion channel)
 - Event history
 - Configuration (owners)
 
@@ -288,7 +288,7 @@ Not required up front, but aligned:
 - Saved templates per team
 - Workload balancing (e.g., QA overloaded)
 - SLA timers
-- Comments, attachments
+- Attachments
 - Risk/severity metadata
 - Incident timelines
 - ML suggestions
