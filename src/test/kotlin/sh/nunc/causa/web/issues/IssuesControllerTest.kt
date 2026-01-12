@@ -15,6 +15,7 @@ import sh.nunc.causa.issues.IssueEntity
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.PhaseEntity
+import sh.nunc.causa.users.UserEntity
 
 @WebMvcTest(IssuesController::class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
@@ -26,10 +27,11 @@ class IssuesControllerTest(
 
     @Test
     fun `lists issues with filters`() {
+        val owner = UserEntity(id = "alice", displayName = "Alice Example")
         val issue = IssueEntity(
             id = "issue-1",
             title = "Test",
-            owner = "alice",
+            owner = owner,
             projectId = null,
             status = PhaseStatus.IN_PROGRESS.name,
         )
@@ -63,10 +65,11 @@ class IssuesControllerTest(
             projectId = "project-1",
             phases = emptyList(),
         )
+        val owner = UserEntity(id = "bob", displayName = "Bob Example")
         val issue = IssueEntity(
             id = "issue-2",
             title = "New",
-            owner = "bob",
+            owner = owner,
             projectId = "project-1",
             status = PhaseStatus.NOT_STARTED.name,
         )
@@ -91,10 +94,12 @@ class IssuesControllerTest(
 
     @Test
     fun `adds a phase to issue`() {
+        val owner = UserEntity(id = "alice", displayName = "Alice Example")
+        val assignee = UserEntity(id = "bob", displayName = "Bob Example")
         val issue = IssueEntity(
             id = "issue-3",
             title = "Phase",
-            owner = "alice",
+            owner = owner,
             projectId = null,
             status = PhaseStatus.IN_PROGRESS.name,
         )
@@ -102,7 +107,7 @@ class IssuesControllerTest(
             PhaseEntity(
                 id = "phase-1",
                 name = "Investigation",
-                assignee = "bob",
+                assignee = assignee,
                 status = PhaseStatus.IN_PROGRESS.name,
                 kind = null,
                 issue = issue,
@@ -126,10 +131,11 @@ class IssuesControllerTest(
 
     @Test
     fun `assigns phase assignee`() {
+        val owner = UserEntity(id = "alice", displayName = "Alice Example")
         val issue = IssueEntity(
             id = "issue-4",
             title = "Assignee",
-            owner = "alice",
+            owner = owner,
             projectId = null,
             status = PhaseStatus.IN_PROGRESS.name,
         )

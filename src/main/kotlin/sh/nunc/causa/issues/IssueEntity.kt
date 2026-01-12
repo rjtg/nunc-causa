@@ -5,9 +5,12 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.envers.Audited
+import sh.nunc.causa.users.UserEntity
 
 @Entity
 @Audited
@@ -20,8 +23,9 @@ class IssueEntity(
     @Column(name = "title", nullable = false)
     var title: String,
 
-    @Column(name = "owner", nullable = false)
-    var owner: String,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    var owner: UserEntity,
 
     @Column(name = "project_id")
     var projectId: String?,

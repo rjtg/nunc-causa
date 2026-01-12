@@ -4,67 +4,24 @@ databaseChangeLog:
       author: codex
       changes:
         - createTable:
-            tableName: orgs
+            tableName: users
             columns:
               - column:
-                  name: org_id
+                  name: user_id
                   type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: name
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-        - createTable:
-            tableName: teams
-            columns:
-              - column:
-                  name: team_id
-                  type: varchar(255)
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: org_id
+                  name: display_name
                   type: varchar(255)
                   constraints:
                     nullable: false
               - column:
-                  name: parent_team_id
+                  name: email
                   type: varchar(255)
                   constraints:
                     nullable: true
-              - column:
-                  name: name
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-        - createTable:
-            tableName: projects
-            columns:
-              - column:
-                  name: project_id
-                  type: varchar(255)
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: org_id
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: team_id
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: name
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
         - createTable:
             tableName: issues
             columns:
@@ -85,7 +42,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: owner
+                  name: owner_id
                   type: varchar(255)
                   constraints:
                     nullable: false
@@ -114,7 +71,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: assignee
+                  name: assignee_id
                   type: varchar(255)
                   constraints:
                     nullable: false
@@ -153,7 +110,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: assignee
+                  name: assignee_id
                   type: varchar(255)
                   constraints:
                     nullable: true
@@ -162,3 +119,189 @@ databaseChangeLog:
                   type: varchar(64)
                   constraints:
                     nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: issue_phases
+            baseColumnNames: issue_id
+            referencedTableName: issues
+            referencedColumnNames: issue_id
+            constraintName: fk_issue_phases_issue
+        - addForeignKeyConstraint:
+            baseTableName: issues
+            baseColumnNames: owner_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_issues_owner
+        - addForeignKeyConstraint:
+            baseTableName: issue_phases
+            baseColumnNames: assignee_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_issue_phases_assignee
+        - addForeignKeyConstraint:
+            baseTableName: issue_tasks
+            baseColumnNames: assignee_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_issue_tasks_assignee
+        - addForeignKeyConstraint:
+            baseTableName: issue_tasks
+            baseColumnNames: phase_id
+            referencedTableName: issue_phases
+            referencedColumnNames: phase_id
+            constraintName: fk_issue_tasks_phase
+        - addForeignKeyConstraint:
+            baseTableName: issue_tasks
+            baseColumnNames: issue_id
+            referencedTableName: issues
+            referencedColumnNames: issue_id
+            constraintName: fk_issue_tasks_issue
+        - createTable:
+            tableName: revinfo
+            columns:
+              - column:
+                  name: rev
+                  type: int
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: revtstmp
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: issues_AUD
+            columns:
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rev
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revtype
+                  type: tinyint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: owner_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+        - addPrimaryKey:
+            tableName: issues_AUD
+            columnNames: issue_id, rev
+            constraintName: pk_issues_aud
+        - createTable:
+            tableName: issue_phases_AUD
+            columns:
+              - column:
+                  name: phase_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rev
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revtype
+                  type: tinyint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: assignee_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: kind
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+        - addPrimaryKey:
+            tableName: issue_phases_AUD
+            columnNames: phase_id, rev
+            constraintName: pk_issue_phases_aud
+        - createTable:
+            tableName: issue_tasks_AUD
+            columns:
+              - column:
+                  name: task_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rev
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revtype
+                  type: tinyint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: phase_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: assignee_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+        - addPrimaryKey:
+            tableName: issue_tasks_AUD
+            columnNames: task_id, rev
+            constraintName: pk_issue_tasks_aud

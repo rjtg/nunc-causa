@@ -14,7 +14,7 @@ fun IssueEntity.toResponse(): IssueResponse {
     return IssueResponse(
         id = id,
         title = title,
-        owner = owner,
+        owner = owner.id,
         projectId = projectId,
         phases = phases.map { it.toResponse() },
         version = 0,
@@ -25,7 +25,7 @@ fun IssueEntity.toSummary(): IssueSummary {
     return IssueSummary(
         id = id,
         title = title,
-        owner = owner,
+        owner = owner.id,
         projectId = projectId,
         phaseCount = phases.size,
         status = status.toIssueStatusEnum(),
@@ -36,7 +36,7 @@ private fun PhaseEntity.toResponse(): PhaseResponse {
     return PhaseResponse(
         id = id,
         name = name,
-        assignee = assignee,
+        assignee = assignee.id,
         status = status.toPhaseStatusEnum(),
         tasks = tasks.map { it.toResponse() },
     )
@@ -46,7 +46,7 @@ private fun TaskEntity.toResponse(): TaskResponse {
     return TaskResponse(
         id = id,
         title = title,
-        assignee = assignee,
+        assignee = assignee?.id,
         status = status.toTaskStatusEnum(),
     )
 }
