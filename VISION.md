@@ -170,10 +170,10 @@ are needed to serve the UI and APIs efficiently.
 
 Examples of read models:
 
-- **Issue list projection**:
+- **Issue list read model**:
   - issue ID, title, responsible, overall status, key phase summary.
 
-- **Issue detail projection**:
+- **Issue detail read model**:
   - full issue state as seen by the UI:
     - metadata
     - phases with assignees and statuses
@@ -190,8 +190,8 @@ Examples of read models:
   - rollouts owned by a rollout manager,
   - issues owned by a responsible person.
 
-You (Codex) can define the necessary projection tables and updater components
-that react to domain events to keep these read models up to date.
+You (Codex) can define the necessary read models and indexing components
+to keep these views efficient and current.
 
 ---
 

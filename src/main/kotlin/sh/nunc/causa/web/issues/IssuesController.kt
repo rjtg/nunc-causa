@@ -6,11 +6,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
-import sh.nunc.causa.issues.IssueCommandHandler
-import sh.nunc.causa.issues.IssueId
-import sh.nunc.causa.issues.IssueUpdateHandler
-import sh.nunc.causa.reporting.IssueProjectionReader
-import sh.nunc.causa.reporting.IssueProjection
+import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.web.api.IssuesApi
 import sh.nunc.causa.web.model.AddPhaseRequest
 import sh.nunc.causa.web.model.AddTaskRequest
@@ -22,13 +18,11 @@ import sh.nunc.causa.web.model.IssueSummary
 
 @RestController
 class IssuesController(
-    private val issueCommandHandler: IssueCommandHandler,
-    private val issueUpdateHandler: IssueUpdateHandler,
-    private val issueProjectionReader: IssueProjectionReader,
+    private val issueService: IssueService,
 ) : IssuesApi {
 
     override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueResponse> {
-        val issueId = issueCommandHandler.createIssue(
+        val issue = issueService.createIssue(
             CreateIssueCommand(
                 title = createIssueRequest.title,
                 owner = createIssueRequest.owner,
@@ -42,7 +36,6 @@ class IssuesController(
             ),
         )
 
-        val issue = loadIssue(issueId.value)
         return ResponseEntity.status(HttpStatus.CREATED).body(issue.toResponse())
     }
 
@@ -56,7 +49,7 @@ class IssuesController(
         member: String?,
         projectId: String?,
     ): ResponseEntity<List<IssueSummary>> {
-        val issues = issueProjectionReader.listIssues(owner, assignee, member, projectId)
+        val issues = issueService.listIssues(owner, assignee, member, projectId)
         return ResponseEntity.ok(issues.map { it.toSummary() })
     }
 
@@ -64,22 +57,22 @@ class IssuesController(
         issueId: String,
         assignOwnerRequest: AssignOwnerRequest,
     ): ResponseEntity<IssueResponse> {
-        withNotFound { issueUpdateHandler.assignOwner(IssueId(issueId), assignOwnerRequest.owner) }
-        return ResponseEntity.ok(loadIssue(issueId).toResponse())
+        val issue = withNotFound { issueService.assignOwner(issueId, assignOwnerRequest.owner) }
+        return ResponseEntity.ok(issue.toResponse())
     }
 
     override fun addPhase(
         issueId: String,
         addPhaseRequest: AddPhaseRequest,
     ): ResponseEntity<IssueResponse> {
-        withNotFound {
-            issueUpdateHandler.addPhase(
-                IssueId(issueId),
+        val issue = withNotFound {
+            issueService.addPhase(
+                issueId,
                 addPhaseRequest.name,
                 addPhaseRequest.assignee,
             )
         }
-        return ResponseEntity.ok(loadIssue(issueId).toResponse())
+        return ResponseEntity.ok(issue.toResponse())
     }
 
     override fun assignPhaseAssignee(
@@ -87,14 +80,14 @@ class IssuesController(
         phaseId: String,
         assignAssigneeRequest: AssignAssigneeRequest,
     ): ResponseEntity<IssueResponse> {
-        withNotFound {
-            issueUpdateHandler.assignPhaseAssignee(
-                IssueId(issueId),
+        val issue = withNotFound {
+            issueService.assignPhaseAssignee(
+                issueId,
                 phaseId,
                 assignAssigneeRequest.assignee,
             )
         }
-        return ResponseEntity.ok(loadIssue(issueId).toResponse())
+        return ResponseEntity.ok(issue.toResponse())
     }
 
     override fun addTask(
@@ -102,20 +95,19 @@ class IssuesController(
         phaseId: String,
         addTaskRequest: AddTaskRequest,
     ): ResponseEntity<IssueResponse> {
-        withNotFound {
-            issueUpdateHandler.addTask(
-                IssueId(issueId),
+        val issue = withNotFound {
+            issueService.addTask(
+                issueId,
                 phaseId,
                 addTaskRequest.title,
                 addTaskRequest.assignee,
             )
         }
-        return ResponseEntity.ok(loadIssue(issueId).toResponse())
+        return ResponseEntity.ok(issue.toResponse())
     }
 
-    private fun loadIssue(issueId: String): IssueProjection = withNotFound {
-        issueProjectionReader.getIssue(IssueId(issueId))
-            ?: throw NoSuchElementException("Issue $issueId not found")
+    private fun loadIssue(issueId: String) = withNotFound {
+        issueService.getIssue(issueId)
     }
 
     private fun <T> withNotFound(block: () -> T): T {

@@ -10,14 +10,11 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
 import org.springframework.test.web.servlet.post
-import sh.nunc.causa.issues.IssueCommandHandler
 import sh.nunc.causa.issues.CreateIssueCommand
-import sh.nunc.causa.issues.IssueId
-import sh.nunc.causa.issues.IssueUpdateHandler
+import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.PhaseStatus
-import sh.nunc.causa.reporting.IssueProjection
-import sh.nunc.causa.reporting.IssueProjectionReader
-import sh.nunc.causa.reporting.PhaseProjection
+import sh.nunc.causa.issues.PhaseEntity
 
 @WebMvcTest(IssuesController::class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
@@ -25,27 +22,18 @@ class IssuesControllerTest(
     @Autowired private val mockMvc: MockMvc,
 ) {
     @MockBean
-    private lateinit var issueCommandHandler: IssueCommandHandler
-
-    @MockBean
-    private lateinit var issueUpdateHandler: IssueUpdateHandler
-
-    @MockBean
-    private lateinit var issueProjectionReader: IssueProjectionReader
+    private lateinit var issueService: IssueService
 
     @Test
     fun `lists issues with filters`() {
-        val issue = IssueProjection(
+        val issue = IssueEntity(
             id = "issue-1",
             title = "Test",
             owner = "alice",
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS,
-            phaseCount = 1,
-            version = 1,
-            phases = emptyList(),
+            status = PhaseStatus.IN_PROGRESS.name,
         )
-        `when`(issueProjectionReader.listIssues("alice", null, null, null)).thenReturn(listOf(issue))
+        `when`(issueService.listIssues("alice", null, null, null)).thenReturn(listOf(issue))
 
         mockMvc.get("/issues") {
             param("owner", "alice")
@@ -59,7 +47,7 @@ class IssuesControllerTest(
 
     @Test
     fun `returns 404 when issue is missing`() {
-        `when`(issueProjectionReader.getIssue(IssueId("missing"))).thenReturn(null)
+        `when`(issueService.getIssue("missing")).thenThrow(NoSuchElementException("Issue missing not found"))
 
         mockMvc.get("/issues/missing")
             .andExpect {
@@ -69,25 +57,20 @@ class IssuesControllerTest(
 
     @Test
     fun `creates issue from request`() {
-        val issueId = IssueId("issue-2")
         val expectedCommand = CreateIssueCommand(
             title = "New",
             owner = "bob",
             projectId = "project-1",
             phases = emptyList(),
         )
-        val projection = IssueProjection(
+        val issue = IssueEntity(
             id = "issue-2",
             title = "New",
             owner = "bob",
             projectId = "project-1",
-            status = PhaseStatus.NOT_STARTED,
-            phaseCount = 0,
-            version = 1,
-            phases = emptyList(),
+            status = PhaseStatus.NOT_STARTED.name,
         )
-        `when`(issueCommandHandler.createIssue(expectedCommand)).thenReturn(issueId)
-        `when`(issueProjectionReader.getIssue(issueId)).thenReturn(projection)
+        `when`(issueService.createIssue(expectedCommand)).thenReturn(issue)
 
         mockMvc.post("/issues") {
             contentType = MediaType.APPLICATION_JSON
@@ -108,25 +91,24 @@ class IssuesControllerTest(
 
     @Test
     fun `adds a phase to issue`() {
-        val projection = IssueProjection(
+        val issue = IssueEntity(
             id = "issue-3",
             title = "Phase",
             owner = "alice",
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS,
-            phaseCount = 1,
-            version = 2,
-            phases = listOf(
-                PhaseProjection(
-                    id = "phase-1",
-                    name = "Investigation",
-                    assignee = "bob",
-                    status = PhaseStatus.IN_PROGRESS,
-                    tasks = emptyList(),
-                ),
+            status = PhaseStatus.IN_PROGRESS.name,
+        )
+        issue.phases.add(
+            PhaseEntity(
+                id = "phase-1",
+                name = "Investigation",
+                assignee = "bob",
+                status = PhaseStatus.IN_PROGRESS.name,
+                kind = null,
+                issue = issue,
             ),
         )
-        `when`(issueProjectionReader.getIssue(IssueId("issue-3"))).thenReturn(projection)
+        `when`(issueService.addPhase("issue-3", "Investigation", "bob")).thenReturn(issue)
 
         mockMvc.post("/issues/issue-3/phases") {
             contentType = MediaType.APPLICATION_JSON
@@ -144,17 +126,14 @@ class IssuesControllerTest(
 
     @Test
     fun `assigns phase assignee`() {
-        val projection = IssueProjection(
+        val issue = IssueEntity(
             id = "issue-4",
             title = "Assignee",
             owner = "alice",
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS,
-            phaseCount = 1,
-            version = 2,
-            phases = emptyList(),
+            status = PhaseStatus.IN_PROGRESS.name,
         )
-        `when`(issueProjectionReader.getIssue(IssueId("issue-4"))).thenReturn(projection)
+        `when`(issueService.assignPhaseAssignee("issue-4", "phase-1", "carol")).thenReturn(issue)
 
         mockMvc.patch("/issues/issue-4/phases/phase-1/assignee") {
             contentType = MediaType.APPLICATION_JSON

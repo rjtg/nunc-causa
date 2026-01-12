@@ -18,7 +18,6 @@ class SecurityConfig {
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
-                    .requestMatchers(EndpointRequest.to("issueprojections")).hasAuthority("PROJECTION_MANAGE")
                     .anyRequest().permitAll()
             }
             .httpBasic(Customizer.withDefaults())

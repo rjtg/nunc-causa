@@ -14,7 +14,7 @@
 - `./gradlew tasks` lists available Gradle tasks.
 
 ## Coding Style & Naming Conventions
-- Language: Kotlin (JVM 21). Prefer Kotlin data classes for events/projections and regular classes for services.
+- Language: Kotlin (JVM 21). Prefer Kotlin data classes for entities/read models and regular classes for services.
 - Indentation: 4 spaces; keep lines concise and readable.
 - Naming: packages are `lowercase` (e.g., `sh.nunc.causa.eventstore`), classes use `UpperCamelCase`, functions/vars use `lowerCamelCase`.
 - Dependency injection: constructor-based (per `ARCHITECTURE.md`).
@@ -31,10 +31,8 @@
 - PRs should describe the change, reference related tasks in `TODO_Codex.md`, and note any new endpoints or migrations.
 
 ## Reliability & Operations Notes
-- Use Failsafe (`dev.failsafe:failsafe`) for retry/fallback policies around projection rebuilds.
-- Projection management operations are exposed via Actuator endpoints (e.g., `/actuator/issueprojections`) and require `PROJECTION_MANAGE`.
 
 ## Architecture Overview
-- The system is an event-sourced modular monolith using Spring Modulith.
-- Event storage is currently a Postgres-backed implementation; see `sh/nunc/causa/eventstore`.
+- The system is a modular monolith using Spring Modulith.
+- Persistence uses Hibernate ORM + Envers with Postgres.
 - REST endpoints live in `sh/nunc/causa/web`; operational health is exposed via `/actuator/health`.
