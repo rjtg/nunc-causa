@@ -38,9 +38,15 @@ other role types and queue views.
 - No scattered information
 - Visibility and control without micromanaging
 
+**Notification strategy (minimal to start):**
+- Inbox notifications only for: assignments, phase ready, fail/reopen, mention
+- Optional daily digest
+- Escalation rules come later
+
 **Template guidance:**
 - Start from a composable template (core phases + optional blocks)
 - Allow per-issue edits with a clear diff from the base template
+ - Default phases should be enable/disable first; full editor can come later
 
 ---
 

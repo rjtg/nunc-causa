@@ -74,6 +74,10 @@ Each module should:
 ## Workflow Templates
 - Templates are composable: core phases (Analysis / Dev / Test / Rollout) plus optional blocks
 - Per-issue edits are allowed; store a clear diff from the template
+- Default phases should be enable/disable first; full editor is a later feature
+- Validate transitions (no unreachable phases, no cycles unless intentional)
+- Require assignees for actionable phases
+- Provide a preview of what each role will see
 
 ---
 
@@ -88,6 +92,13 @@ Each module should:
 - Optional delegate/secondary owner
 - On-call assignment group
 - Explicit handover action with reason logged
+
+---
+
+## Notifications (Minimal)
+- Inbox notifications only for: assignments, phase ready, fail/reopen, mention
+- Optional daily digest
+- Escalation rules come later
 
 ---
 

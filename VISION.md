@@ -98,6 +98,7 @@ The system should support **composable, template-based workflows**:
 - A manager can decide per issue which blocks are included
   (e.g., no rollout for a trivial bug).
 - Per issue, phases can be edited with a clear diff from the template.
+- Start with default phases that can be enabled/disabled; full editor is a later feature.
 
 ### 2.3 Overall issue status is derived, not set directly
 
@@ -237,6 +238,11 @@ Basic rules:
   (add/remove phases, assign assignees, etc.).
 - Only the assignee of a phase (or dev task) can change its status,
   except for administrative actions.
+
+### Notification strategy (minimal to start)
+- Inbox notifications only for: assignments, phase ready, fail/reopen, mention
+- Optional daily digest
+- Escalation rules come later
 - Closing an issue (`IssueClosed`) usually requires the primary owner,
   and all required phases being done.
 
