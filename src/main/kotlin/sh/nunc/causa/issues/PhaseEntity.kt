@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.envers.Audited
+import sh.nunc.causa.users.UserEntity
 
 @Entity
 @Audited
@@ -22,8 +23,9 @@ class PhaseEntity(
     @Column(name = "name", nullable = false)
     var name: String,
 
-    @Column(name = "assignee", nullable = false)
-    var assignee: String,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id", nullable = false)
+    var assignee: UserEntity,
 
     @Column(name = "status", nullable = false)
     var status: String,

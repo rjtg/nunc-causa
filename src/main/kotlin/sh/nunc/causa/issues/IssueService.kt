@@ -1,30 +1,35 @@
 package sh.nunc.causa.issues
 
-import java.util.UUID
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import sh.nunc.causa.users.UserEntity
+import sh.nunc.causa.users.UserRepository
+import java.util.UUID
 
 @Service
 class IssueService(
     private val issueRepository: IssueRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    private val userRepository: UserRepository,
 ) {
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
+        val owner = requireUser(command.owner)
         val issue = IssueEntity(
             id = UUID.randomUUID().toString(),
             title = command.title,
-            owner = command.owner,
+            owner = owner,
             projectId = command.projectId,
             status = PhaseStatus.NOT_STARTED.name,
         )
 
         command.phases.forEach { phaseCommand ->
+            val assignee = requireUser(phaseCommand.assignee)
             val phase = PhaseEntity(
                 id = UUID.randomUUID().toString(),
                 name = phaseCommand.name,
-                assignee = phaseCommand.assignee,
+                assignee = assignee,
                 status = PhaseStatus.NOT_STARTED.name,
                 kind = null,
                 issue = issue,
@@ -51,14 +56,14 @@ class IssueService(
         projectId: String?,
     ): List<IssueEntity> {
         return issueRepository.findAll()
-            .filter { issue -> owner == null || issue.owner == owner }
+            .filter { issue -> owner == null || issue.owner.id == owner }
             .filter { issue -> projectId == null || issue.projectId == projectId }
             .filter { issue ->
-                assignee == null || issue.phases.any { it.assignee == assignee }
+                assignee == null || issue.phases.any { it.assignee.id == assignee }
             }
             .filter { issue ->
-                member == null || issue.owner == member || issue.phases.any { phase ->
-                    phase.assignee == member || phase.tasks.any { it.assignee == member }
+                member == null || issue.owner.id == member || issue.phases.any { phase ->
+                    phase.assignee.id == member || phase.tasks.any { it.assignee?.id == member }
                 }
             }
     }
@@ -66,7 +71,7 @@ class IssueService(
     @Transactional
     fun assignOwner(issueId: String, owner: String): IssueEntity {
         val issue = getIssue(issueId)
-        issue.owner = owner
+        issue.owner = requireUser(owner)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
@@ -75,10 +80,11 @@ class IssueService(
     @Transactional
     fun addPhase(issueId: String, name: String, assignee: String): IssueEntity {
         val issue = getIssue(issueId)
+        val assigneeEntity = requireUser(assignee)
         val phase = PhaseEntity(
             id = UUID.randomUUID().toString(),
             name = name,
-            assignee = assignee,
+            assignee = assigneeEntity,
             status = PhaseStatus.NOT_STARTED.name,
             kind = null,
             issue = issue,
@@ -94,7 +100,7 @@ class IssueService(
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
-        phase.assignee = assignee
+        phase.assignee = requireUser(assignee)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
@@ -105,10 +111,11 @@ class IssueService(
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
+        val assigneeEntity = assignee?.let { requireUser(it) }
         val task = TaskEntity(
             id = UUID.randomUUID().toString(),
             title = title,
-            assignee = assignee,
+            assignee = assigneeEntity,
             status = TaskStatus.NOT_STARTED.name,
             phase = phase,
         )
@@ -116,5 +123,10 @@ class IssueService(
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
+    }
+
+    private fun requireUser(userId: String): UserEntity {
+        return userRepository.findById(userId)
+            .orElseThrow { NoSuchElementException("User $userId not found") }
     }
 }

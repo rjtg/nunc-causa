@@ -8,6 +8,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.envers.Audited
+import sh.nunc.causa.users.UserEntity
 
 @Entity
 @Audited
@@ -20,8 +21,9 @@ class TaskEntity(
     @Column(name = "title", nullable = false)
     var title: String,
 
-    @Column(name = "assignee")
-    var assignee: String?,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    var assignee: UserEntity?,
 
     @Column(name = "status", nullable = false)
     var status: String,
