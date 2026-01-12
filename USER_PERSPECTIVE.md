@@ -8,12 +8,13 @@ It focuses on real-world workflow rather than domain model.
 
 ## 1. User Personas (Mental Models)
 
-Causa revolves around four main user personas.  
-Each persona enters the system with different goals and expectations.
+Causa revolves around a **capability-based role model**.  
+The UI can still present the four default lanes, but the system should allow
+other role types and queue views.
 
 ---
 
-### 1.1 Responsible Owner (the “Issue Owner”)
+### 1.1 Primary Owner (the “Issue Owner”)
 
 **Mental model:**  
 “I’m accountable for making sure this issue gets solved, even if others do most of the work.”
@@ -25,6 +26,7 @@ Each persona enters the system with different goals and expectations.
 - Monitor progress across all roles
 - Unblock problems / chase stakeholders
 - Close the issue when everything is done
+ - Hand over ownership with a reason when needed
 
 **Key UI touchpoints:**
 - Issue dashboard: all owned issues with health indicators
@@ -35,6 +37,10 @@ Each persona enters the system with different goals and expectations.
 - No manual update chasing
 - No scattered information
 - Visibility and control without micromanaging
+
+**Template guidance:**
+- Start from a composable template (core phases + optional blocks)
+- Allow per-issue edits with a clear diff from the base template
 
 ---
 
@@ -149,7 +155,8 @@ Keep two layers of history:
 Keep them separate in UI and storage.
 
 ### 2.5 Ownership is Clear
-- One accountable owner
+- One primary owner, with optional delegate/on-call group
+- Explicit handover action with a reason
 - Distributed responsibility across roles
 - No invisible responsibility zones
 

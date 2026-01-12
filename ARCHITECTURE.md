@@ -71,6 +71,26 @@ Each module should:
 
 ---
 
+## Workflow Templates
+- Templates are composable: core phases (Analysis / Dev / Test / Rollout) plus optional blocks
+- Per-issue edits are allowed; store a clear diff from the template
+
+---
+
+## Roles and Capabilities
+- Roles are modeled as capabilities (permissions + queue types), not fixed personas
+- Default UI lanes map to common capabilities but are configurable per organization
+
+---
+
+## Ownership Model
+- One primary owner per issue
+- Optional delegate/secondary owner
+- On-call assignment group
+- Explicit handover action with reason logged
+
+---
+
 ## Audit and Search
 
 ### Audit History

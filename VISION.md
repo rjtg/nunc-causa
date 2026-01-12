@@ -19,7 +19,10 @@ Key ideas:
 - An "issue" is not just a ticket with one assignee. It is a **process**.
 - Multiple disciplines / roles collaborate on an issue across several **phases**.
 - Each phase has its own lifecycle and assignee.
-- One person is always the **responsible owner** for the whole issue.
+- One person is always the **primary owner** for the whole issue, but support:
+  - secondary owner / delegate
+  - on-call assignment group
+  - explicit handover action that logs a reason
 - The system uses **CRUD with audit history** for full traceability.
 - The UI should be able to **update live** when changes happen.
 
@@ -40,7 +43,7 @@ In a normal tracker:
 
 In Causa:
 
-- One person is **responsible** for the issue (the "owner" or "team lead").
+- One person is **primary** for the issue (the "owner" or "team lead"), with optional delegates.
 - Multiple people work on different **phases** and **tasks**:
   - Developers implement fixes.
   - Testers perform acceptance tests.
@@ -87,12 +90,14 @@ Causa does not need to implement textbook 8D literally, but it should
   - an **assignee role and user**,
   - optional **configuration**.
 
-The system should support **flexible, template-based workflows**:
+The system should support **composable, template-based workflows**:
 
-- A manager can decide per issue which phases are needed
+- Templates should be composable to avoid overfitting:
+  - Core phases (Analysis / Development / Test / Rollout)
+  - Optional phase blocks (Security review, Legal, Docs, etc.)
+- A manager can decide per issue which blocks are included
   (e.g., no rollout for a trivial bug).
-- Templates define default phases, order, roles, etc.
-- Per issue, phases can be enabled/disabled and configured.
+- Per issue, phases can be edited with a clear diff from the template.
 
 ### 2.3 Overall issue status is derived, not set directly
 
@@ -117,7 +122,7 @@ Rules for derivation should be based on:
 - The status of those phases.
 
 Developers, testers, and rollout managers **do not directly set** “issue = DONE”.
-They only update their part. The system + responsible owner governs closure.
+They only update their part. The system + primary owner governs closure.
 
 ---
 
@@ -222,20 +227,17 @@ should be stable and documented.
 
 ## 6. Roles and permissions (simplified for now)
 
-At minimum, these roles exist:
-
-- **Responsible owner** (issue-level)
-- **Developer** (dev tasks)
-- **Tester** (acceptance phase)
-- **Rollout manager** (rollout phase)
+Roles are modeled as **capabilities** (permissions + queue types), not hard-coded personas.
+The UI can still present default lanes (Owner/Dev/Test/Rollout), but the system should
+remain flexible for other roles (SRE, Support, Security, Product, etc.).
 
 Basic rules:
 
-- Only the responsible owner can configure the workflow for an issue
+- Only the primary owner (or delegate) can configure the workflow for an issue
   (add/remove phases, assign assignees, etc.).
 - Only the assignee of a phase (or dev task) can change its status,
   except for administrative actions.
-- Closing an issue (`IssueClosed`) usually requires the responsible owner,
+- Closing an issue (`IssueClosed`) usually requires the primary owner,
   and all required phases being done.
 
 You can introduce supporting structures in the `users` module
