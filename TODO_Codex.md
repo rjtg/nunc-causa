@@ -21,7 +21,7 @@ Use src/main/kotlin and src/test/kotlin.
 ## Domain: Issues and Phases
 
 [x] Define Issue aggregate class
-[x] Define Issue identifier value type
+[ ] Define Issue identifier value type
 [x] Define Phase entity model + status enum
 [x] Replace event-sourced commands with CRUD services for issue lifecycle
 [x] Add command handler service for creating an issue
@@ -79,25 +79,13 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Persistence
 
-[x] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
-[x] Replace event-store reads/writes with JPA repositories
-[x] Remove event store module and related migrations
-[x] Remove event-sourced commands/events in issues module
-[x] Remove projection rebuild endpoints and SSE events tied to event sourcing
 [ ] Keep Liquibase changelogs in sync with entity changes
 [ ] Add activity feed storage separate from audit trail
 [ ] Add deletion lifecycle (archive → trash → delete)
 [ ] Add org/team/project membership tables and enforcement
 [ ] Add permission layers (View/Act/Admin) with policy service
 [ ] Add SSO-compatible identity links for users
-
----
-
-## Future Backend Options (Profiles)
-
-[ ] Add empty Axon adapter (no logic yet)
-[ ] Add empty EventStoreDB adapter (no logic yet)
 
 ---
 
