@@ -4,6 +4,7 @@ plugins {
     id("org.openapi.generator") version "7.5.0"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
+    kotlin("plugin.jpa") version "1.9.23"
 }
 
 group = "sh.nunc"
@@ -30,14 +31,16 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.liquibase:liquibase-core")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("dev.failsafe:failsafe:3.3.2")
     implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("org.hibernate.orm:hibernate-envers")
+    implementation("org.hibernate.search:hibernate-search-mapper-orm:7.1.1.Final")
+    implementation("org.hibernate.search:hibernate-search-backend-lucene:7.1.1.Final")
     implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.22")
     implementation("io.swagger.core.v3:swagger-models-jakarta:2.2.22")
 

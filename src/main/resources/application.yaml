@@ -2,12 +2,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,issueprojections
+        include: health,info
 
 causa:
-  projections:
-    rebuild:
-      max-retries: 2
-      delay: 200ms
   updates:
     keepalive-ms: 15000

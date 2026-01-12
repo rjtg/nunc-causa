@@ -58,7 +58,7 @@ Implementation language: Kotlin
 ## Modules
 * causa-issues → Issue aggregate, phase model, commands, domain events
 * causa-workflows → Phase templates, optional configuration logic
-* causa-reporting → Projections and read models (issue lists, history views)
+* causa-reporting → Read models, activity feed, and search support
 * causa-users → User and role models (simple for now)
 * causa-eventstore → EventStore interface + Postgres implementation
 * causa-web → REST controllers, SSE endpoint, main app bootstrap

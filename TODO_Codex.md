@@ -23,7 +23,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Define Issue aggregate class
 [x] Define Issue identifier value type
 [x] Define Phase entity model + status enum
-[ ] Replace event-sourced commands with CRUD services for issue lifecycle
+[x] Replace event-sourced commands with CRUD services for issue lifecycle
 [x] Add command handler service for creating an issue
 [ ] Add Envers audit annotations for issue/phase/task entities
 [ ] Add phase kind enum (e.g., INVESTIGATION/DEVELOPMENT/ACCEPTANCE_TEST/ROLLOUT)
@@ -37,12 +37,12 @@ Use src/main/kotlin and src/test/kotlin.
 
 [x] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
 [x] Create `POST /issues` endpoint calling create-issue command
-[ ] Replace projection-backed reads with JPA read models
+[x] Replace projection-backed reads with JPA read models
 [x] Add `GET /issues` with filters for owner/assignee/team member
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
 [x] Add controller tests for issue endpoints and filters
-[ ] Remove/replace projection management endpoints for CRUD persistence
+[x] Remove/replace projection management endpoints for CRUD persistence
 [ ] Add endpoints to update phase status and task status
 [ ] Add `GET /issues/{id}/history` endpoint (activity feed + audit trail)
 [ ] Add per-user work view endpoint (`GET /me/work`)
@@ -81,9 +81,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
 [ ] Replace event-store reads/writes with JPA repositories
-[ ] Remove event store module and related migrations
-[ ] Remove event-sourced commands/events in issues module
-[ ] Remove projection rebuild endpoints and SSE events tied to event sourcing
+[x] Remove event store module and related migrations
+[x] Remove event-sourced commands/events in issues module
+[x] Remove projection rebuild endpoints and SSE events tied to event sourcing
 [ ] Add activity feed storage separate from audit trail
 [ ] Add deletion lifecycle (archive → trash → delete)
 [ ] Add org/team/project membership tables and enforcement

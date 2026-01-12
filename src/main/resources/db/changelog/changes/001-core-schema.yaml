@@ -1,10 +1,72 @@
 databaseChangeLog:
   - changeSet:
-      id: 002-issue-projections
+      id: 001-core-schema
       author: codex
       changes:
         - createTable:
-            tableName: issue_projection
+            tableName: orgs
+            columns:
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: teams
+            columns:
+              - column:
+                  name: team_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: parent_team_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: projects
+            columns:
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: issues
             columns:
               - column:
                   name: issue_id
@@ -12,6 +74,11 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
               - column:
                   name: title
                   type: varchar(255)
@@ -23,27 +90,12 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: project_id
-                  type: varchar(255)
-                  constraints:
-                    nullable: true
-              - column:
                   name: status
-                  type: varchar(32)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: phase_count
-                  type: integer
-                  constraints:
-                    nullable: false
-              - column:
-                  name: version
-                  type: bigint
+                  type: varchar(64)
                   constraints:
                     nullable: false
         - createTable:
-            tableName: issue_phase_projection
+            tableName: issue_phases
             columns:
               - column:
                   name: phase_id
@@ -68,11 +120,16 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: status
-                  type: varchar(32)
+                  type: varchar(64)
                   constraints:
                     nullable: false
+              - column:
+                  name: kind
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
         - createTable:
-            tableName: issue_task_projection
+            tableName: issue_tasks
             columns:
               - column:
                   name: task_id
@@ -102,6 +159,6 @@ databaseChangeLog:
                     nullable: true
               - column:
                   name: status
-                  type: varchar(32)
+                  type: varchar(64)
                   constraints:
                     nullable: false
