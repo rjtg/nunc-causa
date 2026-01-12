@@ -37,6 +37,9 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add command handler service for creating an issue
 [x] Store events via EventStore
 [x] Test rebuilding Issue aggregate from event stream
+[ ] Add phase kind enum (e.g., INVESTIGATION/DEVELOPMENT/ACCEPTANCE_TEST/ROLLOUT)
+[ ] Add role model for responsible owner/dev/tester/rollout and tie to phases/tasks
+[ ] Add derived issue status rules based on phase kinds and required phases
 
 ---
 
@@ -52,6 +55,9 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
 [x] Add controller tests for issue endpoints and filters
 [x] Add actuator endpoint for projection management (rebuild)
+[ ] Add endpoints to update phase status and task status
+[ ] Add `GET /issues/{id}/history` endpoint (projection-backed)
+[ ] Add per-user work view endpoint (`GET /me/work`)
 
 ---
 
@@ -60,6 +66,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Create `/stream/updates` SSE endpoint
 [x] Create UiUpdatePublisher listening for domain/application events
 [x] Push minimal `ISSUE_UPDATED` events to connected sessions
+[ ] Emit SSE events for `PHASE_STATUS_CHANGED` and `TASK_STATUS_CHANGED`
 
 ---
 
@@ -71,12 +78,17 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add projection rebuild job for existing event streams
 [x] Ensure projection updates have retry policies
 [ ] Add fallback strategy for projection rebuild failures (outbox/async queue)
+[ ] Add issue history projection (human-readable changelog)
+[ ] Add per-user work projections (tasks/phases by assignee role)
 
 ---
 
 ## Nice-to-Haves Later
 
 [ ] Add `PhaseStatusChanged` event + endpoint
+[ ] Add `TaskStatusChanged` event + endpoint
+[ ] Add `PhaseRemoved`/`PhaseCanceled` events
+[ ] Add `IssueClosed` event with validation rules
 [ ] Add `GET /issues/{id}/history`
 [ ] Add user module for real auth
 [ ] Add comments
