@@ -18,27 +18,16 @@ Use src/main/kotlin and src/test/kotlin.
 
 ---
 
-## Event Store Foundation
-
-[x] Create `EventStore` interface with `loadStream` + `appendToStream`
-[x] Implement `PostgresEventStore` using Spring JDBC template
-[x] Add `events` table SQL migration (id, aggregateId, type, payload, metadata, sequence, timestamp)
-[x] Add optimistic concurrency version check
-[x] Wire EventStore via `@Profile("postgres")`
-
----
-
 ## Domain: Issues and Phases
 
 [x] Define Issue aggregate class
 [x] Define Issue identifier value type
 [x] Define Phase entity model + status enum
-[x] Add `IssueCreated` and `PhaseAdded` domain events
+[ ] Replace event-sourced commands with CRUD services for issue lifecycle
 [x] Add command handler service for creating an issue
-[x] Store events via EventStore
-[x] Test rebuilding Issue aggregate from event stream
+[ ] Add Envers audit annotations for issue/phase/task entities
 [ ] Add phase kind enum (e.g., INVESTIGATION/DEVELOPMENT/ACCEPTANCE_TEST/ROLLOUT)
-[ ] Add role model for responsible owner/dev/tester/rollout and tie to phases/tasks
+[ ] Add role capability model (permissions + queue types) and tie to phases/tasks
 [ ] Add derived issue status rules based on phase kinds and required phases
 [ ] Add workflow template model for default phases/roles
 
@@ -48,16 +37,14 @@ Use src/main/kotlin and src/test/kotlin.
 
 [x] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
 [x] Create `POST /issues` endpoint calling create-issue command
-[x] Create `GET /issues/{id}` using projection read model
-[x] Add basic projection: issue header + phases list
-[x] Switch issue reads and listing to use projection read models
+[ ] Replace projection-backed reads with JPA read models
 [x] Add `GET /issues` with filters for owner/assignee/team member
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
 [x] Add controller tests for issue endpoints and filters
-[x] Add actuator endpoint for projection management (rebuild)
+[ ] Remove/replace projection management endpoints for CRUD persistence
 [ ] Add endpoints to update phase status and task status
-[ ] Add `GET /issues/{id}/history` endpoint (projection-backed)
+[ ] Add `GET /issues/{id}/history` endpoint (activity feed + audit trail)
 [ ] Add per-user work view endpoint (`GET /me/work`)
 [ ] Add endpoints for phase detail view and phase checklist/config
 
@@ -75,17 +62,17 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Nice-to-Haves Later
 
-[ ] Add `PhaseStatusChanged` event + endpoint
-[ ] Add `TaskStatusChanged` event + endpoint
-[ ] Add `PhaseRemoved`/`PhaseCanceled` events
-[ ] Add `IssueClosed` event with validation rules
+[ ] Add phase status change endpoint with validation rules
+[ ] Add task status change endpoint with validation rules
+[ ] Add phase remove/cancel actions with validation rules
+[ ] Add issue close action with validation rules
 [ ] Add `GET /issues/{id}/history`
 [ ] Add user module for real auth
-[ ] Add comments
+[ ] Add comments/discussion threads
 [ ] Add task-level granularity in dev phases
 [ ] Model projects and link issues to a project
 [ ] Add workflow template management UI (if building frontend)
-[ ] Add activity stream view fed by history projection
+[ ] Add activity stream view fed by activity feed model
 
 ---
 
@@ -94,6 +81,14 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
 [ ] Replace event-store reads/writes with JPA repositories
+[ ] Remove event store module and related migrations
+[ ] Remove event-sourced commands/events in issues module
+[ ] Remove projection rebuild endpoints and SSE events tied to event sourcing
+[ ] Add activity feed storage separate from audit trail
+[ ] Add deletion lifecycle (archive → trash → delete)
+[ ] Add org/team/project membership tables and enforcement
+[ ] Add permission layers (View/Act/Admin) with policy service
+[ ] Add SSO-compatible identity links for users
 
 ---
 
