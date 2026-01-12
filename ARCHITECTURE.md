@@ -47,6 +47,7 @@ Implementation language: Kotlin
 - Hibernate ORM with Envers for auditing and Hibernate Search for full-text indexing
 - Postgres remains the primary datastore
 - CQRS/event sourcing are being phased out in favor of CRUD + audit history
+- Liquibase owns schema creation and evolution; migrations must accompany entity changes
 
 ### Frontend Integration
 - REST API for all read/write operations
