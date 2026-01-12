@@ -40,6 +40,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add phase kind enum (e.g., INVESTIGATION/DEVELOPMENT/ACCEPTANCE_TEST/ROLLOUT)
 [ ] Add role model for responsible owner/dev/tester/rollout and tie to phases/tasks
 [ ] Add derived issue status rules based on phase kinds and required phases
+[ ] Add workflow template model for default phases/roles
 
 ---
 
@@ -58,6 +59,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add endpoints to update phase status and task status
 [ ] Add `GET /issues/{id}/history` endpoint (projection-backed)
 [ ] Add per-user work view endpoint (`GET /me/work`)
+[ ] Add endpoints for phase detail view and phase checklist/config
 
 ---
 
@@ -67,6 +69,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Create UiUpdatePublisher listening for domain/application events
 [x] Push minimal `ISSUE_UPDATED` events to connected sessions
 [ ] Emit SSE events for `PHASE_STATUS_CHANGED` and `TASK_STATUS_CHANGED`
+[ ] Emit SSE updates for tester pass/fail and rollout milestones
 
 ---
 
@@ -80,6 +83,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add fallback strategy for projection rebuild failures (outbox/async queue)
 [ ] Add issue history projection (human-readable changelog)
 [ ] Add per-user work projections (tasks/phases by assignee role)
+[ ] Add phase detail projection with checklist/config data
 
 ---
 
@@ -94,6 +98,8 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add comments
 [ ] Add task-level granularity in dev phases
 [ ] Model projects and link issues to a project
+[ ] Add workflow template management UI (if building frontend)
+[ ] Add activity stream view fed by history projection
 
 ---
 
