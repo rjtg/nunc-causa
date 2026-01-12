@@ -211,7 +211,9 @@ The external interface is a REST API. Typical endpoints:
 - `PATCH /issues/{id}/phases/{phaseId}/tasks/{taskId}`
 - `GET /me/work`
 
-REST responses should be based on **read models**, not raw audit logs.
+REST responses should be based on **read models**, not raw audit logs. Early
+iterations can map from entities, but the goal is dedicated read models for
+list/detail/history views.
 
 ### 5.2 Live update via SSE (optional)
 
