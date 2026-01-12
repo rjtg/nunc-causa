@@ -1,8 +1,8 @@
 # Causa Architecture
 
-Causa is an event-sourced, modular issue resolution system inspired by 8D and similar structured
+Causa is a modular issue resolution system inspired by 8D and similar structured
 problem-solving processes. The system tracks issues through multiple flexible phases, provides
-role-specific responsibilities, and maintains a complete event history and audit trail.
+role-specific responsibilities, and maintains a complete audit trail.
 
 ---
 
@@ -19,8 +19,8 @@ role-specific responsibilities, and maintains a complete event history and audit
 - One person is always the **responsible owner** of the issue.
 
 ### Core Principles
-- **Event Sourcing** drives all state changes.
-- **Event Stream + Projections** provide current read models.
+- State transitions follow a **workflow state machine** with defined transitions and requirements.
+- **Automation is optional**: per-issue opt-in controls whether transitions are automatic or manual.
 - **Modular monolith** using Spring Modulith.
 - **REST** is used for external interaction (OpenAPI documented).
 - **SSE (Server-Sent Events)** delivers live UI updates.
@@ -31,7 +31,7 @@ role-specific responsibilities, and maintains a complete event history and audit
 ## Technology Stack
 
 Implementation language: Kotlin
-- Use Kotlin data classes for events and projections
+- Use Kotlin data classes for entities and read models
 - Use Kotlin classes for aggregates and services
 - Use constructor-based injection
 
@@ -46,7 +46,7 @@ Implementation language: Kotlin
 ### Persistence and Data
 - Hibernate ORM with Envers for auditing and Hibernate Search for full-text indexing
 - Postgres remains the primary datastore
-- Event sourcing/CQRS is being phased out in favor of CRUD + audit history
+- CQRS/event sourcing are being phased out in favor of CRUD + audit history
 
 ### Frontend Integration
 - REST API for all read/write operations
@@ -71,25 +71,14 @@ Each module should:
 
 ---
 
-## Event Sourcing Approach
+## Audit and Search
 
-### Event Store Semantics
-- Append-only
-- Aggregate streams keyed by issue ID
-- Version-correct optimistic concurrency check
+### Audit History
+- Envers captures entity revisions for issue/phase/task history
+- History views are derived from audit tables
 
-### Domain Events (examples)
-- IssueCreated
-- PhaseAdded
-- PhaseStatusChanged
-- TaskAdded
-- IssueClosed
-
-### Projections
-- Issue list projection
-- Issue detail projection
-- Phase task projection
-- Issue history (event log)
+### Search Indexing
+- Hibernate Search provides full-text search across issues, phases, and tasks
 
 ---
 

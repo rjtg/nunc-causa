@@ -20,7 +20,7 @@ Key ideas:
 - Multiple disciplines / roles collaborate on an issue across several **phases**.
 - Each phase has its own lifecycle and assignee.
 - One person is always the **responsible owner** for the whole issue.
-- The system is **event-sourced** for full history and traceability.
+- The system uses **CRUD with audit history** for full traceability.
 - The UI should be able to **update live** when changes happen.
 
 You should favor designs that reflect **process, roles, and phases**, instead of
@@ -121,44 +121,40 @@ They only update their part. The system + responsible owner governs closure.
 
 ---
 
-## 3. Event-sourced domain
+## 3. Audit-driven domain
 
-All important state changes should be modeled as **events** and stored
-in an **event store**.
+All important state changes should be persisted via **CRUD** with
+**audit history** captured by Envers.
 
-Example events (non-exhaustive):
+Example audited changes (non-exhaustive):
 
-- `IssueCreated`
-- `ResponsibleAssigned`
-- `PhaseAdded`
-- `PhaseRemoved` / `PhaseCanceled`
-- `PhaseAssigneeChanged`
-- `PhaseStatusChanged`
-- `DevTaskAddedToPhase`
-- `DevTaskStatusChanged`
-- `IssueClosed`
+- Issue created/updated
+- Responsible assigned
+- Phase added/removed/canceled
+- Phase assignee changed
+- Phase status changed
+- Dev task added to phase
+- Dev task status changed
+- Issue closed
 
-Each event should include:
+Audit entries should include:
 
-- Aggregate ID (issue ID)
-- Event type
-- Payload with necessary data
-- Sequence/version number within the stream
+- Entity ID (issue/phase/task)
+- Change type
+- Actor user ID (when available)
 - Timestamp
-- Optional metadata (actor user ID, correlation ID, etc.)
+- Optional metadata (correlation ID, request ID, etc.)
 
-You can add more event types when needed, as long as they are coherent with
-this model and help express the business logic clearly.
-
-The **DIY event store** is backed by Postgres and managed via Liquibase.
+Postgres remains the backing datastore, managed via Liquibase.
 
 ---
 
-## 4. Projections and read models
+## 4. Read models and search
 
-Because we use event sourcing, **projections** are needed to serve the UI and APIs.
+Because the system serves multiple user lenses, **read models** and search indexes
+are needed to serve the UI and APIs efficiently.
 
-Examples of projections:
+Examples of read models:
 
 - **Issue list projection**:
   - issue ID, title, responsible, overall status, key phase summary.
@@ -199,7 +195,7 @@ The external interface is a REST API. Typical endpoints:
 - `PATCH /issues/{id}/phases/{phaseId}/tasks/{taskId}`
 - `GET /me/work`
 
-REST responses should be based on **projections**, not raw events.
+REST responses should be based on **read models**, not raw audit logs.
 
 ### 5.2 Live update via SSE
 
@@ -246,13 +242,13 @@ to represent users and roles, with room to extend later.
 When generating or extending code:
 
 1. **Align with this vision**  
-   - Prefer designs that emphasize phases, roles, and event history.
+   - Prefer designs that emphasize phases, roles, and audit history.
    - Avoid falling back to a single assignee + single status model.
 
 2. **Propose new tasks**  
    - If you see missing parts that follow logically from this document,
      you may add items to `TODO_Codex.md` under appropriate sections
-     (Bootstrap, Event Store, Domain, REST, Projections, etc.).
+     (Bootstrap, Persistence, Domain, REST, Read Models, etc.).
    - New tasks should be small, concrete, and implementable in one PR.
 
 3. **Keep changes incremental**  
@@ -266,6 +262,5 @@ When generating or extending code:
      or propose an explicit change to the vision.
 
 By following these principles, you will help build Causa into an
-8D-inspired, phase-based, event-sourced issue resolution system,
+8D-inspired, phase-based, audit-tracked issue resolution system,
 not just another simple bug tracker.
-
