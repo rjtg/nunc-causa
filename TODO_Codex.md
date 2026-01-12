@@ -73,20 +73,6 @@ Use src/main/kotlin and src/test/kotlin.
 
 ---
 
-## Projections
-
-[x] Create issue list projection table
-[x] Create projection updater reacting to events
-[x] Add repository for reading list projections
-[x] Add projection rebuild job for existing event streams
-[x] Ensure projection updates have retry policies
-[ ] Add fallback strategy for projection rebuild failures (outbox/async queue)
-[ ] Add issue history projection (human-readable changelog)
-[ ] Add per-user work projections (tasks/phases by assignee role)
-[ ] Add phase detail projection with checklist/config data
-
----
-
 ## Nice-to-Haves Later
 
 [ ] Add `PhaseStatusChanged` event + endpoint
@@ -100,6 +86,14 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Model projects and link issues to a project
 [ ] Add workflow template management UI (if building frontend)
 [ ] Add activity stream view fed by history projection
+
+---
+
+## Persistence
+
+[ ] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
+[ ] Add Hibernate Search indexes for issues, phases, and tasks
+[ ] Replace event-store reads/writes with JPA repositories
 
 ---
 

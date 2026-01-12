@@ -44,14 +44,9 @@ Implementation language: Kotlin
 - Spring Data JDBC (initial persistence)
 
 ### Persistence and Data
-- DIY Event Store on Postgres (initial implementation)
-  - Append-only event table
-  - Per-aggregate event streams
-  - Optimistic concurrency via versioning
-- Projection tables managed by the reporting module
-- Projection rebuilds use Failsafe retry policies and can be triggered via Actuator management endpoints; fallback/outbox remains TODO (e.g., `/actuator/issueprojections`)
-- Projection rebuild endpoints require a dedicated permission (e.g., `PROJECTION_MANAGE`)
-- Alternate event stores may be plugged in via Spring profiles
+- Hibernate ORM with Envers for auditing and Hibernate Search for full-text indexing
+- Postgres remains the primary datastore
+- Event sourcing/CQRS is being phased out in favor of CRUD + audit history
 
 ### Frontend Integration
 - REST API for all read/write operations
