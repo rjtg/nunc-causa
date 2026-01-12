@@ -71,6 +71,14 @@ Each module should:
 
 ---
 
+## Tenancy and Boundaries
+- Single org for v1, but data model should support multi-org users
+- Hierarchy: Org → Team → Project → Issue
+- Project membership is the primary access boundary
+- Team membership can be nested; membership inheritance must be enforced consistently
+
+---
+
 ## Workflow Templates
 - Templates are composable: core phases (Analysis / Dev / Test / Rollout) plus optional blocks
 - Per-issue edits are allowed; store a clear diff from the template
@@ -95,6 +103,14 @@ Each module should:
 
 ---
 
+## Permissions and Authorization
+- Use View/Act/Admin permission layers
+- Enforce project membership and issue visibility in all queues and reads
+- Use ABAC-style checks where needed (e.g., assigned to active phase)
+- Prefer centralized policy services with `@PreAuthorize`
+
+---
+
 ## Notifications (Minimal)
 - Inbox notifications only for: assignments, phase ready, fail/reopen, mention
 - Optional daily digest
@@ -106,7 +122,7 @@ Each module should:
 
 ### Audit History
 - Envers captures entity revisions for issue/phase/task history
-- History views are derived from audit tables
+- Compliance-grade audit is optional; keep audit trails separate from activity feed
 
 ### Activity Feed
 - Domain-meaningful activity feed derived from application events (separate from audit trail)
@@ -137,6 +153,17 @@ Each module should:
 - Use JUnit for unit and integration tests
 - Use MockK for mocking in Kotlin-focused tests
 - Add end-to-end tests as the API stabilizes
+
+---
+
+## Deletion Semantics
+- Archive → Trash → Delete (multi-step lifecycle)
+
+---
+
+## Identity and SSO
+- Users can belong to multiple orgs
+- Support SSO via Spring Security OAuth2 and external identity links
 
 ---
 

@@ -180,6 +180,7 @@ Tiles or tabs:
 - Recently Updated
 
 Where most users start their day.
+Access is scoped by project membership (and team inheritance) to avoid leaks.
 
 ### 3.2 Issue List
 For owners and coordinators:

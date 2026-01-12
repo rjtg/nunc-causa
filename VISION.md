@@ -31,6 +31,14 @@ the classic "single assignee + single status" model.
 
 ---
 
+## 1.1 Tenancy and Boundaries
+
+- Single org for v1, but users can belong to multiple orgs
+- Hierarchy: Org → Team → Project → Issue
+- Project membership is the primary access boundary
+
+---
+
 ## 2. Opinionated differences from a normal issue tracker
 
 Causa intentionally **does not** behave like a typical simple issue tracker.
@@ -238,13 +246,27 @@ Basic rules:
   (add/remove phases, assign assignees, etc.).
 - Only the assignee of a phase (or dev task) can change its status,
   except for administrative actions.
+- Permissions are layered (View/Act/Admin) and enforced per project membership.
+- Owner overrides that affect workflow must be logged.
 
 ### Notification strategy (minimal to start)
 - Inbox notifications only for: assignments, phase ready, fail/reopen, mention
 - Optional daily digest
 - Escalation rules come later
-- Closing an issue (`IssueClosed`) usually requires the primary owner,
-  and all required phases being done.
+
+Closing an issue (`IssueClosed`) usually requires the primary owner,
+and all required phases being done.
+
+---
+
+## 6.1 Deletion Semantics
+- Archive → Trash → Delete (multi-step lifecycle)
+
+---
+
+## 6.2 Identity and SSO
+- Users can belong to multiple orgs
+- Support SSO via Spring Security OAuth2 and external identity links
 
 You can introduce supporting structures in the `users` module
 to represent users and roles, with room to extend later.
