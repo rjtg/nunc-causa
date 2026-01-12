@@ -36,3 +36,7 @@
 - The system is a modular monolith using Spring Modulith.
 - Persistence uses Hibernate ORM + Envers with Postgres.
 - REST endpoints live in `sh/nunc/causa/web`; operational health is exposed via `/actuator/health`.
+
+## Schema Management
+- Liquibase is the source of truth for schema creation and evolution.
+- When entity classes change, add a corresponding Liquibase migration.

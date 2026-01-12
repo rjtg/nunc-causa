@@ -84,6 +84,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Remove event store module and related migrations
 [x] Remove event-sourced commands/events in issues module
 [x] Remove projection rebuild endpoints and SSE events tied to event sourcing
+[ ] Keep Liquibase changelogs in sync with entity changes
 [ ] Add activity feed storage separate from audit trail
 [ ] Add deletion lifecycle (archive → trash → delete)
 [ ] Add org/team/project membership tables and enforcement
