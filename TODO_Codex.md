@@ -25,7 +25,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Define Phase entity model + status enum
 [x] Replace event-sourced commands with CRUD services for issue lifecycle
 [x] Add command handler service for creating an issue
-[ ] Add Envers audit annotations for issue/phase/task entities
+[x] Add Envers audit annotations for issue/phase/task entities
 [ ] Add phase kind enum (e.g., INVESTIGATION/DEVELOPMENT/ACCEPTANCE_TEST/ROLLOUT)
 [ ] Add role capability model (permissions + queue types) and tie to phases/tasks
 [ ] Add derived issue status rules based on phase kinds and required phases
@@ -38,6 +38,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Add OpenAPI spec. Generate stubs for rest endpoints via openapi gradle task 
 [x] Create `POST /issues` endpoint calling create-issue command
 [x] Replace projection-backed reads with JPA read models
+[ ] Add dedicated read models for list/detail/history views (avoid mapping directly from entities)
 [x] Add `GET /issues` with filters for owner/assignee/team member
 [x] Add `GET /issues` filter for project id
 [x] Add endpoints to modify issues (assign owner/assignee, add phases, add tasks to phases)
@@ -78,9 +79,9 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Persistence
 
-[ ] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
+[x] Rework current CQRS/event sourcing into Hibernate Envers CRUD model
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
-[ ] Replace event-store reads/writes with JPA repositories
+[x] Replace event-store reads/writes with JPA repositories
 [x] Remove event store module and related migrations
 [x] Remove event-sourced commands/events in issues module
 [x] Remove projection rebuild endpoints and SSE events tied to event sourcing

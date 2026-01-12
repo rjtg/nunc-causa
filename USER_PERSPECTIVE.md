@@ -135,12 +135,12 @@ Keep the lane-focused “My Work”, but always include a one-click **Context** 
 - current phase, blockers, assignees
 - last 5 activity events
 
-### 2.2 Process is Automatic, Driven by Phase Status
+### 2.2 Process Can Be Automatic, Driven by Phase Status
 Examples:
 - Dev finish → Causa transitions to Acceptance Testing automatically
 - Tester approval → Rollout becomes actionable
 
-Users nudge **their** part forward; they do not manage the whole flow.
+Automation is opt-in per issue; users still nudge **their** part forward.
 
 ### 2.3 Real-Time Is Optional, Not Default
 Default to polling for most screens and use SSE only where it clearly matters
@@ -222,7 +222,7 @@ Light feed:
 - Task completions
 - Phase failures
 - Rollout start
-Aligned with event sourcing.
+Aligned with domain activity events.
 
 ---
 

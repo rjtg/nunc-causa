@@ -41,7 +41,7 @@ Implementation language: Kotlin
 - Spring Modulith (for module enforcement + event publication)
 - Spring Web (REST + SSE)
 - Spring Security (enabled for actuator management endpoints)
-- Spring Data JDBC (initial persistence)
+- Spring Data JPA (current persistence)
 
 ### Persistence and Data
 - Hibernate ORM with Envers for auditing and Hibernate Search for full-text indexing
@@ -61,7 +61,6 @@ Implementation language: Kotlin
 * causa-workflows → Phase templates, optional configuration logic
 * causa-reporting → Read models, activity feed, and search support
 * causa-users → User and role models (simple for now)
-* causa-eventstore → EventStore interface + Postgres implementation
 * causa-web → REST controllers, SSE endpoint, main app bootstrap
 
 
