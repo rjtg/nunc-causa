@@ -23,6 +23,125 @@ databaseChangeLog:
                   constraints:
                     nullable: true
         - createTable:
+            tableName: orgs
+            columns:
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: teams
+            columns:
+              - column:
+                  name: team_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: parent_team_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: projects
+            columns:
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: org_memberships
+            columns:
+              - column:
+                  name: membership_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: team_memberships
+            columns:
+              - column:
+                  name: membership_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: team_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: project_memberships
+            columns:
+              - column:
+                  name: membership_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
             tableName: issues
             columns:
               - column:
@@ -126,11 +245,83 @@ databaseChangeLog:
             referencedColumnNames: issue_id
             constraintName: fk_issue_phases_issue
         - addForeignKeyConstraint:
+            baseTableName: teams
+            baseColumnNames: org_id
+            referencedTableName: orgs
+            referencedColumnNames: org_id
+            constraintName: fk_teams_org
+        - addForeignKeyConstraint:
+            baseTableName: teams
+            baseColumnNames: parent_team_id
+            referencedTableName: teams
+            referencedColumnNames: team_id
+            constraintName: fk_teams_parent
+        - addForeignKeyConstraint:
+            baseTableName: projects
+            baseColumnNames: org_id
+            referencedTableName: orgs
+            referencedColumnNames: org_id
+            constraintName: fk_projects_org
+        - addForeignKeyConstraint:
+            baseTableName: projects
+            baseColumnNames: team_id
+            referencedTableName: teams
+            referencedColumnNames: team_id
+            constraintName: fk_projects_team
+        - addForeignKeyConstraint:
+            baseTableName: org_memberships
+            baseColumnNames: org_id
+            referencedTableName: orgs
+            referencedColumnNames: org_id
+            constraintName: fk_org_memberships_org
+        - addForeignKeyConstraint:
+            baseTableName: org_memberships
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_org_memberships_user
+        - addForeignKeyConstraint:
+            baseTableName: team_memberships
+            baseColumnNames: team_id
+            referencedTableName: teams
+            referencedColumnNames: team_id
+            constraintName: fk_team_memberships_team
+        - addForeignKeyConstraint:
+            baseTableName: team_memberships
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_team_memberships_user
+        - addForeignKeyConstraint:
+            baseTableName: project_memberships
+            baseColumnNames: project_id
+            referencedTableName: projects
+            referencedColumnNames: project_id
+            constraintName: fk_project_memberships_project
+        - addForeignKeyConstraint:
+            baseTableName: project_memberships
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_project_memberships_user
+        - addForeignKeyConstraint:
             baseTableName: issues
             baseColumnNames: owner_id
             referencedTableName: users
             referencedColumnNames: user_id
             constraintName: fk_issues_owner
+        - addUniqueConstraint:
+            tableName: org_memberships
+            columnNames: org_id, user_id
+            constraintName: uq_org_memberships
+        - addUniqueConstraint:
+            tableName: team_memberships
+            columnNames: team_id, user_id
+            constraintName: uq_team_memberships
+        - addUniqueConstraint:
+            tableName: project_memberships
+            columnNames: project_id, user_id
+            constraintName: uq_project_memberships
         - addForeignKeyConstraint:
             baseTableName: issue_phases
             baseColumnNames: assignee_id

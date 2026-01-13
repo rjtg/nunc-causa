@@ -11,6 +11,7 @@ import sh.nunc.causa.issues.MyWorkView
 import sh.nunc.causa.issues.PhaseWorkView
 import sh.nunc.causa.issues.TaskWorkView
 import sh.nunc.causa.users.UserEntity
+import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.web.model.PhaseStatus
 import sh.nunc.causa.web.model.TaskStatus
 
@@ -47,8 +48,10 @@ class WorkControllerTest {
         )
         val service = mockk<IssueService>()
         every { service.buildMyWork("system") } returns work
+        val currentUserService = mockk<CurrentUserService>()
+        every { currentUserService.currentUserId() } returns "system"
 
-        val controller = WorkController(service)
+        val controller = WorkController(service, currentUserService)
         val response = controller.getMyWork()
 
         assertEquals(1, response.body?.ownedIssues?.size)

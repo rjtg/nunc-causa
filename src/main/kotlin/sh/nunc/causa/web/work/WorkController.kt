@@ -1,8 +1,10 @@
 package sh.nunc.causa.web.work
 
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.RestController
 import sh.nunc.causa.issues.IssueService
+import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.web.api.WorkApi
 import sh.nunc.causa.web.issues.toListItem
 import sh.nunc.causa.web.model.MyWorkResponse
@@ -14,9 +16,13 @@ import sh.nunc.causa.web.model.TaskWorkItem
 @RestController
 class WorkController(
     private val issueService: IssueService,
+    private val currentUserService: CurrentUserService,
 ) : WorkApi {
+    @PreAuthorize("@accessPolicy.canAccessWork()")
     override fun getMyWork(): ResponseEntity<MyWorkResponse> {
-        val work = issueService.buildMyWork("system")
+        val userId = currentUserService.currentUserId()
+            ?: return ResponseEntity.status(401).build()
+        val work = issueService.buildMyWork(userId)
         val response = MyWorkResponse(
             ownedIssues = work.ownedIssues.map { it.toListItem() },
             assignedPhases = work.assignedPhases.map { phase ->

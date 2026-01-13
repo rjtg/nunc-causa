@@ -17,14 +17,31 @@ import sh.nunc.causa.issues.PhaseEntity
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.users.UserEntity
+import sh.nunc.causa.tenancy.AccessPolicyService
+import io.mockk.junit5.MockKExtension
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.security.test.context.support.WithMockUser
 
 @WebMvcTest(IssuesController::class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockKExtension::class)
+@WithMockUser(username = "alice")
 class IssuesControllerTest(
     @Autowired private val mockMvc: MockMvc,
 ) {
     @MockkBean
     private lateinit var issueService: IssueService
+    @MockkBean
+    private lateinit var accessPolicy: AccessPolicyService
+
+    @BeforeEach
+    fun allowAccess() {
+        every { accessPolicy.canCreateIssue(any()) } returns true
+        every { accessPolicy.canViewIssue(any()) } returns true
+        every { accessPolicy.canListIssues(any()) } returns true
+        every { accessPolicy.canModifyIssue(any()) } returns true
+    }
 
     @Test
     fun `lists issues with filters`() {

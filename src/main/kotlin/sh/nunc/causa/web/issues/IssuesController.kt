@@ -2,6 +2,7 @@ package sh.nunc.causa.web.issues
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import sh.nunc.causa.issues.CreateIssueCommand
@@ -32,6 +33,7 @@ class IssuesController(
     private val issueService: IssueService,
 ) : IssuesApi {
 
+    @PreAuthorize("@accessPolicy.canCreateIssue(#createIssueRequest.projectId)")
     override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueDetail> {
         val issue = issueService.createIssue(
             CreateIssueCommand(
@@ -51,10 +53,12 @@ class IssuesController(
         return ResponseEntity.status(HttpStatus.CREATED).body(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun getIssue(issueId: String): ResponseEntity<IssueDetail> {
         return ResponseEntity.ok(loadIssue(issueId).toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canListIssues(#projectId)")
     override fun listIssues(
         ownerId: String?,
         assigneeId: String?,
@@ -74,6 +78,7 @@ class IssuesController(
         return ResponseEntity.ok(issues.map { it.toListItem() })
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun updateIssue(
         issueId: String,
         updateIssueRequest: UpdateIssueRequest,
@@ -89,6 +94,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun assignIssueOwner(
         issueId: String,
         assignOwnerRequest: AssignOwnerRequest,
@@ -97,6 +103,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun addPhase(
         issueId: String,
         addPhaseRequest: AddPhaseRequest,
@@ -112,6 +119,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun assignPhaseAssignee(
         issueId: String,
         phaseId: String,
@@ -127,6 +135,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun addTask(
         issueId: String,
         phaseId: String,
@@ -143,6 +152,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun updatePhase(
         issueId: String,
         phaseId: String,
@@ -161,6 +171,7 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun updateTask(
         issueId: String,
         phaseId: String,
@@ -180,31 +191,37 @@ class IssuesController(
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun closeIssue(issueId: String): ResponseEntity<IssueDetail> {
         val issue = withNotFound { issueService.closeIssue(issueId) }
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun failPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
         val issue = withNotFound { issueService.failPhase(issueId, phaseId) }
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun reopenPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
         val issue = withNotFound { issueService.reopenPhase(issueId, phaseId) }
         return ResponseEntity.ok(issue.toDetail())
     }
 
+    @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun getIssueHistory(issueId: String): ResponseEntity<IssueHistoryResponse> {
         val history = IssueHistoryResponse(activity = emptyList(), audit = emptyList())
         return ResponseEntity.ok(history)
     }
 
+    @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun listIssueComments(issueId: String): ResponseEntity<List<CommentResponse>> {
         val comments = commentsForIssue(issueId)
         return ResponseEntity.ok(comments)
     }
 
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun addIssueComment(
         issueId: String,
         addCommentRequest: AddCommentRequest,
