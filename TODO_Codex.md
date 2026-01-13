@@ -17,6 +17,14 @@ Use src/main/kotlin and src/test/kotlin.
     - Add policy service for project membership and role checks
     - Apply `@PreAuthorize` to issue/phase/task endpoints
     - Scope repository queries by project membership
+[ ] Add dev auth/JWT/OAuth2 stub for local API usage
+    - Configure a minimal authentication provider
+    - Update docs for local auth setup
+[ ] Add admin endpoints or seed data for org/team/project/membership management
+    - Create minimal CRUD endpoints for memberships
+    - Add dev seed data or migrations for local use
+[ ] Make `projectId` required for issue creation or define default project behavior
+    - Align API spec with policy enforcement
 [x] Replace in-memory issue filtering with repository queries
     - Add repository methods for owner/assignee/member/project filters
     - Add indexes to support those filters
@@ -36,6 +44,9 @@ Use src/main/kotlin and src/test/kotlin.
     - Compute allowed actions based on permissions + resource state
     - Include reasons for disabled actions
     - Add tests for capability evaluation
+[ ] Secure SSE updates and scope them to the authenticated user
+    - Require auth for `/stream/updates`
+    - Filter update events by membership/visibility
 [ ] Add `/issues/{id}/history` with activity feed + audit trail
     - Define activity feed storage model
     - Keep audit trail (Envers) separate from feed
@@ -47,6 +58,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Scope `/me/work` to the authenticated user
     - Read user ID from security context
     - Remove hardcoded fallback user
+[ ] Implement team/org membership inheritance rules
+    - Resolve nested team memberships
+    - Apply inheritance to access policy checks
 
 ---
 
