@@ -51,7 +51,7 @@ Use src/main/kotlin and src/test/kotlin.
     - Define activity feed storage model
     - Keep audit trail (Envers) separate from feed
     - Add endpoint tests
-[ ] Persist comments (no in-memory store)
+[x] Persist comments (no in-memory store)
     - Add comment entity + repository
     - Add endpoints for list/create backed by DB
     - Add tests for persistence and permissions
@@ -70,7 +70,7 @@ Use src/main/kotlin and src/test/kotlin.
     - Validate phase/task ownership and required transitions
     - Emit `PHASE_STATUS_CHANGED` and `TASK_STATUS_CHANGED` SSE events
     - Add tests for success and forbidden transitions
-[ ] Validate workflow actions (`close`, `fail`, `reopen`)
+[x] Validate workflow actions (`close`, `fail`, `reopen`)
     - Return 409 on invalid transitions
     - Ensure issue status derives from phase state after actions
 [ ] Enforce derived issue status consistency

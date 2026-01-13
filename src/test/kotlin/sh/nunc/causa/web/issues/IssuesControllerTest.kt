@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.post
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import sh.nunc.causa.issues.CreateIssueCommand
+import sh.nunc.causa.issues.IssueCommentService
 import sh.nunc.causa.issues.IssueEntity
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.PhaseEntity
@@ -18,6 +19,8 @@ import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.tenancy.AccessPolicyService
+import sh.nunc.causa.reporting.IssueHistoryService
+import sh.nunc.causa.web.model.IssueHistoryResponse
 import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
@@ -34,6 +37,10 @@ class IssuesControllerTest(
     private lateinit var issueService: IssueService
     @MockkBean
     private lateinit var accessPolicy: AccessPolicyService
+    @MockkBean
+    private lateinit var issueCommentService: IssueCommentService
+    @MockkBean
+    private lateinit var issueHistoryService: IssueHistoryService
 
     @BeforeEach
     fun allowAccess() {
@@ -42,6 +49,8 @@ class IssuesControllerTest(
         every { accessPolicy.canViewIssue(any()) } returns true
         every { accessPolicy.canListIssues(any()) } returns true
         every { accessPolicy.canModifyIssue(any()) } returns true
+        every { issueCommentService.listComments(any()) } returns emptyList()
+        every { issueHistoryService.getHistory(any()) } returns IssueHistoryResponse(activity = emptyList(), audit = emptyList())
     }
 
     @Test

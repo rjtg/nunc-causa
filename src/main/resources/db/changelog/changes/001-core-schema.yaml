@@ -238,6 +238,69 @@ databaseChangeLog:
                   type: varchar(64)
                   constraints:
                     nullable: false
+        - createTable:
+            tableName: issue_comments
+            columns:
+              - column:
+                  name: comment_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: body
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: issue_activity
+            columns:
+              - column:
+                  name: activity_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: issue_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: summary
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: occurred_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
         - addForeignKeyConstraint:
             baseTableName: issue_phases
             baseColumnNames: issue_id
@@ -346,6 +409,30 @@ databaseChangeLog:
             referencedTableName: issues
             referencedColumnNames: issue_id
             constraintName: fk_issue_tasks_issue
+        - addForeignKeyConstraint:
+            baseTableName: issue_comments
+            baseColumnNames: issue_id
+            referencedTableName: issues
+            referencedColumnNames: issue_id
+            constraintName: fk_issue_comments_issue
+        - addForeignKeyConstraint:
+            baseTableName: issue_comments
+            baseColumnNames: author_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_issue_comments_author
+        - addForeignKeyConstraint:
+            baseTableName: issue_activity
+            baseColumnNames: issue_id
+            referencedTableName: issues
+            referencedColumnNames: issue_id
+            constraintName: fk_issue_activity_issue
+        - addForeignKeyConstraint:
+            baseTableName: issue_activity
+            baseColumnNames: actor_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_issue_activity_actor
         - createTable:
             tableName: revinfo
             columns:

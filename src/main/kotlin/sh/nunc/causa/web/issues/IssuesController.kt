@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
+import sh.nunc.causa.issues.IssueCommentService
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.TaskStatus
+import sh.nunc.causa.reporting.IssueHistoryService
 import sh.nunc.causa.web.api.IssuesApi
 import sh.nunc.causa.tenancy.AccessPolicyService
 import sh.nunc.causa.web.model.AddCommentRequest
@@ -26,13 +28,13 @@ import sh.nunc.causa.web.model.IssueListItem
 import sh.nunc.causa.web.model.UpdateIssueRequest
 import sh.nunc.causa.web.model.UpdatePhaseRequest
 import sh.nunc.causa.web.model.UpdateTaskRequest
-import java.time.OffsetDateTime
-import java.util.UUID
 
 @RestController
 class IssuesController(
     private val issueService: IssueService,
     private val accessPolicy: AccessPolicyService,
+    private val issueCommentService: IssueCommentService,
+    private val issueHistoryService: IssueHistoryService,
 ) : IssuesApi {
 
     @PreAuthorize("@accessPolicy.canCreateIssue(#createIssueRequest.projectId)")
@@ -219,42 +221,26 @@ class IssuesController(
 
     @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun getIssueHistory(issueId: String): ResponseEntity<IssueHistoryResponse> {
-        val history = IssueHistoryResponse(activity = emptyList(), audit = emptyList())
-        return ResponseEntity.ok(history)
+        return ResponseEntity.ok(issueHistoryService.getHistory(issueId))
     }
 
     @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun listIssueComments(issueId: String): ResponseEntity<List<CommentResponse>> {
-        val comments = commentsForIssue(issueId)
+        val comments = issueCommentService.listComments(issueId)
         return ResponseEntity.ok(comments)
     }
 
-    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
+    @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun addIssueComment(
         issueId: String,
         addCommentRequest: AddCommentRequest,
     ): ResponseEntity<CommentResponse> {
-        val comment = CommentResponse(
-            id = UUID.randomUUID().toString(),
-            issueId = issueId,
-            authorId = "system",
-            body = addCommentRequest.body,
-            createdAt = OffsetDateTime.now(),
-        )
-        issueComments.getOrPut(issueId) { mutableListOf() }.add(comment)
+        val comment = issueCommentService.addComment(issueId, addCommentRequest)
         return ResponseEntity.status(HttpStatus.CREATED).body(comment)
     }
 
     private fun loadIssue(issueId: String) = withNotFound {
         issueService.getIssue(issueId)
-    }
-
-    private fun commentsForIssue(issueId: String): List<CommentResponse> {
-        return issueComments[issueId].orEmpty()
-    }
-
-    companion object {
-        private val issueComments: MutableMap<String, MutableList<CommentResponse>> = mutableMapOf()
     }
 
     private fun <T> withNotFound(block: () -> T): T {
