@@ -17,10 +17,10 @@ Use src/main/kotlin and src/test/kotlin.
     - Add policy service for project membership and role checks
     - Apply `@PreAuthorize` to issue/phase/task endpoints
     - Scope repository queries by project membership
-[ ] Replace in-memory issue filtering with repository queries
+[x] Replace in-memory issue filtering with repository queries
     - Add repository methods for owner/assignee/member/project filters
     - Add indexes to support those filters
-[ ] Replace in-memory work/search queries with repository-backed queries
+[x] Replace in-memory work/search queries with repository-backed queries
     - Add query methods for per-user work queues
     - Add search queries scoped by project membership
 [ ] Implement derived issue status (no direct status writes)
