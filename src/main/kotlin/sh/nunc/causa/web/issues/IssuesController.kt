@@ -162,15 +162,17 @@ class IssuesController(
         phaseId: String,
         updatePhaseRequest: UpdatePhaseRequest,
     ): ResponseEntity<IssueDetail> {
-        val issue = withNotFound {
-            issueService.updatePhase(
-                issueId,
-                phaseId,
-                updatePhaseRequest.name,
-                updatePhaseRequest.assigneeId,
-                updatePhaseRequest.status?.let { PhaseStatus.valueOf(it.name) },
-                updatePhaseRequest.kind?.name,
-            )
+        val issue = withConflict {
+            withNotFound {
+                issueService.updatePhase(
+                    issueId,
+                    phaseId,
+                    updatePhaseRequest.name,
+                    updatePhaseRequest.assigneeId,
+                    updatePhaseRequest.status?.let { PhaseStatus.valueOf(it.name) },
+                    updatePhaseRequest.kind?.name,
+                )
+            }
         }
         return ResponseEntity.ok(issue.toDetail())
     }
@@ -182,22 +184,24 @@ class IssuesController(
         taskId: String,
         updateTaskRequest: UpdateTaskRequest,
     ): ResponseEntity<IssueDetail> {
-        val issue = withNotFound {
-            issueService.updateTask(
-                issueId,
-                phaseId,
-                taskId,
-                updateTaskRequest.title,
-                updateTaskRequest.assigneeId,
-                updateTaskRequest.status?.let { TaskStatus.valueOf(it.name) },
-            )
+        val issue = withConflict {
+            withNotFound {
+                issueService.updateTask(
+                    issueId,
+                    phaseId,
+                    taskId,
+                    updateTaskRequest.title,
+                    updateTaskRequest.assigneeId,
+                    updateTaskRequest.status?.let { TaskStatus.valueOf(it.name) },
+                )
+            }
         }
         return ResponseEntity.ok(issue.toDetail())
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun closeIssue(issueId: String): ResponseEntity<IssueDetail> {
-        val issue = withNotFound { issueService.closeIssue(issueId) }
+        val issue = withConflict { withNotFound { issueService.closeIssue(issueId) } }
         return ResponseEntity.ok(issue.toDetail())
     }
 
@@ -258,6 +262,14 @@ class IssuesController(
             block()
         } catch (ex: NoSuchElementException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, ex.message, ex)
+        }
+    }
+
+    private fun <T> withConflict(block: () -> T): T {
+        return try {
+            block()
+        } catch (ex: IllegalStateException) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, ex.message, ex)
         }
     }
 }

@@ -132,6 +132,9 @@ class IssueService(
             phase.assignee = requireUser(assigneeId)
         }
         if (status != null) {
+            if (status == PhaseStatus.DONE && phase.tasks.any { it.status != TaskStatus.DONE.name }) {
+                throw IllegalStateException("Phase $phaseId has unfinished tasks")
+            }
             phase.status = status.name
         }
         if (kind != null) {
@@ -206,6 +209,10 @@ class IssueService(
     @Transactional
     fun closeIssue(issueId: String): IssueEntity {
         val issue = getIssue(issueId)
+        val hasIncompletePhase = issue.phases.any { it.status != PhaseStatus.DONE.name }
+        if (hasIncompletePhase) {
+            throw IllegalStateException("Issue $issueId has incomplete phases")
+        }
         issue.status = IssueStatus.DONE.name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))

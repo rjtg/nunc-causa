@@ -69,4 +69,31 @@ class IssueServiceTest {
         verify { eventPublisher.publishEvent(capture(eventSlot)) }
         assertEquals(IssueUpdatedEvent("issue-1"), eventSlot.captured)
     }
+
+    @Test
+    fun `rejects closing issue with incomplete phases`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-1",
+            title = "Issue",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+        )
+        issue.phases.add(
+            PhaseEntity(
+                id = "phase-1",
+                name = "Investigation",
+                assignee = owner,
+                status = PhaseStatus.IN_PROGRESS.name,
+                kind = "INVESTIGATION",
+                issue = issue,
+            ),
+        )
+        every { issueRepository.findById("issue-1") } returns Optional.of(issue)
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
+            service.closeIssue("issue-1")
+        }
+    }
 }
