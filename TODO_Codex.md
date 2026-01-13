@@ -29,6 +29,10 @@ Use src/main/kotlin and src/test/kotlin.
     - Add read-model DTOs for issue list and issue detail
     - Map via repository projections or query models
     - Avoid lazy-loading in controllers
+[ ] Add action capability metadata to read models
+    - Compute allowed actions based on permissions + resource state
+    - Include reasons for disabled actions
+    - Add tests for capability evaluation
 [ ] Add `/issues/{id}/history` with activity feed + audit trail
     - Define activity feed storage model
     - Keep audit trail (Envers) separate from feed
@@ -52,6 +56,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Validate workflow actions (`close`, `fail`, `reopen`)
     - Return 409 on invalid transitions
     - Ensure issue status derives from phase state after actions
+[ ] Add `/issues/{id}/actions` and `/issues/{id}/phases/{phaseId}/actions`
+    - Expose allowed actions/possible transitions
+    - Include reasons for disallowed actions
 [ ] Add per-user work view endpoint (`GET /me/work`)
     - Implement query model for assigned tasks/phases
     - Apply permission filters

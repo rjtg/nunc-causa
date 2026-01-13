@@ -137,6 +137,8 @@ Each module should:
 ### Primary Interface: REST (OpenAPI)
 - Create issue, list issues, update phases/tasks, get issue history
 - Prefer resource-driven endpoints
+- Read models should include **allowed actions** (capability keys) computed per user
+  based on permissions + resource state, with reasons for disabled actions.
 
 ### Live Updates: SSE
 - `/stream/updates`

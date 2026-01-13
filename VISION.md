@@ -215,6 +215,10 @@ REST responses should be based on **read models**, not raw audit logs. Early
 iterations can map from entities, but the goal is dedicated read models for
 list/detail/history views.
 
+Read models should also include **allowed actions** (capability keys) so the UI
+can render only valid transitions. These should be computed per user from
+permissions + resource state, and include a reason when an action is disabled.
+
 ### 5.2 Live update via SSE (optional)
 
 Default to polling (ETags or short polling) and add SSE only where it clearly

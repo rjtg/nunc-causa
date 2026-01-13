@@ -200,6 +200,7 @@ Sections:
 - Comments/log (team discussion channel)
 - Event history
 - Configuration (owners)
+- Allowed actions (capability keys based on permissions + workflow state)
 
 Visual cues show:
 - What’s done
