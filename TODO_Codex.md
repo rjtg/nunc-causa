@@ -121,6 +121,11 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add task-level granularity in dev phases
 [ ] Add workflow template management UI (if building frontend)
 [ ] Add activity stream view fed by activity feed model
+[ ] AI assistance via Spring AI (future ideation)
+    - Summarize issues and phases for status updates
+    - Suggest next actions based on workflow state
+    - Cluster similar issues and recommend related work
+    - Draft comment replies or release notes for owners
 
 ---
 
