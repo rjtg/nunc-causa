@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import sh.nunc.causa.issues.IssueEntity
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.IssueStatus
+import sh.nunc.causa.tenancy.AccessPolicyService
 import sh.nunc.causa.users.UserEntity
 
 class SearchControllerTest {
@@ -21,9 +22,11 @@ class SearchControllerTest {
             status = IssueStatus.CREATED.name,
         )
         val service = mockk<IssueService>()
+        val accessPolicy = mockk<AccessPolicyService>()
+        every { accessPolicy.currentUserId() } returns "user-1"
         every { service.searchIssues("term", "project-1") } returns listOf(issue)
 
-        val controller = SearchController(service)
+        val controller = SearchController(service, accessPolicy)
         val response = controller.searchIssues("term", "project-1")
 
         assertEquals(1, response.body?.size)

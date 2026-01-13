@@ -37,6 +37,7 @@ class IssuesControllerTest(
 
     @BeforeEach
     fun allowAccess() {
+        every { accessPolicy.currentUserId() } returns "alice"
         every { accessPolicy.canCreateIssue(any()) } returns true
         every { accessPolicy.canViewIssue(any()) } returns true
         every { accessPolicy.canListIssues(any()) } returns true
@@ -53,7 +54,7 @@ class IssuesControllerTest(
             projectId = null,
             status = IssueStatus.IN_ANALYSIS.name,
         )
-        every { issueService.listIssues("alice", null, null, null, null, null) } returns listOf(issue)
+        every { issueService.listIssues("alice", null, "alice", null, null, null) } returns listOf(issue)
 
         mockMvc.get("/issues") {
             param("ownerId", "alice")

@@ -58,19 +58,14 @@ class IssueService(
         status: IssueStatus?,
         phaseKind: String?,
     ): List<IssueEntity> {
-        return issueRepository.findAll()
-            .filter { issue -> ownerId == null || issue.owner.id == ownerId }
-            .filter { issue -> projectId == null || issue.projectId == projectId }
-            .filter { issue ->
-                assigneeId == null || issue.phases.any { it.assignee.id == assigneeId }
-            }
-            .filter { issue ->
-                memberId == null || issue.owner.id == memberId || issue.phases.any { phase ->
-                    phase.assignee.id == memberId || phase.tasks.any { it.assignee?.id == memberId }
-                }
-            }
-            .filter { issue -> status == null || issue.status == status.name }
-            .filter { issue -> phaseKind == null || issue.phases.any { it.kind == phaseKind } }
+        return issueRepository.findFiltered(
+            projectId = projectId,
+            ownerId = ownerId,
+            assigneeId = assigneeId,
+            memberId = memberId,
+            status = status?.name,
+            phaseKind = phaseKind,
+        )
     }
 
     @Transactional
@@ -243,15 +238,19 @@ class IssueService(
 
     @Transactional(readOnly = true)
     fun searchIssues(query: String, projectId: String?): List<IssueEntity> {
-        val lowered = query.lowercase()
-        return issueRepository.findAll()
-            .filter { projectId == null || it.projectId == projectId }
-            .filter { it.title.lowercase().contains(lowered) }
+        return issueRepository.searchByTitle(query, projectId)
     }
 
     @Transactional(readOnly = true)
     fun buildMyWork(userId: String): MyWorkView {
-        val issues = issueRepository.findAll()
+        val issues = issueRepository.findFiltered(
+            projectId = null,
+            ownerId = userId,
+            assigneeId = userId,
+            memberId = userId,
+            status = null,
+            phaseKind = null,
+        )
         val owned = issues.filter { it.owner.id == userId }
         val assignedPhases = issues.flatMap { issue ->
             issue.phases.filter { it.assignee.id == userId }.map { phase ->

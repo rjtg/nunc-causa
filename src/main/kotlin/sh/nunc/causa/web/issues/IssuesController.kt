@@ -12,6 +12,7 @@ import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.TaskStatus
 import sh.nunc.causa.web.api.IssuesApi
+import sh.nunc.causa.tenancy.AccessPolicyService
 import sh.nunc.causa.web.model.AddCommentRequest
 import sh.nunc.causa.web.model.AddPhaseRequest
 import sh.nunc.causa.web.model.AddTaskRequest
@@ -31,6 +32,7 @@ import java.util.UUID
 @RestController
 class IssuesController(
     private val issueService: IssueService,
+    private val accessPolicy: AccessPolicyService,
 ) : IssuesApi {
 
     @PreAuthorize("@accessPolicy.canCreateIssue(#createIssueRequest.projectId)")
@@ -67,10 +69,12 @@ class IssuesController(
         status: sh.nunc.causa.web.model.IssueStatus?,
         phaseKind: sh.nunc.causa.web.model.PhaseKind?,
     ): ResponseEntity<List<IssueListItem>> {
+        val currentUserId = accessPolicy.currentUserId()
+        val effectiveMemberId = memberId ?: currentUserId
         val issues = issueService.listIssues(
             ownerId,
             assigneeId,
-            memberId,
+            effectiveMemberId,
             projectId,
             status?.let { IssueStatus.valueOf(it.name) },
             phaseKind?.name,

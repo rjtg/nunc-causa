@@ -44,4 +44,6 @@ class AccessPolicyService(
         val userId = currentUserService.currentUserId() ?: return false
         return projectMembershipRepository.existsByUserId(userId)
     }
+
+    fun currentUserId(): String? = currentUserService.currentUserId()
 }
