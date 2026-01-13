@@ -14,7 +14,7 @@ class IssueEntitiesTest {
             title = "Issue",
             owner = owner,
             projectId = null,
-            status = PhaseStatus.NOT_STARTED.name,
+            status = IssueStatus.CREATED.name,
         )
         val phase = PhaseEntity(
             id = "phase-1",

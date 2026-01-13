@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Causa API
-  version: 0.1.0
+  version: 0.2.0
   description: API for issue tracking and phase workflows.
 servers:
   - url: /
@@ -24,24 +24,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
     get:
       tags:
         - Issues
       summary: List issues
       operationId: listIssues
       parameters:
-        - name: owner
+        - name: ownerId
           in: query
           required: false
           schema:
             type: string
-        - name: assignee
+        - name: assigneeId
           in: query
           required: false
           schema:
             type: string
-        - name: member
+        - name: memberId
           in: query
           required: false
           schema:
@@ -51,6 +51,16 @@ paths:
           required: false
           schema:
             type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IssueStatus'
+        - name: phaseKind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PhaseKind'
       responses:
         '200':
           description: Issue list
@@ -59,7 +69,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IssueSummary'
+                  $ref: '#/components/schemas/IssueListItem'
   /issues/{issueId}:
     get:
       tags:
@@ -78,7 +88,33 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
+        '404':
+          description: Issue not found
+    patch:
+      tags:
+        - Issues
+      summary: Update issue metadata
+      operationId: updateIssue
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIssueRequest'
+      responses:
+        '200':
+          description: Issue updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
         '404':
           description: Issue not found
   /issues/{issueId}/owner:
@@ -105,9 +141,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
         '404':
           description: Issue not found
+  /issues/{issueId}/actions/close:
+    post:
+      tags:
+        - Issues
+      summary: Close an issue
+      operationId: closeIssue
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issue closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '409':
+          description: Issue not ready to close
   /issues/{issueId}/phases:
     post:
       tags:
@@ -132,9 +189,41 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
         '404':
           description: Issue not found
+  /issues/{issueId}/phases/{phaseId}:
+    patch:
+      tags:
+        - Issues
+      summary: Update phase
+      operationId: updatePhase
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePhaseRequest'
+      responses:
+        '200':
+          description: Phase updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '404':
+          description: Issue or phase not found
   /issues/{issueId}/phases/{phaseId}/assignee:
     patch:
       tags:
@@ -164,9 +253,61 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
         '404':
           description: Issue or phase not found
+  /issues/{issueId}/phases/{phaseId}/actions/fail:
+    post:
+      tags:
+        - Issues
+      summary: Mark phase as failed
+      operationId: failPhase
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Phase failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '409':
+          description: Invalid transition
+  /issues/{issueId}/phases/{phaseId}/actions/reopen:
+    post:
+      tags:
+        - Issues
+      summary: Reopen phase
+      operationId: reopenPhase
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Phase reopened
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '409':
+          description: Invalid transition
   /issues/{issueId}/phases/{phaseId}/tasks:
     post:
       tags:
@@ -196,21 +337,163 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IssueResponse'
+                $ref: '#/components/schemas/IssueDetail'
         '404':
           description: Issue or phase not found
+  /issues/{issueId}/phases/{phaseId}/tasks/{taskId}:
+    patch:
+      tags:
+        - Issues
+      summary: Update task
+      operationId: updateTask
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '404':
+          description: Issue, phase, or task not found
+  /issues/{issueId}/history:
+    get:
+      tags:
+        - Issues
+      summary: Get issue history
+      operationId: getIssueHistory
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issue history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueHistoryResponse'
+        '404':
+          description: Issue not found
+  /issues/{issueId}/comments:
+    get:
+      tags:
+        - Issues
+      summary: List issue comments
+      operationId: listIssueComments
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommentResponse'
+    post:
+      tags:
+        - Issues
+      summary: Add issue comment
+      operationId: addIssueComment
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCommentRequest'
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+  /me/work:
+    get:
+      tags:
+        - Work
+      summary: Get per-user work queues
+      operationId: getMyWork
+      responses:
+        '200':
+          description: Work queues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyWorkResponse'
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Search issues
+      operationId: searchIssues
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueListItem'
 components:
   schemas:
     CreateIssueRequest:
       type: object
       required:
         - title
-        - owner
+        - ownerId
         - phases
       properties:
         title:
           type: string
-        owner:
+        ownerId:
           type: string
         projectId:
           type: string
@@ -218,30 +501,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CreatePhaseRequest'
+    UpdateIssueRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        ownerId:
+          type: string
+        projectId:
+          type: string
     AssignOwnerRequest:
       type: object
       required:
-        - owner
+        - ownerId
       properties:
-        owner:
+        ownerId:
           type: string
     AssignAssigneeRequest:
       type: object
       required:
-        - assignee
+        - assigneeId
       properties:
-        assignee:
+        assigneeId:
           type: string
     AddPhaseRequest:
       type: object
       required:
         - name
-        - assignee
+        - assigneeId
       properties:
         name:
           type: string
-        assignee:
+        assigneeId:
           type: string
+        kind:
+          $ref: '#/components/schemas/PhaseKind'
+    UpdatePhaseRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        assigneeId:
+          type: string
+        status:
+          $ref: '#/components/schemas/PhaseStatus'
+        kind:
+          $ref: '#/components/schemas/PhaseKind'
     AddTaskRequest:
       type: object
       required:
@@ -249,48 +554,35 @@ components:
       properties:
         title:
           type: string
-        assignee:
+        assigneeId:
           type: string
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        assigneeId:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
     CreatePhaseRequest:
       type: object
       required:
         - name
-        - assignee
+        - assigneeId
       properties:
         name:
           type: string
-        assignee:
+        assigneeId:
           type: string
-    IssueResponse:
+        kind:
+          $ref: '#/components/schemas/PhaseKind'
+    IssueListItem:
       type: object
       required:
         - id
         - title
-        - owner
-        - phases
-        - version
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        owner:
-          type: string
-        projectId:
-          type: string
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/PhaseResponse'
-        version:
-          type: integer
-          format: int64
-    IssueSummary:
-      type: object
-      required:
-        - id
-        - title
-        - owner
+        - ownerId
         - phaseCount
         - status
       properties:
@@ -298,7 +590,7 @@ components:
           type: string
         title:
           type: string
-        owner:
+        ownerId:
           type: string
         projectId:
           type: string
@@ -306,17 +598,40 @@ components:
           type: integer
           format: int32
         status:
+          $ref: '#/components/schemas/IssueStatus'
+    IssueDetail:
+      type: object
+      required:
+        - id
+        - title
+        - ownerId
+        - phases
+        - status
+        - version
+      properties:
+        id:
           type: string
-          enum:
-            - NOT_STARTED
-            - IN_PROGRESS
-            - DONE
+        title:
+          type: string
+        ownerId:
+          type: string
+        projectId:
+          type: string
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseResponse'
+        status:
+          $ref: '#/components/schemas/IssueStatus'
+        version:
+          type: integer
+          format: int64
     PhaseResponse:
       type: object
       required:
         - id
         - name
-        - assignee
+        - assigneeId
         - status
         - tasks
       properties:
@@ -324,14 +639,12 @@ components:
           type: string
         name:
           type: string
-        assignee:
+        assigneeId:
           type: string
         status:
-          type: string
-          enum:
-            - NOT_STARTED
-            - IN_PROGRESS
-            - DONE
+          $ref: '#/components/schemas/PhaseStatus'
+        kind:
+          $ref: '#/components/schemas/PhaseKind'
         tasks:
           type: array
           items:
@@ -347,11 +660,188 @@ components:
           type: string
         title:
           type: string
-        assignee:
+        assigneeId:
           type: string
         status:
+          $ref: '#/components/schemas/TaskStatus'
+    IssueHistoryResponse:
+      type: object
+      required:
+        - activity
+        - audit
+      properties:
+        activity:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEntry'
+        audit:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+    ActivityEntry:
+      type: object
+      required:
+        - id
+        - issueId
+        - type
+        - summary
+        - occurredAt
+      properties:
+        id:
           type: string
-          enum:
-            - NOT_STARTED
-            - IN_PROGRESS
-            - DONE
+        issueId:
+          type: string
+        type:
+          type: string
+        summary:
+          type: string
+        actorId:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    AuditEntry:
+      type: object
+      required:
+        - id
+        - issueId
+        - entityType
+        - entityId
+        - changeType
+        - occurredAt
+      properties:
+        id:
+          type: string
+        issueId:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        changeType:
+          type: string
+        actorId:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        fields:
+          type: object
+          additionalProperties:
+            type: object
+    AddCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+        mentions:
+          type: array
+          items:
+            type: string
+    CommentResponse:
+      type: object
+      required:
+        - id
+        - issueId
+        - authorId
+        - body
+        - createdAt
+      properties:
+        id:
+          type: string
+        issueId:
+          type: string
+        authorId:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MyWorkResponse:
+      type: object
+      required:
+        - ownedIssues
+        - assignedPhases
+        - assignedTasks
+      properties:
+        ownedIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueListItem'
+        assignedPhases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseWorkItem'
+        assignedTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskWorkItem'
+    PhaseWorkItem:
+      type: object
+      required:
+        - issueId
+        - phaseId
+        - phaseName
+        - status
+      properties:
+        issueId:
+          type: string
+        phaseId:
+          type: string
+        phaseName:
+          type: string
+        status:
+          $ref: '#/components/schemas/PhaseStatus'
+    TaskWorkItem:
+      type: object
+      required:
+        - issueId
+        - phaseId
+        - taskId
+        - taskTitle
+        - status
+      properties:
+        issueId:
+          type: string
+        phaseId:
+          type: string
+        taskId:
+          type: string
+        taskTitle:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+    IssueStatus:
+      type: string
+      enum:
+        - CREATED
+        - IN_ANALYSIS
+        - IN_DEVELOPMENT
+        - IN_TEST
+        - IN_ROLLOUT
+        - DONE
+        - FAILED
+    PhaseStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - IN_PROGRESS
+        - DONE
+        - FAILED
+    TaskStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - IN_PROGRESS
+        - DONE
+    PhaseKind:
+      type: string
+      enum:
+        - INVESTIGATION
+        - PROPOSE_SOLUTION
+        - DEVELOPMENT
+        - ACCEPTANCE_TEST
+        - ROLLOUT

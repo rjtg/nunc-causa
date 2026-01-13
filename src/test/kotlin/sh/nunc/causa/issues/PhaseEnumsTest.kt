@@ -8,7 +8,7 @@ class PhaseEnumsTest {
     fun `phase status includes expected values`() {
         val names = PhaseStatus.entries.map { it.name }
 
-        assertTrue(names.containsAll(listOf("NOT_STARTED", "IN_PROGRESS", "DONE")))
+        assertTrue(names.containsAll(listOf("NOT_STARTED", "IN_PROGRESS", "FAILED", "DONE")))
     }
 
     @Test

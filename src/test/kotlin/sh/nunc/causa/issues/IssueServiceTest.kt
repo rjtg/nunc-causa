@@ -30,9 +30,9 @@ class IssueServiceTest {
         val result = service.createIssue(
             CreateIssueCommand(
                 title = "Issue",
-                owner = "owner-1",
+                ownerId = "owner-1",
                 projectId = "project-1",
-                phases = listOf(CreatePhaseCommand(name = "Investigation", assignee = "user-2")),
+                phases = listOf(CreatePhaseCommand(name = "Investigation", assigneeId = "user-2", kind = "INVESTIGATION")),
             ),
         )
 
@@ -54,7 +54,7 @@ class IssueServiceTest {
             title = "Issue",
             owner = currentOwner,
             projectId = null,
-            status = PhaseStatus.NOT_STARTED.name,
+            status = IssueStatus.CREATED.name,
         )
         every { issueRepository.findById("issue-1") } returns Optional.of(issue)
         every { userRepository.findById("owner-2") } returns Optional.of(newOwner)

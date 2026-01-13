@@ -15,28 +15,29 @@ class IssueService(
 ) {
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
-        val owner = requireUser(command.owner)
+        val owner = requireUser(command.ownerId)
         val issue = IssueEntity(
             id = UUID.randomUUID().toString(),
             title = command.title,
             owner = owner,
             projectId = command.projectId,
-            status = PhaseStatus.NOT_STARTED.name,
+            status = IssueStatus.CREATED.name,
         )
 
         command.phases.forEach { phaseCommand ->
-            val assignee = requireUser(phaseCommand.assignee)
+            val assignee = requireUser(phaseCommand.assigneeId)
             val phase = PhaseEntity(
                 id = UUID.randomUUID().toString(),
                 name = phaseCommand.name,
                 assignee = assignee,
                 status = PhaseStatus.NOT_STARTED.name,
-                kind = null,
+                kind = phaseCommand.kind,
                 issue = issue,
             )
             issue.phases.add(phase)
         }
 
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
@@ -50,68 +51,120 @@ class IssueService(
 
     @Transactional(readOnly = true)
     fun listIssues(
-        owner: String?,
-        assignee: String?,
-        member: String?,
+        ownerId: String?,
+        assigneeId: String?,
+        memberId: String?,
         projectId: String?,
+        status: IssueStatus?,
+        phaseKind: String?,
     ): List<IssueEntity> {
         return issueRepository.findAll()
-            .filter { issue -> owner == null || issue.owner.id == owner }
+            .filter { issue -> ownerId == null || issue.owner.id == ownerId }
             .filter { issue -> projectId == null || issue.projectId == projectId }
             .filter { issue ->
-                assignee == null || issue.phases.any { it.assignee.id == assignee }
+                assigneeId == null || issue.phases.any { it.assignee.id == assigneeId }
             }
             .filter { issue ->
-                member == null || issue.owner.id == member || issue.phases.any { phase ->
-                    phase.assignee.id == member || phase.tasks.any { it.assignee?.id == member }
+                memberId == null || issue.owner.id == memberId || issue.phases.any { phase ->
+                    phase.assignee.id == memberId || phase.tasks.any { it.assignee?.id == memberId }
                 }
             }
+            .filter { issue -> status == null || issue.status == status.name }
+            .filter { issue -> phaseKind == null || issue.phases.any { it.kind == phaseKind } }
     }
 
     @Transactional
-    fun assignOwner(issueId: String, owner: String): IssueEntity {
+    fun updateIssue(issueId: String, title: String?, ownerId: String?, projectId: String?): IssueEntity {
         val issue = getIssue(issueId)
-        issue.owner = requireUser(owner)
+        if (title != null) {
+            issue.title = title
+        }
+        if (ownerId != null) {
+            issue.owner = requireUser(ownerId)
+        }
+        if (projectId != null) {
+            issue.projectId = projectId
+        }
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
     }
 
     @Transactional
-    fun addPhase(issueId: String, name: String, assignee: String): IssueEntity {
+    fun assignOwner(issueId: String, ownerId: String): IssueEntity {
         val issue = getIssue(issueId)
-        val assigneeEntity = requireUser(assignee)
+        issue.owner = requireUser(ownerId)
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional
+    fun addPhase(issueId: String, name: String, assigneeId: String, kind: String?): IssueEntity {
+        val issue = getIssue(issueId)
+        val assigneeEntity = requireUser(assigneeId)
         val phase = PhaseEntity(
             id = UUID.randomUUID().toString(),
             name = name,
             assignee = assigneeEntity,
             status = PhaseStatus.NOT_STARTED.name,
-            kind = null,
+            kind = kind,
             issue = issue,
         )
         issue.phases.add(phase)
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
     }
 
     @Transactional
-    fun assignPhaseAssignee(issueId: String, phaseId: String, assignee: String): IssueEntity {
+    fun updatePhase(
+        issueId: String,
+        phaseId: String,
+        name: String?,
+        assigneeId: String?,
+        status: PhaseStatus?,
+        kind: String?,
+    ): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
-        phase.assignee = requireUser(assignee)
+        if (name != null) {
+            phase.name = name
+        }
+        if (assigneeId != null) {
+            phase.assignee = requireUser(assigneeId)
+        }
+        if (status != null) {
+            phase.status = status.name
+        }
+        if (kind != null) {
+            phase.kind = kind
+        }
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
     }
 
     @Transactional
-    fun addTask(issueId: String, phaseId: String, title: String, assignee: String?): IssueEntity {
+    fun assignPhaseAssignee(issueId: String, phaseId: String, assigneeId: String): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
-        val assigneeEntity = assignee?.let { requireUser(it) }
+        phase.assignee = requireUser(assigneeId)
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional
+    fun addTask(issueId: String, phaseId: String, title: String, assigneeId: String?): IssueEntity {
+        val issue = getIssue(issueId)
+        val phase = issue.phases.firstOrNull { it.id == phaseId }
+            ?: throw NoSuchElementException("Phase $phaseId not found")
+        val assigneeEntity = assigneeId?.let { requireUser(it) }
         val task = TaskEntity(
             id = UUID.randomUUID().toString(),
             title = title,
@@ -120,13 +173,141 @@ class IssueService(
             phase = phase,
         )
         phase.tasks.add(task)
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         return saved
     }
 
+    @Transactional
+    fun updateTask(
+        issueId: String,
+        phaseId: String,
+        taskId: String,
+        title: String?,
+        assigneeId: String?,
+        status: TaskStatus?,
+    ): IssueEntity {
+        val issue = getIssue(issueId)
+        val phase = issue.phases.firstOrNull { it.id == phaseId }
+            ?: throw NoSuchElementException("Phase $phaseId not found")
+        val task = phase.tasks.firstOrNull { it.id == taskId }
+            ?: throw NoSuchElementException("Task $taskId not found")
+        if (title != null) {
+            task.title = title
+        }
+        if (assigneeId != null) {
+            task.assignee = requireUser(assigneeId)
+        }
+        if (status != null) {
+            task.status = status.name
+        }
+        issue.status = deriveIssueStatus(issue).name
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional
+    fun closeIssue(issueId: String): IssueEntity {
+        val issue = getIssue(issueId)
+        issue.status = IssueStatus.DONE.name
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional
+    fun failPhase(issueId: String, phaseId: String): IssueEntity {
+        val issue = getIssue(issueId)
+        val phase = issue.phases.firstOrNull { it.id == phaseId }
+            ?: throw NoSuchElementException("Phase $phaseId not found")
+        phase.status = PhaseStatus.FAILED.name
+        issue.status = IssueStatus.FAILED.name
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional
+    fun reopenPhase(issueId: String, phaseId: String): IssueEntity {
+        val issue = getIssue(issueId)
+        val phase = issue.phases.firstOrNull { it.id == phaseId }
+            ?: throw NoSuchElementException("Phase $phaseId not found")
+        phase.status = PhaseStatus.IN_PROGRESS.name
+        issue.status = deriveIssueStatus(issue).name
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        return saved
+    }
+
+    @Transactional(readOnly = true)
+    fun searchIssues(query: String, projectId: String?): List<IssueEntity> {
+        val lowered = query.lowercase()
+        return issueRepository.findAll()
+            .filter { projectId == null || it.projectId == projectId }
+            .filter { it.title.lowercase().contains(lowered) }
+    }
+
+    @Transactional(readOnly = true)
+    fun buildMyWork(userId: String): MyWorkView {
+        val issues = issueRepository.findAll()
+        val owned = issues.filter { it.owner.id == userId }
+        val assignedPhases = issues.flatMap { issue ->
+            issue.phases.filter { it.assignee.id == userId }.map { phase ->
+                PhaseWorkView(
+                    issueId = issue.id,
+                    phaseId = phase.id,
+                    phaseName = phase.name,
+                    status = phase.status,
+                )
+            }
+        }
+        val assignedTasks = issues.flatMap { issue ->
+            issue.phases.flatMap { phase ->
+                phase.tasks.filter { it.assignee?.id == userId }.map { task ->
+                    TaskWorkView(
+                        issueId = issue.id,
+                        phaseId = phase.id,
+                        taskId = task.id,
+                        taskTitle = task.title,
+                        status = task.status,
+                    )
+                }
+            }
+        }
+        return MyWorkView(owned, assignedPhases, assignedTasks)
+    }
+
     private fun requireUser(userId: String): UserEntity {
         return userRepository.findById(userId)
             .orElseThrow { NoSuchElementException("User $userId not found") }
+    }
+
+    private fun deriveIssueStatus(issue: IssueEntity): IssueStatus {
+        if (issue.phases.isEmpty()) {
+            return IssueStatus.CREATED
+        }
+        val phaseStatuses = issue.phases.map { PhaseStatus.valueOf(it.status) }
+        if (phaseStatuses.any { it == PhaseStatus.FAILED }) {
+            return IssueStatus.FAILED
+        }
+        if (phaseStatuses.all { it == PhaseStatus.DONE }) {
+            return IssueStatus.DONE
+        }
+        val inProgressKinds = issue.phases.filter { it.status == PhaseStatus.IN_PROGRESS.name }
+        if (inProgressKinds.any { it.kind == "ROLLOUT" }) {
+            return IssueStatus.IN_ROLLOUT
+        }
+        if (inProgressKinds.any { it.kind == "ACCEPTANCE_TEST" }) {
+            return IssueStatus.IN_TEST
+        }
+        if (inProgressKinds.any { it.kind == "DEVELOPMENT" }) {
+            return IssueStatus.IN_DEVELOPMENT
+        }
+        if (issue.phases.isNotEmpty() && phaseStatuses.any { it == PhaseStatus.IN_PROGRESS }) {
+            return IssueStatus.IN_ANALYSIS
+        }
+        return IssueStatus.CREATED
     }
 }

@@ -3,6 +3,7 @@ package sh.nunc.causa.web.issues
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.PhaseEntity
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.TaskEntity
@@ -19,7 +20,7 @@ class IssueApiMapperTest {
             title = "Issue",
             owner = owner,
             projectId = "project-1",
-            status = PhaseStatus.IN_PROGRESS.name,
+            status = IssueStatus.IN_ANALYSIS.name,
         )
         val phase = PhaseEntity(
             id = "phase-1",
@@ -39,11 +40,11 @@ class IssueApiMapperTest {
         phase.tasks.add(task)
         issue.phases.add(phase)
 
-        val response = issue.toResponse()
+        val response = issue.toDetail()
 
-        assertEquals("owner-1", response.owner)
-        assertEquals("assignee-1", response.phases.first().assignee)
-        assertEquals("assignee-1", response.phases.first().tasks.first().assignee)
+        assertEquals("owner-1", response.ownerId)
+        assertEquals("assignee-1", response.phases.first().assigneeId)
+        assertEquals("assignee-1", response.phases.first().tasks.first().assigneeId)
     }
 
     @Test
@@ -54,12 +55,12 @@ class IssueApiMapperTest {
             title = "Issue",
             owner = owner,
             projectId = null,
-            status = PhaseStatus.DONE.name,
+            status = IssueStatus.DONE.name,
         )
 
-        val summary = issue.toSummary()
+        val summary = issue.toListItem()
 
-        assertEquals("owner-1", summary.owner)
-        assertEquals(sh.nunc.causa.web.model.IssueSummary.Status.DONE, summary.status)
+        assertEquals("owner-1", summary.ownerId)
+        assertEquals(sh.nunc.causa.web.model.IssueStatus.DONE, summary.status)
     }
 }

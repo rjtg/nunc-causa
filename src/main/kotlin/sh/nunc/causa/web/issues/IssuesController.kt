@@ -7,107 +7,229 @@ import org.springframework.web.server.ResponseStatusException
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
 import sh.nunc.causa.issues.IssueService
+import sh.nunc.causa.issues.IssueStatus
+import sh.nunc.causa.issues.PhaseStatus
+import sh.nunc.causa.issues.TaskStatus
 import sh.nunc.causa.web.api.IssuesApi
+import sh.nunc.causa.web.model.AddCommentRequest
 import sh.nunc.causa.web.model.AddPhaseRequest
 import sh.nunc.causa.web.model.AddTaskRequest
 import sh.nunc.causa.web.model.AssignAssigneeRequest
 import sh.nunc.causa.web.model.AssignOwnerRequest
+import sh.nunc.causa.web.model.CommentResponse
 import sh.nunc.causa.web.model.CreateIssueRequest
-import sh.nunc.causa.web.model.IssueResponse
-import sh.nunc.causa.web.model.IssueSummary
+import sh.nunc.causa.web.model.IssueDetail
+import sh.nunc.causa.web.model.IssueHistoryResponse
+import sh.nunc.causa.web.model.IssueListItem
+import sh.nunc.causa.web.model.UpdateIssueRequest
+import sh.nunc.causa.web.model.UpdatePhaseRequest
+import sh.nunc.causa.web.model.UpdateTaskRequest
+import java.time.OffsetDateTime
+import java.util.UUID
 
 @RestController
 class IssuesController(
     private val issueService: IssueService,
 ) : IssuesApi {
 
-    override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueResponse> {
+    override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueDetail> {
         val issue = issueService.createIssue(
             CreateIssueCommand(
                 title = createIssueRequest.title,
-                owner = createIssueRequest.owner,
+                ownerId = createIssueRequest.ownerId,
                 projectId = createIssueRequest.projectId,
                 phases = createIssueRequest.phases.map {
                     CreatePhaseCommand(
                         name = it.name,
-                        assignee = it.assignee,
+                        assigneeId = it.assigneeId,
+                        kind = it.kind?.name,
                     )
                 },
             ),
         )
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(issue.toResponse())
+        return ResponseEntity.status(HttpStatus.CREATED).body(issue.toDetail())
     }
 
-    override fun getIssue(issueId: String): ResponseEntity<IssueResponse> {
-        return ResponseEntity.ok(loadIssue(issueId).toResponse())
+    override fun getIssue(issueId: String): ResponseEntity<IssueDetail> {
+        return ResponseEntity.ok(loadIssue(issueId).toDetail())
     }
 
     override fun listIssues(
-        owner: String?,
-        assignee: String?,
-        member: String?,
+        ownerId: String?,
+        assigneeId: String?,
+        memberId: String?,
         projectId: String?,
-    ): ResponseEntity<List<IssueSummary>> {
-        val issues = issueService.listIssues(owner, assignee, member, projectId)
-        return ResponseEntity.ok(issues.map { it.toSummary() })
+        status: sh.nunc.causa.web.model.IssueStatus?,
+        phaseKind: sh.nunc.causa.web.model.PhaseKind?,
+    ): ResponseEntity<List<IssueListItem>> {
+        val issues = issueService.listIssues(
+            ownerId,
+            assigneeId,
+            memberId,
+            projectId,
+            status?.let { IssueStatus.valueOf(it.name) },
+            phaseKind?.name,
+        )
+        return ResponseEntity.ok(issues.map { it.toListItem() })
+    }
+
+    override fun updateIssue(
+        issueId: String,
+        updateIssueRequest: UpdateIssueRequest,
+    ): ResponseEntity<IssueDetail> {
+        val issue = withNotFound {
+            issueService.updateIssue(
+                issueId,
+                updateIssueRequest.title,
+                updateIssueRequest.ownerId,
+                updateIssueRequest.projectId,
+            )
+        }
+        return ResponseEntity.ok(issue.toDetail())
     }
 
     override fun assignIssueOwner(
         issueId: String,
         assignOwnerRequest: AssignOwnerRequest,
-    ): ResponseEntity<IssueResponse> {
-        val issue = withNotFound { issueService.assignOwner(issueId, assignOwnerRequest.owner) }
-        return ResponseEntity.ok(issue.toResponse())
+    ): ResponseEntity<IssueDetail> {
+        val issue = withNotFound { issueService.assignOwner(issueId, assignOwnerRequest.ownerId) }
+        return ResponseEntity.ok(issue.toDetail())
     }
 
     override fun addPhase(
         issueId: String,
         addPhaseRequest: AddPhaseRequest,
-    ): ResponseEntity<IssueResponse> {
+    ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.addPhase(
                 issueId,
                 addPhaseRequest.name,
-                addPhaseRequest.assignee,
+                addPhaseRequest.assigneeId,
+                addPhaseRequest.kind?.name,
             )
         }
-        return ResponseEntity.ok(issue.toResponse())
+        return ResponseEntity.ok(issue.toDetail())
     }
 
     override fun assignPhaseAssignee(
         issueId: String,
         phaseId: String,
         assignAssigneeRequest: AssignAssigneeRequest,
-    ): ResponseEntity<IssueResponse> {
+    ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.assignPhaseAssignee(
                 issueId,
                 phaseId,
-                assignAssigneeRequest.assignee,
+                assignAssigneeRequest.assigneeId,
             )
         }
-        return ResponseEntity.ok(issue.toResponse())
+        return ResponseEntity.ok(issue.toDetail())
     }
 
     override fun addTask(
         issueId: String,
         phaseId: String,
         addTaskRequest: AddTaskRequest,
-    ): ResponseEntity<IssueResponse> {
+    ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.addTask(
                 issueId,
                 phaseId,
                 addTaskRequest.title,
-                addTaskRequest.assignee,
+                addTaskRequest.assigneeId,
             )
         }
-        return ResponseEntity.ok(issue.toResponse())
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun updatePhase(
+        issueId: String,
+        phaseId: String,
+        updatePhaseRequest: UpdatePhaseRequest,
+    ): ResponseEntity<IssueDetail> {
+        val issue = withNotFound {
+            issueService.updatePhase(
+                issueId,
+                phaseId,
+                updatePhaseRequest.name,
+                updatePhaseRequest.assigneeId,
+                updatePhaseRequest.status?.let { PhaseStatus.valueOf(it.name) },
+                updatePhaseRequest.kind?.name,
+            )
+        }
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun updateTask(
+        issueId: String,
+        phaseId: String,
+        taskId: String,
+        updateTaskRequest: UpdateTaskRequest,
+    ): ResponseEntity<IssueDetail> {
+        val issue = withNotFound {
+            issueService.updateTask(
+                issueId,
+                phaseId,
+                taskId,
+                updateTaskRequest.title,
+                updateTaskRequest.assigneeId,
+                updateTaskRequest.status?.let { TaskStatus.valueOf(it.name) },
+            )
+        }
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun closeIssue(issueId: String): ResponseEntity<IssueDetail> {
+        val issue = withNotFound { issueService.closeIssue(issueId) }
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun failPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
+        val issue = withNotFound { issueService.failPhase(issueId, phaseId) }
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun reopenPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
+        val issue = withNotFound { issueService.reopenPhase(issueId, phaseId) }
+        return ResponseEntity.ok(issue.toDetail())
+    }
+
+    override fun getIssueHistory(issueId: String): ResponseEntity<IssueHistoryResponse> {
+        val history = IssueHistoryResponse(activity = emptyList(), audit = emptyList())
+        return ResponseEntity.ok(history)
+    }
+
+    override fun listIssueComments(issueId: String): ResponseEntity<List<CommentResponse>> {
+        val comments = commentsForIssue(issueId)
+        return ResponseEntity.ok(comments)
+    }
+
+    override fun addIssueComment(
+        issueId: String,
+        addCommentRequest: AddCommentRequest,
+    ): ResponseEntity<CommentResponse> {
+        val comment = CommentResponse(
+            id = UUID.randomUUID().toString(),
+            issueId = issueId,
+            authorId = "system",
+            body = addCommentRequest.body,
+            createdAt = OffsetDateTime.now(),
+        )
+        issueComments.getOrPut(issueId) { mutableListOf() }.add(comment)
+        return ResponseEntity.status(HttpStatus.CREATED).body(comment)
     }
 
     private fun loadIssue(issueId: String) = withNotFound {
         issueService.getIssue(issueId)
+    }
+
+    private fun commentsForIssue(issueId: String): List<CommentResponse> {
+        return issueComments[issueId]?.toList() ?: emptyList()
+    }
+
+    companion object {
+        private val issueComments: MutableMap<String, MutableList<CommentResponse>> = mutableMapOf()
     }
 
     private fun <T> withNotFound(block: () -> T): T {

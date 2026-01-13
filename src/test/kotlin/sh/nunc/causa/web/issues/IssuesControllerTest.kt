@@ -13,8 +13,9 @@ import io.mockk.every
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.IssueEntity
 import sh.nunc.causa.issues.IssueService
-import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.PhaseEntity
+import sh.nunc.causa.issues.PhaseStatus
+import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.users.UserEntity
 
 @WebMvcTest(IssuesController::class)
@@ -33,17 +34,17 @@ class IssuesControllerTest(
             title = "Test",
             owner = owner,
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS.name,
+            status = IssueStatus.IN_ANALYSIS.name,
         )
-        every { issueService.listIssues("alice", null, null, null) } returns listOf(issue)
+        every { issueService.listIssues("alice", null, null, null, null, null) } returns listOf(issue)
 
         mockMvc.get("/issues") {
-            param("owner", "alice")
+            param("ownerId", "alice")
         }.andExpect {
             status { isOk() }
             content { contentType(MediaType.APPLICATION_JSON) }
             jsonPath("$[0].id") { value("issue-1") }
-            jsonPath("$[0].owner") { value("alice") }
+            jsonPath("$[0].ownerId") { value("alice") }
         }
     }
 
@@ -61,7 +62,7 @@ class IssuesControllerTest(
     fun `creates issue from request`() {
         val expectedCommand = CreateIssueCommand(
             title = "New",
-            owner = "bob",
+            ownerId = "bob",
             projectId = "project-1",
             phases = emptyList(),
         )
@@ -71,7 +72,7 @@ class IssuesControllerTest(
             title = "New",
             owner = owner,
             projectId = "project-1",
-            status = PhaseStatus.NOT_STARTED.name,
+            status = IssueStatus.CREATED.name,
         )
         every { issueService.createIssue(expectedCommand) } returns issue
 
@@ -80,7 +81,7 @@ class IssuesControllerTest(
             content = """
             {
               "title": "New",
-              "owner": "bob",
+              "ownerId": "bob",
               "projectId": "project-1",
               "phases": []
             }
@@ -101,7 +102,7 @@ class IssuesControllerTest(
             title = "Phase",
             owner = owner,
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS.name,
+            status = IssueStatus.IN_ANALYSIS.name,
         )
         issue.phases.add(
             PhaseEntity(
@@ -113,14 +114,14 @@ class IssuesControllerTest(
                 issue = issue,
             ),
         )
-        every { issueService.addPhase("issue-3", "Investigation", "bob") } returns issue
+        every { issueService.addPhase("issue-3", "Investigation", "bob", null) } returns issue
 
         mockMvc.post("/issues/issue-3/phases") {
             contentType = MediaType.APPLICATION_JSON
             content = """
             {
               "name": "Investigation",
-              "assignee": "bob"
+              "assigneeId": "bob"
             }
             """.trimIndent()
         }.andExpect {
@@ -137,7 +138,7 @@ class IssuesControllerTest(
             title = "Assignee",
             owner = owner,
             projectId = null,
-            status = PhaseStatus.IN_PROGRESS.name,
+            status = IssueStatus.IN_ANALYSIS.name,
         )
         every { issueService.assignPhaseAssignee("issue-4", "phase-1", "carol") } returns issue
 
@@ -145,7 +146,7 @@ class IssuesControllerTest(
             contentType = MediaType.APPLICATION_JSON
             content = """
             {
-              "assignee": "carol"
+              "assigneeId": "carol"
             }
             """.trimIndent()
         }.andExpect {
