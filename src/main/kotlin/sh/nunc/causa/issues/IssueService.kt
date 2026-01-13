@@ -289,25 +289,16 @@ class IssueService(
             return IssueStatus.CREATED
         }
         val phaseStatuses = issue.phases.map { PhaseStatus.valueOf(it.status) }
-        if (phaseStatuses.any { it == PhaseStatus.FAILED }) {
-            return IssueStatus.FAILED
-        }
-        if (phaseStatuses.all { it == PhaseStatus.DONE }) {
-            return IssueStatus.DONE
-        }
         val inProgressKinds = issue.phases.filter { it.status == PhaseStatus.IN_PROGRESS.name }
-        if (inProgressKinds.any { it.kind == "ROLLOUT" }) {
-            return IssueStatus.IN_ROLLOUT
+        val status = when {
+            phaseStatuses.any { it == PhaseStatus.FAILED } -> IssueStatus.FAILED
+            phaseStatuses.all { it == PhaseStatus.DONE } -> IssueStatus.DONE
+            inProgressKinds.any { it.kind == "ROLLOUT" } -> IssueStatus.IN_ROLLOUT
+            inProgressKinds.any { it.kind == "ACCEPTANCE_TEST" } -> IssueStatus.IN_TEST
+            inProgressKinds.any { it.kind == "DEVELOPMENT" } -> IssueStatus.IN_DEVELOPMENT
+            phaseStatuses.any { it == PhaseStatus.IN_PROGRESS } -> IssueStatus.IN_ANALYSIS
+            else -> IssueStatus.CREATED
         }
-        if (inProgressKinds.any { it.kind == "ACCEPTANCE_TEST" }) {
-            return IssueStatus.IN_TEST
-        }
-        if (inProgressKinds.any { it.kind == "DEVELOPMENT" }) {
-            return IssueStatus.IN_DEVELOPMENT
-        }
-        if (issue.phases.isNotEmpty() && phaseStatuses.any { it == PhaseStatus.IN_PROGRESS }) {
-            return IssueStatus.IN_ANALYSIS
-        }
-        return IssueStatus.CREATED
+        return status
     }
 }

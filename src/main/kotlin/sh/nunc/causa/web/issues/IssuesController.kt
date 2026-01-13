@@ -242,7 +242,7 @@ class IssuesController(
     }
 
     private fun commentsForIssue(issueId: String): List<CommentResponse> {
-        return issueComments[issueId]?.toList() ?: emptyList()
+        return issueComments[issueId].orEmpty()
     }
 
     companion object {

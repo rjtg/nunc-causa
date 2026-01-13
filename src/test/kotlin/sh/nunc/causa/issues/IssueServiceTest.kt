@@ -32,7 +32,9 @@ class IssueServiceTest {
                 title = "Issue",
                 ownerId = "owner-1",
                 projectId = "project-1",
-                phases = listOf(CreatePhaseCommand(name = "Investigation", assigneeId = "user-2", kind = "INVESTIGATION")),
+                phases = listOf(
+                    CreatePhaseCommand(name = "Investigation", assigneeId = "user-2", kind = "INVESTIGATION"),
+                ),
             ),
         )
 

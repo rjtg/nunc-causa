@@ -1,0 +1,33 @@
+build:
+  maxIssues: 0
+
+complexity:
+  TooManyFunctions:
+    active: true
+    thresholdInClasses: 20
+    thresholdInFiles: 20
+  LongParameterList:
+    active: true
+    functionThreshold: 7
+
+style:
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  ReturnCount:
+    active: true
+    max: 6
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - "-1"
+      - "0"
+      - "1"
+
+performance:
+  SpreadOperator:
+    active: false
+
+exceptions:
+  SwallowedException:
+    active: false

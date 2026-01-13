@@ -1,5 +1,6 @@
 package sh.nunc.causa.web.work
 
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.RestController
@@ -21,7 +22,7 @@ class WorkController(
     @PreAuthorize("@accessPolicy.canAccessWork()")
     override fun getMyWork(): ResponseEntity<MyWorkResponse> {
         val userId = currentUserService.currentUserId()
-            ?: return ResponseEntity.status(401).build()
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val work = issueService.buildMyWork(userId)
         val response = MyWorkResponse(
             ownedIssues = work.ownedIssues.map { it.toListItem() },
