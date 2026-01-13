@@ -17,6 +17,7 @@ Use src/main/kotlin and src/test/kotlin.
     - Add policy service for project membership and role checks
     - Apply `@PreAuthorize` to issue/phase/task endpoints
     - Scope repository queries by project membership
+    - Block cross-project list/search filters that bypass membership (ownerId/memberId must be scoped)
 [x] Add dev auth/JWT/OAuth2 stub for local API usage
     - Configure a minimal authentication provider
     - Update docs for local auth setup
@@ -76,6 +77,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Enforce derived issue status consistency
     - Prevent direct writes outside service path
     - Add tests to detect drift
+    - Reject phase/task status updates that violate workflow rules
 [ ] Add `/issues/{id}/actions` and `/issues/{id}/phases/{phaseId}/actions`
     - Expose allowed actions/possible transitions
     - Include reasons for disallowed actions
@@ -94,6 +96,9 @@ Use src/main/kotlin and src/test/kotlin.
     - Define index mappings
     - Add search queries for list view
 [x] Add activity feed storage separate from audit trail
+[ ] Implement audit trail entries in `/issues/{id}/history`
+    - Map Envers revisions to API `AuditEntry`
+    - Add tests covering audit responses
 [ ] Keep Liquibase changelogs in sync with entity changes
 [ ] Harden enum parsing for phase kinds/statuses in mappers
     - Tolerate unknown values with safe defaults
