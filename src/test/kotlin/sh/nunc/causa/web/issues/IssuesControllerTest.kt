@@ -1,15 +1,15 @@
 package sh.nunc.causa.web.issues
 
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
 import org.springframework.test.web.servlet.post
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.IssueEntity
 import sh.nunc.causa.issues.IssueService
@@ -22,7 +22,7 @@ import sh.nunc.causa.users.UserEntity
 class IssuesControllerTest(
     @Autowired private val mockMvc: MockMvc,
 ) {
-    @MockBean
+    @MockkBean
     private lateinit var issueService: IssueService
 
     @Test
@@ -35,7 +35,7 @@ class IssuesControllerTest(
             projectId = null,
             status = PhaseStatus.IN_PROGRESS.name,
         )
-        `when`(issueService.listIssues("alice", null, null, null)).thenReturn(listOf(issue))
+        every { issueService.listIssues("alice", null, null, null) } returns listOf(issue)
 
         mockMvc.get("/issues") {
             param("owner", "alice")
@@ -49,7 +49,7 @@ class IssuesControllerTest(
 
     @Test
     fun `returns 404 when issue is missing`() {
-        `when`(issueService.getIssue("missing")).thenThrow(NoSuchElementException("Issue missing not found"))
+        every { issueService.getIssue("missing") } throws NoSuchElementException("Issue missing not found")
 
         mockMvc.get("/issues/missing")
             .andExpect {
@@ -73,7 +73,7 @@ class IssuesControllerTest(
             projectId = "project-1",
             status = PhaseStatus.NOT_STARTED.name,
         )
-        `when`(issueService.createIssue(expectedCommand)).thenReturn(issue)
+        every { issueService.createIssue(expectedCommand) } returns issue
 
         mockMvc.post("/issues") {
             contentType = MediaType.APPLICATION_JSON
@@ -113,7 +113,7 @@ class IssuesControllerTest(
                 issue = issue,
             ),
         )
-        `when`(issueService.addPhase("issue-3", "Investigation", "bob")).thenReturn(issue)
+        every { issueService.addPhase("issue-3", "Investigation", "bob") } returns issue
 
         mockMvc.post("/issues/issue-3/phases") {
             contentType = MediaType.APPLICATION_JSON
@@ -139,7 +139,7 @@ class IssuesControllerTest(
             projectId = null,
             status = PhaseStatus.IN_PROGRESS.name,
         )
-        `when`(issueService.assignPhaseAssignee("issue-4", "phase-1", "carol")).thenReturn(issue)
+        every { issueService.assignPhaseAssignee("issue-4", "phase-1", "carol") } returns issue
 
         mockMvc.patch("/issues/issue-4/phases/phase-1/assignee") {
             contentType = MediaType.APPLICATION_JSON
