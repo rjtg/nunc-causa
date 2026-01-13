@@ -20,6 +20,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Replace in-memory issue filtering with repository queries
     - Add repository methods for owner/assignee/member/project filters
     - Add indexes to support those filters
+[ ] Replace in-memory work/search queries with repository-backed queries
+    - Add query methods for per-user work queues
+    - Add search queries scoped by project membership
 [ ] Implement derived issue status (no direct status writes)
     - Add phase kind enum and required phase rules
     - Derive issue status from phase states and required phases
@@ -56,6 +59,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Validate workflow actions (`close`, `fail`, `reopen`)
     - Return 409 on invalid transitions
     - Ensure issue status derives from phase state after actions
+[ ] Enforce derived issue status consistency
+    - Prevent direct writes outside service path
+    - Add tests to detect drift
 [ ] Add `/issues/{id}/actions` and `/issues/{id}/phases/{phaseId}/actions`
     - Expose allowed actions/possible transitions
     - Include reasons for disallowed actions
@@ -77,6 +83,9 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Keep Liquibase changelogs in sync with entity changes
 [ ] Harden enum parsing for phase kinds/statuses in mappers
     - Tolerate unknown values with safe defaults
+[ ] Re-enable SpotBugs for tests with targeted filters
+    - Reduce global excludes
+    - Add test-specific exclude rules if needed
 
 ---
 
