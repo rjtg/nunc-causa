@@ -489,6 +489,7 @@ components:
       required:
         - title
         - ownerId
+        - projectId
         - phases
       properties:
         title:

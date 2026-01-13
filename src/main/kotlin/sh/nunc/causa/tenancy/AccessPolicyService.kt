@@ -45,5 +45,7 @@ class AccessPolicyService(
         return projectMembershipRepository.existsByUserId(userId)
     }
 
+    fun isAuthenticated(): Boolean = currentUserService.currentUserId() != null
+
     fun currentUserId(): String? = currentUserService.currentUserId()
 }

@@ -17,13 +17,13 @@ Use src/main/kotlin and src/test/kotlin.
     - Add policy service for project membership and role checks
     - Apply `@PreAuthorize` to issue/phase/task endpoints
     - Scope repository queries by project membership
-[ ] Add dev auth/JWT/OAuth2 stub for local API usage
+[x] Add dev auth/JWT/OAuth2 stub for local API usage
     - Configure a minimal authentication provider
     - Update docs for local auth setup
-[ ] Add admin endpoints or seed data for org/team/project/membership management
+[x] Add admin endpoints or seed data for org/team/project/membership management
     - Create minimal CRUD endpoints for memberships
     - Add dev seed data or migrations for local use
-[ ] Make `projectId` required for issue creation or define default project behavior
+[x] Make `projectId` required for issue creation or define default project behavior
     - Align API spec with policy enforcement
 [x] Replace in-memory issue filtering with repository queries
     - Add repository methods for owner/assignee/member/project filters
@@ -55,7 +55,7 @@ Use src/main/kotlin and src/test/kotlin.
     - Add comment entity + repository
     - Add endpoints for list/create backed by DB
     - Add tests for persistence and permissions
-[ ] Scope `/me/work` to the authenticated user
+[x] Scope `/me/work` to the authenticated user
     - Read user ID from security context
     - Remove hardcoded fallback user
 [ ] Implement team/org membership inheritance rules
@@ -79,7 +79,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add `/issues/{id}/actions` and `/issues/{id}/phases/{phaseId}/actions`
     - Expose allowed actions/possible transitions
     - Include reasons for disallowed actions
-[ ] Add per-user work view endpoint (`GET /me/work`)
+[x] Add per-user work view endpoint (`GET /me/work`)
     - Implement query model for assigned tasks/phases
     - Apply permission filters
 [ ] Add workflow template model for default phases/roles
