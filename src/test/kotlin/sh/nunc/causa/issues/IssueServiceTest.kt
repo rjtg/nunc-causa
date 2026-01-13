@@ -8,6 +8,8 @@ import java.util.Optional
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.context.ApplicationEventPublisher
+import sh.nunc.causa.reporting.IssueHistoryService
+import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.users.UserRepository
 
@@ -15,7 +17,9 @@ class IssueServiceTest {
     private val issueRepository = mockk<IssueRepository>()
     private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val userRepository = mockk<UserRepository>()
-    private val service = IssueService(issueRepository, eventPublisher, userRepository)
+    private val historyService = mockk<IssueHistoryService>(relaxed = true)
+    private val currentUserService = mockk<CurrentUserService>(relaxed = true)
+    private val service = IssueService(issueRepository, eventPublisher, userRepository, historyService, currentUserService)
 
     @Test
     fun `creates issue with owner and phases`() {
@@ -86,7 +90,7 @@ class IssueServiceTest {
                 name = "Investigation",
                 assignee = owner,
                 status = PhaseStatus.IN_PROGRESS.name,
-                kind = "INVESTIGATION",
+                kind = PhaseKind.INVESTIGATION.name,
                 issue = issue,
             ),
         )
@@ -94,6 +98,33 @@ class IssueServiceTest {
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
             service.closeIssue("issue-1")
+        }
+    }
+
+    @Test
+    fun `rejects closing issue missing required phases`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-2",
+            title = "Issue",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+        )
+        issue.phases.add(
+            PhaseEntity(
+                id = "phase-1",
+                name = "Investigation",
+                assignee = owner,
+                status = PhaseStatus.DONE.name,
+                kind = PhaseKind.INVESTIGATION.name,
+                issue = issue,
+            ),
+        )
+        every { issueRepository.findById("issue-2") } returns Optional.of(issue)
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
+            service.closeIssue("issue-2")
         }
     }
 }

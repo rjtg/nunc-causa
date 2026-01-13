@@ -627,6 +627,10 @@ components:
         version:
           type: integer
           format: int64
+        allowedActions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ActionDecision'
     PhaseResponse:
       type: object
       required:
@@ -650,6 +654,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TaskResponse'
+        allowedActions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ActionDecision'
     TaskResponse:
       type: object
       required:
@@ -665,6 +673,10 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/TaskStatus'
+        allowedActions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ActionDecision'
     IssueHistoryResponse:
       type: object
       required:
@@ -815,6 +827,15 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/TaskStatus'
+    ActionDecision:
+      type: object
+      required:
+        - allowed
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
     IssueStatus:
       type: string
       enum:

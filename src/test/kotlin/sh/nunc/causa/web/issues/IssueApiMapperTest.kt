@@ -2,45 +2,46 @@ package sh.nunc.causa.web.issues
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueDetailView
+import sh.nunc.causa.issues.IssueListView
 import sh.nunc.causa.issues.IssueStatus
-import sh.nunc.causa.issues.PhaseEntity
-import sh.nunc.causa.issues.PhaseStatus
-import sh.nunc.causa.issues.TaskEntity
-import sh.nunc.causa.issues.TaskStatus
+import sh.nunc.causa.issues.PhaseView
+import sh.nunc.causa.issues.TaskView
+import sh.nunc.causa.web.model.ActionDecision
 import sh.nunc.causa.users.UserEntity
 
 class IssueApiMapperTest {
     @Test
     fun `maps entity to response with user ids`() {
-        val owner = UserEntity(id = "owner-1", displayName = "Owner")
-        val assignee = UserEntity(id = "assignee-1", displayName = "Assignee")
-        val issue = IssueEntity(
+        val issue = IssueDetailView(
             id = "issue-1",
             title = "Issue",
-            owner = owner,
+            ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            phases = listOf(
+                PhaseView(
+                    id = "phase-1",
+                    name = "Investigation",
+                    assigneeId = "assignee-1",
+                    status = "NOT_STARTED",
+                    kind = null,
+                    tasks = listOf(
+                        TaskView(
+                            id = "task-1",
+                            title = "Check logs",
+                            assigneeId = "assignee-1",
+                            status = "IN_PROGRESS",
+                        ),
+                    ),
+                ),
+            ),
         )
-        val phase = PhaseEntity(
-            id = "phase-1",
-            name = "Investigation",
-            assignee = assignee,
-            status = PhaseStatus.NOT_STARTED.name,
-            kind = null,
-            issue = issue,
-        )
-        val task = TaskEntity(
-            id = "task-1",
-            title = "Check logs",
-            assignee = assignee,
-            status = TaskStatus.IN_PROGRESS.name,
-            phase = phase,
-        )
-        phase.tasks.add(task)
-        issue.phases.add(phase)
-
-        val response = issue.toDetail()
+        val response = issue.toDetail(object : IssueActionProvider {
+            override fun issueActions(issue: IssueDetailView): Map<String, ActionDecision> = emptyMap()
+            override fun phaseActions(issue: IssueDetailView, phaseId: String): Map<String, ActionDecision> = emptyMap()
+            override fun taskActions(issue: IssueDetailView, phaseId: String, taskId: String): Map<String, ActionDecision> = emptyMap()
+        })
 
         assertEquals("owner-1", response.ownerId)
         assertEquals("assignee-1", response.phases.first().assigneeId)
@@ -49,12 +50,12 @@ class IssueApiMapperTest {
 
     @Test
     fun `maps issue summary status`() {
-        val owner = UserEntity(id = "owner-1", displayName = "Owner")
-        val issue = IssueEntity(
+        val issue = IssueListView(
             id = "issue-2",
             title = "Issue",
-            owner = owner,
+            ownerId = "owner-1",
             projectId = null,
+            phaseCount = 2,
             status = IssueStatus.DONE.name,
         )
 

@@ -4,13 +4,12 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueListView
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.MyWorkView
 import sh.nunc.causa.issues.PhaseWorkView
 import sh.nunc.causa.issues.TaskWorkView
-import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.web.model.PhaseStatus
 import sh.nunc.causa.web.model.TaskStatus
@@ -18,12 +17,12 @@ import sh.nunc.causa.web.model.TaskStatus
 class WorkControllerTest {
     @Test
     fun `returns work response from service`() {
-        val owner = UserEntity(id = "owner-1", displayName = "Owner")
-        val issue = IssueEntity(
+        val issue = IssueListView(
             id = "issue-1",
             title = "Issue",
-            owner = owner,
+            ownerId = "owner-1",
             projectId = null,
+            phaseCount = 0,
             status = IssueStatus.CREATED.name,
         )
         val work = MyWorkView(

@@ -12,19 +12,21 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.IssueCommentService
+import sh.nunc.causa.issues.IssueDetailView
 import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueListView
 import sh.nunc.causa.issues.IssueService
-import sh.nunc.causa.issues.PhaseEntity
-import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.IssueStatus
-import sh.nunc.causa.users.UserEntity
+import sh.nunc.causa.issues.PhaseView
 import sh.nunc.causa.tenancy.AccessPolicyService
 import sh.nunc.causa.reporting.IssueHistoryService
 import sh.nunc.causa.web.model.IssueHistoryResponse
+import sh.nunc.causa.web.issues.IssueActionService
 import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.security.test.context.support.WithMockUser
+import sh.nunc.causa.users.UserEntity
 
 @WebMvcTest(IssuesController::class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
@@ -41,6 +43,8 @@ class IssuesControllerTest(
     private lateinit var issueCommentService: IssueCommentService
     @MockkBean
     private lateinit var issueHistoryService: IssueHistoryService
+    @MockkBean
+    private lateinit var issueActionService: IssueActionService
 
     @BeforeEach
     fun allowAccess() {
@@ -51,16 +55,19 @@ class IssuesControllerTest(
         every { accessPolicy.canModifyIssue(any()) } returns true
         every { issueCommentService.listComments(any()) } returns emptyList()
         every { issueHistoryService.getHistory(any()) } returns IssueHistoryResponse(activity = emptyList(), audit = emptyList())
+        every { issueActionService.issueActions(any()) } returns emptyMap()
+        every { issueActionService.phaseActions(any(), any()) } returns emptyMap()
+        every { issueActionService.taskActions(any(), any(), any()) } returns emptyMap()
     }
 
     @Test
     fun `lists issues with filters`() {
-        val owner = UserEntity(id = "alice", displayName = "Alice Example")
-        val issue = IssueEntity(
+        val issue = IssueListView(
             id = "issue-1",
             title = "Test",
-            owner = owner,
+            ownerId = "alice",
             projectId = null,
+            phaseCount = 0,
             status = IssueStatus.IN_ANALYSIS.name,
         )
         every { issueService.listIssues("alice", null, "alice", null, null, null) } returns listOf(issue)
@@ -77,7 +84,7 @@ class IssuesControllerTest(
 
     @Test
     fun `returns 404 when issue is missing`() {
-        every { issueService.getIssue("missing") } throws NoSuchElementException("Issue missing not found")
+        every { issueService.getIssueDetail("missing") } throws NoSuchElementException("Issue missing not found")
 
         mockMvc.get("/issues/missing")
             .andExpect {
@@ -93,15 +100,24 @@ class IssuesControllerTest(
             projectId = "project-1",
             phases = emptyList(),
         )
-        val owner = UserEntity(id = "bob", displayName = "Bob Example")
-        val issue = IssueEntity(
+        val issue = IssueDetailView(
+            id = "issue-2",
+            title = "New",
+            ownerId = "bob",
+            projectId = "project-1",
+            status = IssueStatus.CREATED.name,
+            phases = emptyList(),
+        )
+        val owner = UserEntity(id = "bob", displayName = "Bob")
+        val issueEntity = IssueEntity(
             id = "issue-2",
             title = "New",
             owner = owner,
             projectId = "project-1",
             status = IssueStatus.CREATED.name,
         )
-        every { issueService.createIssue(expectedCommand) } returns issue
+        every { issueService.createIssue(expectedCommand) } returns issueEntity
+        every { issueService.getIssueDetail("issue-2") } returns issue
 
         mockMvc.post("/issues") {
             contentType = MediaType.APPLICATION_JSON
@@ -122,26 +138,33 @@ class IssuesControllerTest(
 
     @Test
     fun `adds a phase to issue`() {
-        val owner = UserEntity(id = "alice", displayName = "Alice Example")
-        val assignee = UserEntity(id = "bob", displayName = "Bob Example")
-        val issue = IssueEntity(
+        val issue = IssueDetailView(
+            id = "issue-3",
+            title = "Phase",
+            ownerId = "alice",
+            projectId = null,
+            status = IssueStatus.IN_ANALYSIS.name,
+            phases = listOf(
+                PhaseView(
+                    id = "phase-1",
+                    name = "Investigation",
+                    assigneeId = "bob",
+                    status = "IN_PROGRESS",
+                    kind = null,
+                    tasks = emptyList(),
+                ),
+            ),
+        )
+        val owner = UserEntity(id = "alice", displayName = "Alice")
+        val issueEntity = IssueEntity(
             id = "issue-3",
             title = "Phase",
             owner = owner,
             projectId = null,
             status = IssueStatus.IN_ANALYSIS.name,
         )
-        issue.phases.add(
-            PhaseEntity(
-                id = "phase-1",
-                name = "Investigation",
-                assignee = assignee,
-                status = PhaseStatus.IN_PROGRESS.name,
-                kind = null,
-                issue = issue,
-            ),
-        )
-        every { issueService.addPhase("issue-3", "Investigation", "bob", null) } returns issue
+        every { issueService.addPhase("issue-3", "Investigation", "bob", null) } returns issueEntity
+        every { issueService.getIssueDetail("issue-3") } returns issue
 
         mockMvc.post("/issues/issue-3/phases") {
             contentType = MediaType.APPLICATION_JSON
@@ -159,15 +182,24 @@ class IssuesControllerTest(
 
     @Test
     fun `assigns phase assignee`() {
-        val owner = UserEntity(id = "alice", displayName = "Alice Example")
-        val issue = IssueEntity(
+        val issue = IssueDetailView(
+            id = "issue-4",
+            title = "Assignee",
+            ownerId = "alice",
+            projectId = null,
+            status = IssueStatus.IN_ANALYSIS.name,
+            phases = emptyList(),
+        )
+        val owner = UserEntity(id = "alice", displayName = "Alice")
+        val issueEntity = IssueEntity(
             id = "issue-4",
             title = "Assignee",
             owner = owner,
             projectId = null,
             status = IssueStatus.IN_ANALYSIS.name,
         )
-        every { issueService.assignPhaseAssignee("issue-4", "phase-1", "carol") } returns issue
+        every { issueService.assignPhaseAssignee("issue-4", "phase-1", "carol") } returns issueEntity
+        every { issueService.getIssueDetail("issue-4") } returns issue
 
         mockMvc.patch("/issues/issue-4/phases/phase-1/assignee") {
             contentType = MediaType.APPLICATION_JSON
@@ -179,5 +211,15 @@ class IssuesControllerTest(
         }.andExpect {
             status { isOk() }
         }
+    }
+
+    @Test
+    fun `returns issue history`() {
+        every { issueHistoryService.getHistory("issue-5") } returns IssueHistoryResponse(activity = emptyList(), audit = emptyList())
+
+        mockMvc.get("/issues/issue-5/history")
+            .andExpect {
+                status { isOk() }
+            }
     }
 }

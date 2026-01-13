@@ -3,6 +3,8 @@ package sh.nunc.causa.issues
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import sh.nunc.causa.reporting.IssueHistoryService
+import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.users.UserRepository
 import java.util.UUID
@@ -12,6 +14,8 @@ class IssueService(
     private val issueRepository: IssueRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val userRepository: UserRepository,
+    private val historyService: IssueHistoryService,
+    private val currentUserService: CurrentUserService,
 ) {
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
@@ -40,6 +44,7 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "ISSUE_CREATED", "Issue created")
         return saved
     }
 
@@ -50,6 +55,13 @@ class IssueService(
     }
 
     @Transactional(readOnly = true)
+    fun getIssueDetail(issueId: String): IssueDetailView {
+        val issue = issueRepository.findDetailById(issueId)
+            ?: throw NoSuchElementException("Issue $issueId not found")
+        return issue.toDetailView()
+    }
+
+    @Transactional(readOnly = true)
     fun listIssues(
         ownerId: String?,
         assigneeId: String?,
@@ -57,8 +69,8 @@ class IssueService(
         projectId: String?,
         status: IssueStatus?,
         phaseKind: String?,
-    ): List<IssueEntity> {
-        return issueRepository.findFiltered(
+    ): List<IssueListView> {
+        return issueRepository.findListView(
             projectId = projectId,
             ownerId = ownerId,
             assigneeId = assigneeId,
@@ -82,6 +94,7 @@ class IssueService(
         }
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "ISSUE_UPDATED", "Issue updated")
         return saved
     }
 
@@ -91,6 +104,7 @@ class IssueService(
         issue.owner = requireUser(ownerId)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "OWNER_ASSIGNED", "Issue owner assigned")
         return saved
     }
 
@@ -110,6 +124,7 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "PHASE_ADDED", "Phase added")
         return saved
     }
 
@@ -143,6 +158,7 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "PHASE_UPDATED", "Phase updated")
         return saved
     }
 
@@ -154,6 +170,7 @@ class IssueService(
         phase.assignee = requireUser(assigneeId)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "PHASE_ASSIGNEE_CHANGED", "Phase assignee updated")
         return saved
     }
 
@@ -174,6 +191,7 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "TASK_ADDED", "Task added")
         return saved
     }
 
@@ -203,6 +221,7 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "TASK_UPDATED", "Task updated")
         return saved
     }
 
@@ -213,9 +232,13 @@ class IssueService(
         if (hasIncompletePhase) {
             throw IllegalStateException("Issue $issueId has incomplete phases")
         }
-        issue.status = IssueStatus.DONE.name
+        if (!requiredKindsPresent(issue)) {
+            throw IllegalStateException("Issue $issueId is missing required phases")
+        }
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "ISSUE_CLOSED", "Issue closed")
         return saved
     }
 
@@ -225,9 +248,10 @@ class IssueService(
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
         phase.status = PhaseStatus.FAILED.name
-        issue.status = IssueStatus.FAILED.name
+        issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "PHASE_FAILED", "Phase failed")
         return saved
     }
 
@@ -240,12 +264,13 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "PHASE_REOPENED", "Phase reopened")
         return saved
     }
 
     @Transactional(readOnly = true)
-    fun searchIssues(query: String, projectId: String?): List<IssueEntity> {
-        return issueRepository.searchByTitle(query, projectId)
+    fun searchIssues(query: String, projectId: String?): List<IssueListView> {
+        return issueRepository.searchListView(query, projectId)
     }
 
     @Transactional(readOnly = true)
@@ -258,7 +283,16 @@ class IssueService(
             status = null,
             phaseKind = null,
         )
-        val owned = issues.filter { it.owner.id == userId }
+        val owned = issues.filter { it.owner.id == userId }.map { issue ->
+            IssueListView(
+                id = issue.id,
+                title = issue.title,
+                ownerId = issue.owner.id,
+                projectId = issue.projectId,
+                phaseCount = issue.phases.size.toLong(),
+                status = issue.status,
+            )
+        }
         val assignedPhases = issues.flatMap { issue ->
             issue.phases.filter { it.assignee.id == userId }.map { phase ->
                 PhaseWorkView(
@@ -295,16 +329,62 @@ class IssueService(
             return IssueStatus.CREATED
         }
         val phaseStatuses = issue.phases.map { PhaseStatus.valueOf(it.status) }
-        val inProgressKinds = issue.phases.filter { it.status == PhaseStatus.IN_PROGRESS.name }
-        val status = when {
-            phaseStatuses.any { it == PhaseStatus.FAILED } -> IssueStatus.FAILED
-            phaseStatuses.all { it == PhaseStatus.DONE } -> IssueStatus.DONE
-            inProgressKinds.any { it.kind == "ROLLOUT" } -> IssueStatus.IN_ROLLOUT
-            inProgressKinds.any { it.kind == "ACCEPTANCE_TEST" } -> IssueStatus.IN_TEST
-            inProgressKinds.any { it.kind == "DEVELOPMENT" } -> IssueStatus.IN_DEVELOPMENT
-            phaseStatuses.any { it == PhaseStatus.IN_PROGRESS } -> IssueStatus.IN_ANALYSIS
-            else -> IssueStatus.CREATED
+        val inProgressKinds = issue.phases
+            .filter { it.status == PhaseStatus.IN_PROGRESS.name }
+            .mapNotNull { PhaseKind.from(it.kind) }
+        val phaseKinds = issue.phases.mapNotNull { PhaseKind.from(it.kind) }
+        val requiredKindsPresent = PhaseKind.requiredKinds().all { required ->
+            phaseKinds.contains(required)
         }
-        return status
+        return when {
+            phaseStatuses.any { it == PhaseStatus.FAILED } -> IssueStatus.FAILED
+            phaseStatuses.all { it == PhaseStatus.DONE } && requiredKindsPresent -> IssueStatus.DONE
+            inProgressKinds.contains(PhaseKind.ROLLOUT) -> IssueStatus.IN_ROLLOUT
+            inProgressKinds.contains(PhaseKind.ACCEPTANCE_TEST) -> IssueStatus.IN_TEST
+            inProgressKinds.contains(PhaseKind.DEVELOPMENT) -> IssueStatus.IN_DEVELOPMENT
+            inProgressKinds.any { it.isAnalysis() } -> IssueStatus.IN_ANALYSIS
+            else -> IssueStatus.IN_ANALYSIS
+        }
+    }
+
+    private fun requiredKindsPresent(issue: IssueEntity): Boolean {
+        val phaseKinds = issue.phases.mapNotNull { PhaseKind.from(it.kind) }
+        return PhaseKind.requiredKinds().all { required -> phaseKinds.contains(required) }
+    }
+
+    private fun recordActivity(issueId: String, type: String, summary: String) {
+        historyService.recordActivity(
+            issueId = issueId,
+            type = type,
+            summary = summary,
+            actorId = currentUserService.currentUserId(),
+        )
+    }
+
+    private fun IssueEntity.toDetailView(): IssueDetailView {
+        return IssueDetailView(
+            id = id,
+            title = title,
+            ownerId = owner.id,
+            projectId = projectId,
+            status = status,
+            phases = phases.map { phase ->
+                PhaseView(
+                    id = phase.id,
+                    name = phase.name,
+                    assigneeId = phase.assignee.id,
+                    status = phase.status,
+                    kind = phase.kind,
+                    tasks = phase.tasks.map { task ->
+                        TaskView(
+                            id = task.id,
+                            title = task.title,
+                            assigneeId = task.assignee?.id,
+                            status = task.status,
+                        )
+                    },
+                )
+            },
+        )
     }
 }

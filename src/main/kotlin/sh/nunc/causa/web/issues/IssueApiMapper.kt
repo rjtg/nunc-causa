@@ -1,11 +1,13 @@
 package sh.nunc.causa.web.issues
 
-import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueDetailView
+import sh.nunc.causa.issues.IssueListView
 import sh.nunc.causa.issues.IssueStatus
-import sh.nunc.causa.issues.PhaseEntity
 import sh.nunc.causa.issues.PhaseStatus
-import sh.nunc.causa.issues.TaskEntity
+import sh.nunc.causa.issues.PhaseView
 import sh.nunc.causa.issues.TaskStatus
+import sh.nunc.causa.issues.TaskView
+import sh.nunc.causa.web.model.ActionDecision
 import sh.nunc.causa.web.model.IssueDetail
 import sh.nunc.causa.web.model.IssueListItem
 import sh.nunc.causa.web.model.IssueStatus as ApiIssueStatus
@@ -15,46 +17,59 @@ import sh.nunc.causa.web.model.PhaseStatus as ApiPhaseStatus
 import sh.nunc.causa.web.model.TaskResponse
 import sh.nunc.causa.web.model.TaskStatus as ApiTaskStatus
 
-fun IssueEntity.toDetail(): IssueDetail {
+interface IssueActionProvider {
+    fun issueActions(issue: IssueDetailView): Map<String, ActionDecision>
+    fun phaseActions(issue: IssueDetailView, phaseId: String): Map<String, ActionDecision>
+    fun taskActions(issue: IssueDetailView, phaseId: String, taskId: String): Map<String, ActionDecision>
+}
+
+fun IssueDetailView.toDetail(actions: IssueActionProvider): IssueDetail {
     return IssueDetail(
         id = id,
         title = title,
-        ownerId = owner.id,
+        ownerId = ownerId,
         projectId = projectId,
-        phases = phases.map { it.toResponse() },
+        phases = phases.map { it.toResponse(this, actions) },
         status = status.toIssueStatusEnum(),
         version = 0,
+        allowedActions = actions.issueActions(this),
     )
 }
 
-fun IssueEntity.toListItem(): IssueListItem {
+fun IssueListView.toListItem(): IssueListItem {
     return IssueListItem(
         id = id,
         title = title,
-        ownerId = owner.id,
+        ownerId = ownerId,
         projectId = projectId,
-        phaseCount = phases.size,
+        phaseCount = phaseCount.toInt(),
         status = status.toIssueStatusEnum(),
     )
 }
 
-private fun PhaseEntity.toResponse(): PhaseResponse {
+private fun PhaseView.toResponse(issue: IssueDetailView, actions: IssueActionProvider): PhaseResponse {
     return PhaseResponse(
         id = id,
         name = name,
-        assigneeId = assignee.id,
+        assigneeId = assigneeId,
         status = status.toPhaseStatusEnum(),
         kind = kind?.let { PhaseKind.valueOf(it) },
-        tasks = tasks.map { it.toResponse() },
+        tasks = tasks.map { it.toResponse(issue, id, actions) },
+        allowedActions = actions.phaseActions(issue, id),
     )
 }
 
-private fun TaskEntity.toResponse(): TaskResponse {
+private fun TaskView.toResponse(
+    issue: IssueDetailView,
+    phaseId: String,
+    actions: IssueActionProvider,
+): TaskResponse {
     return TaskResponse(
         id = id,
         title = title,
-        assigneeId = assignee?.id,
+        assigneeId = assigneeId,
         status = status.toTaskStatusEnum(),
+        allowedActions = actions.taskActions(issue, phaseId, id),
     )
 }
 

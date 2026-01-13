@@ -4,21 +4,20 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import sh.nunc.causa.issues.IssueEntity
+import sh.nunc.causa.issues.IssueListView
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.tenancy.AccessPolicyService
-import sh.nunc.causa.users.UserEntity
 
 class SearchControllerTest {
     @Test
     fun `search maps issues to list items`() {
-        val owner = UserEntity(id = "owner-1", displayName = "Owner")
-        val issue = IssueEntity(
+        val issue = IssueListView(
             id = "issue-1",
             title = "Search term",
-            owner = owner,
+            ownerId = "owner-1",
             projectId = "project-1",
+            phaseCount = 0,
             status = IssueStatus.CREATED.name,
         )
         val service = mockk<IssueService>()

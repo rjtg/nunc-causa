@@ -1,7 +1,7 @@
 package sh.nunc.causa.issues
 
 data class MyWorkView(
-    val ownedIssues: List<IssueEntity>,
+    val ownedIssues: List<IssueListView>,
     val assignedPhases: List<PhaseWorkView>,
     val assignedTasks: List<TaskWorkView>,
 )

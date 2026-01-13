@@ -31,23 +31,23 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Replace in-memory work/search queries with repository-backed queries
     - Add query methods for per-user work queues
     - Add search queries scoped by project membership
-[ ] Implement derived issue status (no direct status writes)
+[x] Implement derived issue status (no direct status writes)
     - Add phase kind enum and required phase rules
     - Derive issue status from phase states and required phases
     - Remove direct status setting where possible
     - Add tests covering transitions and required phases
-[ ] Replace entity-backed API responses with read models
+[x] Replace entity-backed API responses with read models
     - Add read-model DTOs for issue list and issue detail
     - Map via repository projections or query models
     - Avoid lazy-loading in controllers
-[ ] Add action capability metadata to read models
+[x] Add action capability metadata to read models
     - Compute allowed actions based on permissions + resource state
     - Include reasons for disabled actions
     - Add tests for capability evaluation
-[ ] Secure SSE updates and scope them to the authenticated user
+[x] Secure SSE updates and scope them to the authenticated user
     - Require auth for `/stream/updates`
     - Filter update events by membership/visibility
-[ ] Add `/issues/{id}/history` with activity feed + audit trail
+[x] Add `/issues/{id}/history` with activity feed + audit trail
     - Define activity feed storage model
     - Keep audit trail (Envers) separate from feed
     - Add endpoint tests
@@ -58,7 +58,7 @@ Use src/main/kotlin and src/test/kotlin.
 [x] Scope `/me/work` to the authenticated user
     - Read user ID from security context
     - Remove hardcoded fallback user
-[ ] Implement team/org membership inheritance rules
+[x] Implement team/org membership inheritance rules
     - Resolve nested team memberships
     - Apply inheritance to access policy checks
 
@@ -93,7 +93,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
     - Define index mappings
     - Add search queries for list view
-[ ] Add activity feed storage separate from audit trail
+[x] Add activity feed storage separate from audit trail
 [ ] Keep Liquibase changelogs in sync with entity changes
 [ ] Harden enum parsing for phase kinds/statuses in mappers
     - Tolerate unknown values with safe defaults
