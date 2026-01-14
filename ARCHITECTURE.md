@@ -54,6 +54,12 @@ Implementation language: Kotlin
 - SSE endpoint for realtime updates
 - UI determines how to patch state locally
 
+### Frontend Strategy
+- Web UI is the primary client, built with Next.js (React + TypeScript).
+- Mobile is added via Expo (React Native), sharing API clients and domain types.
+- Keep a shared TS package for OpenAPI types, auth helpers, and workflow rules.
+- Offer a CLI client for developers (scriptable and CI-friendly).
+
 ---
 
 ## Modules

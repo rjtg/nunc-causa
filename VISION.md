@@ -25,6 +25,8 @@ Key ideas:
   - explicit handover action that logs a reason
 - The system uses **CRUD with audit history** for full traceability.
 - The UI should be able to **update live** when changes happen.
+- Web UI is **primary** (Next.js). Mobile follows via **Expo** with shared types.
+- Provide a CLI client for power users and scripting.
 
 You should favor designs that reflect **process, roles, and phases**, instead of
 the classic "single assignee + single status" model.

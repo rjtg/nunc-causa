@@ -12,6 +12,11 @@ Causa revolves around a **capability-based role model**.
 The UI can still present the four default lanes, but the system should allow
 other role types and queue views.
 
+### UI Strategy
+- Web is the primary surface (Next.js).
+- Mobile follows via Expo (React Native), reusing shared TS types and API clients.
+- A CLI is available for power users (scripting, quick updates).
+
 ---
 
 ### 1.1 Primary Owner (the “Issue Owner”)
