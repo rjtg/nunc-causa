@@ -3,8 +3,10 @@ package sh.nunc.causa.web.issues
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
+import jakarta.validation.Valid
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
 import sh.nunc.causa.issues.IssueCommentService
@@ -39,7 +41,7 @@ class IssuesController(
 ) : IssuesApi {
 
     @PreAuthorize("@accessPolicy.canCreateIssue(#createIssueRequest.projectId)")
-    override fun createIssue(createIssueRequest: CreateIssueRequest): ResponseEntity<IssueDetail> {
+    override fun createIssue(@Valid @RequestBody createIssueRequest: CreateIssueRequest): ResponseEntity<IssueDetail> {
         val issue = issueService.createIssue(
             CreateIssueCommand(
                 title = createIssueRequest.title,
@@ -90,7 +92,7 @@ class IssuesController(
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun updateIssue(
         issueId: String,
-        updateIssueRequest: UpdateIssueRequest,
+        @Valid @RequestBody updateIssueRequest: UpdateIssueRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.updateIssue(
@@ -107,7 +109,7 @@ class IssuesController(
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun assignIssueOwner(
         issueId: String,
-        assignOwnerRequest: AssignOwnerRequest,
+        @Valid @RequestBody assignOwnerRequest: AssignOwnerRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withNotFound { issueService.assignOwner(issueId, assignOwnerRequest.ownerId) }
         val detail = issueService.getIssueDetail(issue.id)
@@ -117,7 +119,7 @@ class IssuesController(
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun addPhase(
         issueId: String,
-        addPhaseRequest: AddPhaseRequest,
+        @Valid @RequestBody addPhaseRequest: AddPhaseRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.addPhase(
@@ -135,7 +137,7 @@ class IssuesController(
     override fun assignPhaseAssignee(
         issueId: String,
         phaseId: String,
-        assignAssigneeRequest: AssignAssigneeRequest,
+        @Valid @RequestBody assignAssigneeRequest: AssignAssigneeRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.assignPhaseAssignee(
@@ -152,7 +154,7 @@ class IssuesController(
     override fun addTask(
         issueId: String,
         phaseId: String,
-        addTaskRequest: AddTaskRequest,
+        @Valid @RequestBody addTaskRequest: AddTaskRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withNotFound {
             issueService.addTask(
@@ -170,7 +172,7 @@ class IssuesController(
     override fun updatePhase(
         issueId: String,
         phaseId: String,
-        updatePhaseRequest: UpdatePhaseRequest,
+        @Valid @RequestBody updatePhaseRequest: UpdatePhaseRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withConflict {
             withNotFound {
@@ -193,7 +195,7 @@ class IssuesController(
         issueId: String,
         phaseId: String,
         taskId: String,
-        updateTaskRequest: UpdateTaskRequest,
+        @Valid @RequestBody updateTaskRequest: UpdateTaskRequest,
     ): ResponseEntity<IssueDetail> {
         val issue = withConflict {
             withNotFound {
@@ -246,7 +248,7 @@ class IssuesController(
     @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
     override fun addIssueComment(
         issueId: String,
-        addCommentRequest: AddCommentRequest,
+        @Valid @RequestBody addCommentRequest: AddCommentRequest,
     ): ResponseEntity<CommentResponse> {
         val comment = issueCommentService.addComment(issueId, addCommentRequest)
         return ResponseEntity.status(HttpStatus.CREATED).body(comment)

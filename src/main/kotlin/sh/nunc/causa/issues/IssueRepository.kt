@@ -62,7 +62,6 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
         """
         select distinct i from IssueEntity i
         left join fetch i.phases p
-        left join fetch p.tasks t
         where i.id = :issueId
         """
     )
