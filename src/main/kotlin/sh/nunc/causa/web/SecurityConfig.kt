@@ -20,9 +20,7 @@ class SecurityConfig {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .csrf { csrf ->
-                csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint())
-            }
+            .csrf { csrf -> csrf.disable() }
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(EndpointRequest.to("health", "info")).permitAll()

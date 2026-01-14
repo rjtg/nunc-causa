@@ -145,25 +145,35 @@ export default function NewIssuePage() {
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Project ID
             </label>
-            <input
-              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-              list="project-options"
-              placeholder="project-123"
-            />
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
+                value={projectId}
+                onChange={(event) => setProjectId(event.target.value)}
+                list="project-options"
+                placeholder="project-123"
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
           <div className="space-y-2 md:col-span-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Owner ID
             </label>
-            <input
-              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
-              value={ownerId}
-              onChange={(event) => setOwnerId(event.target.value)}
-              list="user-options"
-              placeholder="user-123"
-            />
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
+                value={ownerId}
+                onChange={(event) => setOwnerId(event.target.value)}
+                list="user-options"
+                placeholder="user-123"
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
         </div>
 
@@ -202,36 +212,47 @@ export default function NewIssuePage() {
                   )
                 }
               />
-              <input
-                className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
-                placeholder="Assignee ID"
-                value={phase.assigneeId}
-                list="user-options"
-                onChange={(event) =>
-                  setPhases((prev) =>
-                    prev.map((item, idx) =>
-                      idx === index
-                        ? { ...item, assigneeId: event.target.value }
-                        : item,
-                    ),
-                  )
-                }
-              />
-              <div className="flex items-center gap-2">
+              <div className="relative">
                 <input
-                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
-                  placeholder="Kind (optional)"
-                  value={phase.kind}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
+                  placeholder="Assignee ID"
+                  value={phase.assigneeId}
+                  list="user-options"
                   onChange={(event) =>
                     setPhases((prev) =>
                       prev.map((item, idx) =>
                         idx === index
-                          ? { ...item, kind: event.target.value }
+                          ? { ...item, assigneeId: event.target.value }
                           : item,
                       ),
                     )
                   }
                 />
+                <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
+                  ▾
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
+                    placeholder="Kind (optional)"
+                    value={phase.kind}
+                    list="phase-kind-options"
+                    onChange={(event) =>
+                      setPhases((prev) =>
+                        prev.map((item, idx) =>
+                          idx === index
+                            ? { ...item, kind: event.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
+                    ▾
+                  </span>
+                </div>
                 <button
                   className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
                   type="button"
@@ -268,6 +289,17 @@ export default function NewIssuePage() {
             <option key={project.id} value={project.id}>
               {project.name}
             </option>
+          ))}
+        </datalist>
+        <datalist id="phase-kind-options">
+          {[
+            "INVESTIGATION",
+            "PROPOSE_SOLUTION",
+            "DEVELOPMENT",
+            "ACCEPTANCE_TEST",
+            "ROLLOUT",
+          ].map((kind) => (
+            <option key={kind} value={kind} />
           ))}
         </datalist>
       </form>

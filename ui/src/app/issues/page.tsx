@@ -209,73 +209,105 @@ export default function IssuesPage() {
         )}
         <div className="grid gap-2 md:grid-cols-3">
           <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
             placeholder="Search (title)"
             value={filters.query}
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, query: event.target.value }))
             }
           />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Project"
-            value={filters.projectId}
-            list="project-options"
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, projectId: event.target.value }))
-            }
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Owner"
-            value={filters.ownerId}
-            list="user-options"
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, ownerId: event.target.value }))
-            }
-          />
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Project"
+              value={filters.projectId}
+              list="project-options"
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, projectId: event.target.value }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Owner"
+              value={filters.ownerId}
+              list="user-options"
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, ownerId: event.target.value }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
         </div>
         <div className="grid gap-2 md:grid-cols-4">
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Assignee"
-            value={filters.assigneeId}
-            list="user-options"
-            onChange={(event) =>
-              setFilters((prev) => ({
-                ...prev,
-                assigneeId: event.target.value,
-              }))
-            }
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Member"
-            value={filters.memberId}
-            list="user-options"
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, memberId: event.target.value }))
-            }
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Phase kind"
-            value={filters.phaseKind}
-            onChange={(event) =>
-              setFilters((prev) => ({
-                ...prev,
-                phaseKind: event.target.value,
-              }))
-            }
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Status"
-            value={filters.status}
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, status: event.target.value }))
-            }
-          />
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Assignee"
+              value={filters.assigneeId}
+              list="user-options"
+              onChange={(event) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  assigneeId: event.target.value,
+                }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Member"
+              value={filters.memberId}
+              list="user-options"
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, memberId: event.target.value }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Phase kind"
+              value={filters.phaseKind}
+              list="phase-kind-options"
+              onChange={(event) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  phaseKind: event.target.value,
+                }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
+              placeholder="Status"
+              value={filters.status}
+              list="issue-status-options"
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, status: event.target.value }))
+              }
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+              ▾
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -307,6 +339,30 @@ export default function IssuesPage() {
             <option key={project.id} value={project.id}>
               {project.name}
             </option>
+          ))}
+        </datalist>
+        <datalist id="phase-kind-options">
+          {[
+            "INVESTIGATION",
+            "PROPOSE_SOLUTION",
+            "DEVELOPMENT",
+            "ACCEPTANCE_TEST",
+            "ROLLOUT",
+          ].map((kind) => (
+            <option key={kind} value={kind} />
+          ))}
+        </datalist>
+        <datalist id="issue-status-options">
+          {[
+            "CREATED",
+            "IN_ANALYSIS",
+            "IN_DEVELOPMENT",
+            "IN_TEST",
+            "IN_ROLLOUT",
+            "DONE",
+            "FAILED",
+          ].map((status) => (
+            <option key={status} value={status} />
           ))}
         </datalist>
       </form>
