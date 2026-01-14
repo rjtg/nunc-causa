@@ -12,6 +12,9 @@ class ProjectEntity(
     @Column(name = "project_id", nullable = false)
     var id: String,
 
+    @Column(name = "project_key", nullable = false)
+    var key: String,
+
     @Column(name = "org_id", nullable = false)
     var orgId: String,
 

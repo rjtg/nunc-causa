@@ -504,6 +504,7 @@ export interface components {
         };
         ProjectSummary: {
             id: string;
+            key: string;
             name: string;
             orgId: string;
             teamId: string;

@@ -56,6 +56,7 @@ class AdminController(
     fun createProject(@RequestBody request: CreateProjectRequest): ResponseEntity<ProjectEntity> {
         val project = ProjectEntity(
             id = UUID.randomUUID().toString(),
+            key = request.key,
             orgId = request.orgId,
             teamId = request.teamId,
             name = request.name,
@@ -108,6 +109,7 @@ data class CreateTeamRequest(
 )
 
 data class CreateProjectRequest(
+    val key: String,
     val orgId: String,
     val teamId: String,
     val name: String,

@@ -23,6 +23,7 @@ class ProjectsController(
             projects.map { project ->
                 ProjectSummary(
                     id = project.id,
+                    key = project.key,
                     name = project.name,
                     orgId = project.orgId,
                     teamId = project.teamId,
@@ -34,6 +35,7 @@ class ProjectsController(
 
 data class ProjectSummary(
     val id: String,
+    val key: String,
     val name: String,
     val orgId: String,
     val teamId: String,

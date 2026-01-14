@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/001-core-schema.yaml
   - include:
       file: db/changelog/changes/002-issue-description.yaml
+  - include:
+      file: db/changelog/changes/003-project-key-issue-number.yaml

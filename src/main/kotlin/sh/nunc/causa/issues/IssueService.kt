@@ -12,6 +12,8 @@ import java.util.UUID
 @Service
 class IssueService(
     private val issueRepository: IssueRepository,
+    private val issueCounterRepository: IssueCounterRepository,
+    private val projectRepository: sh.nunc.causa.tenancy.ProjectRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val userRepository: UserRepository,
     private val historyService: IssueHistoryService,
@@ -21,12 +23,24 @@ class IssueService(
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
         val owner = requireUser(command.ownerId)
+        val projectId = command.projectId ?: throw IllegalArgumentException("Project id is required")
+        val project = projectRepository.findById(projectId)
+            .orElseThrow { NoSuchElementException("Project $projectId not found") }
+        val counterResult = issueCounterRepository.findById(projectId)
+        val counter = counterResult.orElse(IssueCounterEntity(projectId = projectId, nextNumber = 1))
+        val issueNumber = counter.nextNumber
+        counter.nextNumber = issueNumber + 1
+        if (counterResult.isEmpty) {
+            issueCounterRepository.save(counter)
+        }
+        val issueId = "${project.key}-${issueNumber}"
         val issue = IssueEntity(
-            id = UUID.randomUUID().toString(),
+            id = issueId,
             title = command.title,
             description = command.description,
             owner = owner,
-            projectId = command.projectId,
+            projectId = projectId,
+            issueNumber = issueNumber,
             status = IssueStatus.CREATED.name,
         )
 
@@ -139,6 +153,9 @@ class IssueService(
             issue.owner = requireUser(ownerId)
         }
         if (projectId != null) {
+            if (issue.projectId != null && issue.projectId != projectId) {
+                throw IllegalStateException("Cannot move issue between projects")
+            }
             issue.projectId = projectId
         }
         val saved = issueRepository.save(issue)

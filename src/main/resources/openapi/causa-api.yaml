@@ -1003,11 +1003,14 @@ components:
       type: object
       required:
         - id
+        - key
         - name
         - orgId
         - teamId
       properties:
         id:
+          type: string
+        key:
           type: string
         name:
           type: string

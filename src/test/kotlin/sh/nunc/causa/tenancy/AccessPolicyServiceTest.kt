@@ -49,7 +49,13 @@ class AccessPolicyServiceTest {
 
     @Test
     fun `allows create when user is org member`() {
-        val project = ProjectEntity(id = "project-1", orgId = "org-1", teamId = "team-1", name = "Project")
+        val project = ProjectEntity(
+            id = "project-1",
+            key = "PROJ",
+            orgId = "org-1",
+            teamId = "team-1",
+            name = "Project",
+        )
         every { currentUserService.currentUserId() } returns "user-1"
         every { membershipRepository.existsByUserIdAndProjectId("user-1", "project-1") } returns false
         every { projectRepository.findById("project-1") } returns Optional.of(project)
@@ -60,7 +66,13 @@ class AccessPolicyServiceTest {
 
     @Test
     fun `allows create when user is ancestor team member`() {
-        val project = ProjectEntity(id = "project-1", orgId = "org-1", teamId = "team-2", name = "Project")
+        val project = ProjectEntity(
+            id = "project-1",
+            key = "PROJ",
+            orgId = "org-1",
+            teamId = "team-2",
+            name = "Project",
+        )
         val childTeam = TeamEntity(id = "team-2", orgId = "org-1", parentTeamId = "team-1", name = "Child")
         val parentTeam = TeamEntity(id = "team-1", orgId = "org-1", parentTeamId = null, name = "Parent")
         every { currentUserService.currentUserId() } returns "user-1"
@@ -90,7 +102,13 @@ class AccessPolicyServiceTest {
         every { issueRepository.findById("issue-1") } returns Optional.of(issue)
         every { membershipRepository.existsByUserIdAndProjectId("user-1", "project-1") } returns true
         every { projectRepository.findById("project-1") } returns Optional.of(
-            ProjectEntity(id = "project-1", orgId = "org-1", teamId = "team-1", name = "Project"),
+            ProjectEntity(
+                id = "project-1",
+                key = "PROJ",
+                orgId = "org-1",
+                teamId = "team-1",
+                name = "Project",
+            ),
         )
 
         assertTrue(policy.canViewIssue("issue-1"))

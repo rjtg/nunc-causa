@@ -50,6 +50,9 @@ class IssueEntity(
     @Column(name = "project_id")
     var projectId: String?,
 
+    @Column(name = "issue_number")
+    var issueNumber: Long? = null,
+
     @KeywordField(aggregable = Aggregable.YES, sortable = Sortable.YES)
     @Column(name = "status", nullable = false)
     var status: String,

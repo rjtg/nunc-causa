@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-project-key-issue-number
+      author: codex
+      changes:
+        - addColumn:
+            tableName: projects
+            columns:
+              - column:
+                  name: project_key
+                  type: varchar(32)
+                  defaultValue: PROJ
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: projects
+            columnNames: project_key
+            constraintName: uq_projects_project_key
+        - addColumn:
+            tableName: issues
+            columns:
+              - column:
+                  name: issue_number
+                  type: bigint
+                  constraints:
+                    nullable: true
+        - addColumn:
+            tableName: issues_AUD
+            columns:
+              - column:
+                  name: issue_number
+                  type: bigint
+                  constraints:
+                    nullable: true
+        - createTable:
+            tableName: issue_counters
+            columns:
+              - column:
+                  name: project_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: next_number
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: issues
+            columnNames: project_id, issue_number
+            constraintName: uq_issues_project_number

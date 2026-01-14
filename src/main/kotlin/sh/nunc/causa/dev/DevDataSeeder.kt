@@ -54,10 +54,22 @@ class DevDataSeeder(
         )
 
         val alphaProject = projectRepository.save(
-            ProjectEntity(id = PROJECT_ALPHA_ID, orgId = org.id, teamId = platformTeam.id, name = "Alpha"),
+            ProjectEntity(
+                id = PROJECT_ALPHA_ID,
+                key = "ALPHA",
+                orgId = org.id,
+                teamId = platformTeam.id,
+                name = "Alpha",
+            ),
         )
         val beaconProject = projectRepository.save(
-            ProjectEntity(id = PROJECT_BEACON_ID, orgId = org.id, teamId = reliabilityTeam.id, name = "Beacon"),
+            ProjectEntity(
+                id = PROJECT_BEACON_ID,
+                key = "BEACON",
+                orgId = org.id,
+                teamId = reliabilityTeam.id,
+                name = "Beacon",
+            ),
         )
 
         val baseUsers = listOf(

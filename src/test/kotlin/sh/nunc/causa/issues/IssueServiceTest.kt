@@ -15,6 +15,8 @@ import sh.nunc.causa.users.UserRepository
 
 class IssueServiceTest {
     private val issueRepository = mockk<IssueRepository>()
+    private val issueCounterRepository = mockk<IssueCounterRepository>()
+    private val projectRepository = mockk<sh.nunc.causa.tenancy.ProjectRepository>()
     private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val userRepository = mockk<UserRepository>()
     private val historyService = mockk<IssueHistoryService>(relaxed = true)
@@ -22,6 +24,8 @@ class IssueServiceTest {
     private val searchService = mockk<IssueSearchService>(relaxed = true)
     private val service = IssueService(
         issueRepository,
+        issueCounterRepository,
+        projectRepository,
         eventPublisher,
         userRepository,
         historyService,
@@ -35,6 +39,17 @@ class IssueServiceTest {
         val assignee = UserEntity(id = "user-2", displayName = "Assignee")
         every { userRepository.findById("owner-1") } returns Optional.of(owner)
         every { userRepository.findById("user-2") } returns Optional.of(assignee)
+        every { projectRepository.findById("project-1") } returns Optional.of(
+            sh.nunc.causa.tenancy.ProjectEntity(
+                id = "project-1",
+                key = "PROJ",
+                orgId = "org-1",
+                teamId = "team-1",
+                name = "Project",
+            ),
+        )
+        every { issueCounterRepository.findById("project-1") } returns Optional.empty()
+        every { issueCounterRepository.save(any()) } answers { firstArg() }
 
         val savedSlot = slot<IssueEntity>()
         every { issueRepository.save(capture(savedSlot)) } answers { savedSlot.captured }
