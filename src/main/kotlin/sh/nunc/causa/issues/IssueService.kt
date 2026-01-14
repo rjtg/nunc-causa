@@ -16,6 +16,7 @@ class IssueService(
     private val userRepository: UserRepository,
     private val historyService: IssueHistoryService,
     private val currentUserService: CurrentUserService,
+    private val searchService: IssueSearchService,
 ) {
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
@@ -72,15 +73,28 @@ class IssueService(
         status: IssueStatus?,
         phaseKind: String?,
     ): List<IssueListView> {
-        return issueRepository.findListView(
-            query = query,
-            projectId = projectId,
-            ownerId = ownerId,
-            assigneeId = assigneeId,
-            memberId = memberId,
-            status = status?.name,
-            phaseKind = phaseKind,
+        val results = searchService.searchIssues(
+            IssueSearchFilters(
+                query = query,
+                ownerId = ownerId,
+                assigneeId = assigneeId,
+                memberId = memberId,
+                projectId = projectId,
+                status = status?.name,
+                phaseKind = phaseKind,
+            ),
         )
+        return results.map { issue ->
+            IssueListView(
+                id = issue.id,
+                title = issue.title,
+                description = issue.description,
+                ownerId = issue.owner.id,
+                projectId = issue.projectId,
+                phaseCount = issue.phases.size.toLong(),
+                status = issue.status,
+            )
+        }
     }
 
     @Transactional(readOnly = true)
@@ -93,52 +107,15 @@ class IssueService(
         status: IssueStatus?,
         phaseKind: String?,
     ): IssueFacetBundle {
-        val statusName = status?.name
-        return IssueFacetBundle(
-            owners = issueRepository.findOwnerFacets(
-                query,
-                projectId,
-                ownerId,
-                assigneeId,
-                memberId,
-                statusName,
-                phaseKind,
-            ),
-            assignees = issueRepository.findAssigneeFacets(
-                query,
-                projectId,
-                ownerId,
-                assigneeId,
-                memberId,
-                statusName,
-                phaseKind,
-            ),
-            projects = issueRepository.findProjectFacets(
-                query,
-                projectId,
-                ownerId,
-                assigneeId,
-                memberId,
-                statusName,
-                phaseKind,
-            ),
-            statuses = issueRepository.findStatusFacets(
-                query,
-                projectId,
-                ownerId,
-                assigneeId,
-                memberId,
-                statusName,
-                phaseKind,
-            ),
-            phaseKinds = issueRepository.findPhaseKindFacets(
-                query,
-                projectId,
-                ownerId,
-                assigneeId,
-                memberId,
-                statusName,
-                phaseKind,
+        return searchService.facetIssues(
+            IssueSearchFilters(
+                query = query,
+                ownerId = ownerId,
+                assigneeId = assigneeId,
+                memberId = memberId,
+                projectId = projectId,
+                status = status?.name,
+                phaseKind = phaseKind,
             ),
         )
     }
@@ -342,7 +319,20 @@ class IssueService(
 
     @Transactional(readOnly = true)
     fun searchIssues(query: String, projectId: String?): List<IssueListView> {
-        return issueRepository.searchListView(query, projectId)
+        val results = searchService.searchIssues(
+            IssueSearchFilters(query = query, projectId = projectId),
+        )
+        return results.map { issue ->
+            IssueListView(
+                id = issue.id,
+                title = issue.title,
+                description = issue.description,
+                ownerId = issue.owner.id,
+                projectId = issue.projectId,
+                phaseCount = issue.phases.size.toLong(),
+                status = issue.status,
+            )
+        }
     }
 
     @Transactional(readOnly = true)

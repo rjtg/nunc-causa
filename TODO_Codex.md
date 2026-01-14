@@ -92,7 +92,7 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Priority 2 — Persistence and Observability
 
-[ ] Add Hibernate Search indexes for issues, phases, and tasks
+[x] Add Hibernate Search indexes for issues, phases, and tasks
     - Define index mappings
     - Add search queries for list view
     - Use Hibernate Search for title + description faceted queries

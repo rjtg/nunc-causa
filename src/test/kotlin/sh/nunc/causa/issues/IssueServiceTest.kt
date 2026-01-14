@@ -19,7 +19,15 @@ class IssueServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val historyService = mockk<IssueHistoryService>(relaxed = true)
     private val currentUserService = mockk<CurrentUserService>(relaxed = true)
-    private val service = IssueService(issueRepository, eventPublisher, userRepository, historyService, currentUserService)
+    private val searchService = mockk<IssueSearchService>(relaxed = true)
+    private val service = IssueService(
+        issueRepository,
+        eventPublisher,
+        userRepository,
+        historyService,
+        currentUserService,
+        searchService,
+    )
 
     @Test
     fun `creates issue with owner and phases`() {

@@ -1,9 +1,11 @@
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-
-causa:
-  updates:
-    keepalive-ms: 15000
+spring:
+  jpa:
+    properties:
+      hibernate:
+        search:
+          backend:
+            type: lucene
+            directory:
+              type: local-heap
+          schema_management:
+            strategy: drop-and-create

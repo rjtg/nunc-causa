@@ -9,8 +9,15 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import org.hibernate.envers.Audited
 import org.hibernate.envers.RelationTargetAuditMode
+import org.hibernate.search.engine.backend.types.Aggregable
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue
 import sh.nunc.causa.users.UserEntity
 
 @Entity
@@ -32,6 +39,7 @@ class PhaseEntity(
     @Column(name = "status", nullable = false)
     var status: String,
 
+    @KeywordField(aggregable = Aggregable.YES)
     @Column(name = "kind")
     var kind: String?,
 
@@ -39,11 +47,18 @@ class PhaseEntity(
     @JoinColumn(name = "issue_id", nullable = false)
     var issue: IssueEntity,
 ) {
+    @get:Transient
+    @get:KeywordField(aggregable = Aggregable.YES)
+    @get:IndexingDependency(derivedFrom = [ObjectPath(PropertyValue(propertyName = "assignee"))])
+    val assigneeId: String
+        get() = assignee.id
+
     @OneToMany(
         mappedBy = "phase",
         cascade = [CascadeType.ALL],
         orphanRemoval = true,
         fetch = FetchType.LAZY,
     )
+    @IndexedEmbedded(includePaths = ["assigneeId"])
     var tasks: MutableList<TaskEntity> = mutableListOf()
 }
