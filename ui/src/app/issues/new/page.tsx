@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 
@@ -12,6 +12,16 @@ type PhaseDraft = {
 };
 
 const emptyPhase: PhaseDraft = { name: "", assigneeId: "", kind: "" };
+
+type UserOption = {
+  id: string;
+  displayName: string;
+};
+
+type ProjectOption = {
+  id: string;
+  name: string;
+};
 
 export default function NewIssuePage() {
   const router = useRouter();
@@ -24,6 +34,46 @@ export default function NewIssuePage() {
   const [phases, setPhases] = useState<PhaseDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      return;
+    }
+    let active = true;
+    async function loadOptions() {
+      setOptionsError(null);
+      const [usersResponse, projectsResponse] = await Promise.all([
+        api.GET("/users", { params: { query: {} } }),
+        api.GET("/projects", { params: { query: {} } }),
+      ]);
+      if (!active) {
+        return;
+      }
+      if (usersResponse.error || projectsResponse.error) {
+        setOptionsError("Unable to load options.");
+        return;
+      }
+      setUsers(
+        (usersResponse.data ?? []).map((user) => ({
+          id: user.id ?? "unknown",
+          displayName: user.displayName ?? "Unknown",
+        })),
+      );
+      setProjects(
+        (projectsResponse.data ?? []).map((project) => ({
+          id: project.id ?? "unknown",
+          name: project.name ?? "Untitled",
+        })),
+      );
+    }
+    loadOptions();
+    return () => {
+      active = false;
+    };
+  }, [api, isAuthed]);
 
   if (!isAuthed) {
     return (
@@ -76,6 +126,9 @@ export default function NewIssuePage() {
           router.push(`/issues/${data.id}`);
         }}
       >
+        {optionsError && (
+          <p className="text-xs text-rose-600">{optionsError}</p>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -96,6 +149,7 @@ export default function NewIssuePage() {
               className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
               value={projectId}
               onChange={(event) => setProjectId(event.target.value)}
+              list="project-options"
               placeholder="project-123"
             />
           </div>
@@ -107,6 +161,7 @@ export default function NewIssuePage() {
               className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
               value={ownerId}
               onChange={(event) => setOwnerId(event.target.value)}
+              list="user-options"
               placeholder="user-123"
             />
           </div>
@@ -151,6 +206,7 @@ export default function NewIssuePage() {
                 className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
                 placeholder="Assignee ID"
                 value={phase.assigneeId}
+                list="user-options"
                 onChange={(event) =>
                   setPhases((prev) =>
                     prev.map((item, idx) =>
@@ -200,6 +256,20 @@ export default function NewIssuePage() {
           </button>
           {error && <span className="text-xs text-rose-600">{error}</span>}
         </div>
+        <datalist id="user-options">
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.displayName}
+            </option>
+          ))}
+        </datalist>
+        <datalist id="project-options">
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </datalist>
       </form>
     </div>
   );

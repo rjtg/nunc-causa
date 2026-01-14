@@ -10,7 +10,7 @@ class AuthMethodsService(
 ) {
     fun getMethods(): AuthMethodsResponse {
         val methods = mutableListOf<AuthMethod>()
-        if (environment.activeProfiles.contains("dev")) {
+        if (environment.activeProfiles.contains("dev") || authProperties.basicEnabled) {
             methods.add(
                 AuthMethod(
                     type = "basic",

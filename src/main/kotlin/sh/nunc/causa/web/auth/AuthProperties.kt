@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component
 @Component
 @ConfigurationProperties(prefix = "causa.auth")
 class AuthProperties {
+    var basicEnabled: Boolean = false
     var oauthProviders: List<OAuthProvider> = emptyList()
 }
 

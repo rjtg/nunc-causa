@@ -13,6 +13,16 @@ type IssueSummary = {
   phaseCount: number;
 };
 
+type UserOption = {
+  id: string;
+  displayName: string;
+};
+
+type ProjectOption = {
+  id: string;
+  name: string;
+};
+
 type Filters = {
   query: string;
   ownerId: string;
@@ -41,6 +51,9 @@ export default function IssuesPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] =
     useState<Filters>(emptyFilters);
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,6 +129,43 @@ export default function IssuesPage() {
     loadIssues(appliedFilters);
   }, [appliedFilters, isAuthed, loadIssues, ready]);
 
+  useEffect(() => {
+    if (!ready || !isAuthed) {
+      return;
+    }
+    let active = true;
+    async function loadOptions() {
+      setOptionsError(null);
+      const [usersResponse, projectsResponse] = await Promise.all([
+        api.GET("/users", { params: { query: {} } }),
+        api.GET("/projects", { params: { query: {} } }),
+      ]);
+      if (!active) {
+        return;
+      }
+      if (usersResponse.error || projectsResponse.error) {
+        setOptionsError("Unable to load filter options.");
+        return;
+      }
+      setUsers(
+        (usersResponse.data ?? []).map((user) => ({
+          id: user.id ?? "unknown",
+          displayName: user.displayName ?? "Unknown",
+        })),
+      );
+      setProjects(
+        (projectsResponse.data ?? []).map((project) => ({
+          id: project.id ?? "unknown",
+          name: project.name ?? "Untitled",
+        })),
+      );
+    }
+    loadOptions();
+    return () => {
+      active = false;
+    };
+  }, [api, isAuthed, ready]);
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -154,6 +204,9 @@ export default function IssuesPage() {
           setAppliedFilters(filters);
         }}
       >
+        {optionsError && (
+          <p className="text-xs text-rose-600">{optionsError}</p>
+        )}
         <div className="grid gap-2 md:grid-cols-3">
           <input
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
@@ -167,6 +220,7 @@ export default function IssuesPage() {
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
             placeholder="Project"
             value={filters.projectId}
+            list="project-options"
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, projectId: event.target.value }))
             }
@@ -175,6 +229,7 @@ export default function IssuesPage() {
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
             placeholder="Owner"
             value={filters.ownerId}
+            list="user-options"
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, ownerId: event.target.value }))
             }
@@ -185,6 +240,7 @@ export default function IssuesPage() {
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
             placeholder="Assignee"
             value={filters.assigneeId}
+            list="user-options"
             onChange={(event) =>
               setFilters((prev) => ({
                 ...prev,
@@ -196,6 +252,7 @@ export default function IssuesPage() {
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
             placeholder="Member"
             value={filters.memberId}
+            list="user-options"
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, memberId: event.target.value }))
             }
@@ -238,6 +295,20 @@ export default function IssuesPage() {
             Reset
           </button>
         </div>
+        <datalist id="user-options">
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.displayName}
+            </option>
+          ))}
+        </datalist>
+        <datalist id="project-options">
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </datalist>
       </form>
 
       <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
