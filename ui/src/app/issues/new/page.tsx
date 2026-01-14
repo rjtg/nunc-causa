@@ -16,7 +16,8 @@ const emptyPhase: PhaseDraft = { name: "", assigneeId: "", kind: "" };
 export default function NewIssuePage() {
   const router = useRouter();
   const api = useApi();
-  const { token } = useAuth();
+  const { token, username } = useAuth();
+  const isAuthed = Boolean(token || username);
   const [title, setTitle] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -24,10 +25,10 @@ export default function NewIssuePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-        Connect your API token to create issues.
+        Connect your API credentials to create issues.
       </div>
     );
   }

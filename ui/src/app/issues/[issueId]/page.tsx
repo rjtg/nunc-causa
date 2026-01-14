@@ -56,7 +56,8 @@ export default function IssueDetailPage() {
   const params = useParams();
   const issueId = params.issueId as string;
   const api = useApi();
-  const { token, ready } = useAuth();
+  const { token, username, ready } = useAuth();
+  const isAuthed = Boolean(token || username);
   const [issue, setIssue] = useState<IssueDetail | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
@@ -70,7 +71,7 @@ export default function IssueDetailPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!ready || !token) {
+    if (!ready || !isAuthed) {
       return;
     }
     let active = true;
@@ -105,7 +106,7 @@ export default function IssueDetailPage() {
     return () => {
       active = false;
     };
-  }, [api, issueId, ready, token]);
+  }, [api, issueId, isAuthed, ready]);
 
   if (!ready) {
     return (
@@ -115,10 +116,10 @@ export default function IssueDetailPage() {
     );
   }
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-        Connect your API token to view this issue.
+        Connect your API credentials to view this issue.
       </div>
     );
   }

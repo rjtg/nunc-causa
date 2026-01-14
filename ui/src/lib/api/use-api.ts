@@ -5,6 +5,9 @@ import { createApiClient } from "./client";
 import { useAuth } from "../auth/context";
 
 export function useApi() {
-  const { baseUrl, token } = useAuth();
-  return useMemo(() => createApiClient({ baseUrl, token }), [baseUrl, token]);
+  const { baseUrl, token, username, password } = useAuth();
+  return useMemo(
+    () => createApiClient({ baseUrl, token, username, password }),
+    [baseUrl, token, username, password],
+  );
 }

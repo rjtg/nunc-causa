@@ -6,8 +6,20 @@ import { useAuth } from "@/lib/auth/context";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { token, baseUrl, ready, setToken, setBaseUrl } = useAuth();
+  const {
+    token,
+    username,
+    password,
+    baseUrl,
+    ready,
+    setToken,
+    setUsername,
+    setPassword,
+    setBaseUrl,
+  } = useAuth();
   const [draftToken, setDraftToken] = useState(token ?? "");
+  const [draftUsername, setDraftUsername] = useState(username ?? "dev");
+  const [draftPassword, setDraftPassword] = useState(password ?? "dev");
   const [draftUrl, setDraftUrl] = useState(baseUrl);
 
   if (!ready) {
@@ -28,8 +40,8 @@ export default function LoginPage() {
           Authenticate against the API
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Paste a dev token and API base URL. These are stored locally in your
-          browser.
+          Use dev credentials (username/password) or a bearer token. Values are
+          stored locally in your browser.
         </p>
       </header>
 
@@ -38,6 +50,8 @@ export default function LoginPage() {
         onSubmit={(event) => {
           event.preventDefault();
           setToken(draftToken || null);
+          setUsername(draftUsername || null);
+          setPassword(draftPassword || null);
           setBaseUrl(draftUrl);
           router.push("/issues");
         }}
@@ -53,9 +67,34 @@ export default function LoginPage() {
             placeholder="http://localhost:8080"
           />
         </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Username (basic auth)
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
+              value={draftUsername}
+              onChange={(event) => setDraftUsername(event.target.value)}
+              placeholder="dev"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Password
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
+              value={draftPassword}
+              onChange={(event) => setDraftPassword(event.target.value)}
+              placeholder="dev"
+              type="password"
+            />
+          </div>
+        </div>
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-            Bearer Token
+            Bearer Token (optional)
           </label>
           <input
             className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"

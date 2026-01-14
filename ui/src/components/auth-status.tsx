@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/context";
 
 export default function AuthStatus() {
-  const { token, baseUrl, ready, clear } = useAuth();
+  const { token, username, baseUrl, ready, clear } = useAuth();
 
   if (!ready) {
     return (
@@ -14,7 +14,7 @@ export default function AuthStatus() {
     );
   }
 
-  if (!token) {
+  if (!token && !username) {
     return (
       <Link
         className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700"
@@ -32,7 +32,7 @@ export default function AuthStatus() {
       type="button"
       title={baseUrl}
     >
-      Connected
+      {username ? `Signed in: ${username}` : "Token active"}
     </button>
   );
 }
