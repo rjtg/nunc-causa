@@ -8,6 +8,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.envers.Audited
+import org.hibernate.envers.RelationTargetAuditMode
 import sh.nunc.causa.users.UserEntity
 
 @Entity
@@ -23,6 +24,7 @@ class TaskEntity(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     var assignee: UserEntity?,
 
     @Column(name = "status", nullable = false)

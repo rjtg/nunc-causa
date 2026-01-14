@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.envers.Audited
+import org.hibernate.envers.RelationTargetAuditMode
 import sh.nunc.causa.users.UserEntity
 
 @Entity
@@ -25,6 +26,7 @@ class IssueEntity(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     var owner: UserEntity,
 
     @Column(name = "project_id")
