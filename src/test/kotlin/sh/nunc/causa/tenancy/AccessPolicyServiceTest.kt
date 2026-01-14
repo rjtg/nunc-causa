@@ -13,7 +13,6 @@ import sh.nunc.causa.tenancy.TeamEntity
 import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.users.UserEntity
 import java.util.Optional
-import org.springframework.core.env.Environment
 
 class AccessPolicyServiceTest {
     private val currentUserService = mockk<CurrentUserService>()
@@ -23,7 +22,6 @@ class AccessPolicyServiceTest {
     private val teamRepository = mockk<TeamRepository>()
     private val teamMembershipRepository = mockk<TeamMembershipRepository>()
     private val orgMembershipRepository = mockk<OrgMembershipRepository>()
-    private val environment = mockk<Environment>()
     private val policy = AccessPolicyService(
         currentUserService,
         membershipRepository,
@@ -32,12 +30,7 @@ class AccessPolicyServiceTest {
         teamRepository,
         teamMembershipRepository,
         orgMembershipRepository,
-        environment,
     )
-
-    init {
-        every { environment.activeProfiles } returns emptyArray()
-    }
 
     @Test
     fun `denies create when user not authenticated`() {
