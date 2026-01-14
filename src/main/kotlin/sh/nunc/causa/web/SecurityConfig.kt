@@ -26,6 +26,7 @@ class SecurityConfig {
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                    .requestMatchers("/auth/methods").permitAll()
                     .anyRequest().authenticated()
             }
             .httpBasic(Customizer.withDefaults())
