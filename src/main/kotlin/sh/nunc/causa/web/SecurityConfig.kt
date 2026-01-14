@@ -3,6 +3,7 @@ package sh.nunc.causa.web
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetailsService
@@ -32,6 +33,19 @@ class SecurityConfig {
     }
 
     @Bean
+    @Profile("dev")
+    fun devUserDetailsService(): UserDetailsService {
+        val users = listOf("dev", "ada", "grace", "katherine").map { username ->
+            User.withUsername(username)
+                .password("{noop}dev")
+                .roles("ADMIN")
+                .build()
+        }
+        return InMemoryUserDetailsManager(users)
+    }
+
+    @Bean
+    @Profile("!dev")
     fun userDetailsService(): UserDetailsService {
         val user = User.withUsername("dev")
             .password("{noop}dev")

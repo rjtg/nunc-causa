@@ -45,6 +45,7 @@ dependencies {
     implementation("org.hibernate.search:hibernate-search-backend-lucene:7.1.1.Final")
     implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.22")
     implementation("io.swagger.core.v3:swagger-models-jakarta:2.2.22")
+    implementation("io.github.serpro69:kotlin-faker:1.16.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
