@@ -17,8 +17,15 @@ export function createApiClient({
   return createClient<paths>({
     baseUrl,
     fetch: async (input, init) => {
-      const headers = new Headers(init?.headers);
-      if (init?.body && !headers.has("Content-Type")) {
+      const request = input instanceof Request ? input : undefined;
+      const headers = new Headers(request?.headers);
+      if (init?.headers) {
+        new Headers(init.headers).forEach((value, key) => {
+          headers.set(key, value);
+        });
+      }
+      const method = (init?.method ?? request?.method ?? "GET").toUpperCase();
+      if (method !== "GET" && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");
       }
       if (username && password && typeof btoa !== "undefined") {

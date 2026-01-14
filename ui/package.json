@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "gen:api": "openapi-typescript ../src/main/resources/openapi/causa-api.yaml -o src/lib/api/types.ts"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "eslint-config-next": "16.1.1",
     "openapi-typescript": "^7.6.1",
     "tailwindcss": "^4",
+    "vitest": "^1.6.0",
     "typescript": "^5"
   }
 }
