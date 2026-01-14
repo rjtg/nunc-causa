@@ -15,6 +15,19 @@ type IssueSummary = {
   phaseCount: number;
 };
 
+type FacetOption = {
+  id?: string | null;
+  count?: number | null;
+};
+
+type FacetResponse = {
+  owners: FacetOption[];
+  assignees: FacetOption[];
+  projects: FacetOption[];
+  statuses: FacetOption[];
+  phaseKinds: FacetOption[];
+};
+
 type UserOption = {
   id: string;
   displayName: string;
@@ -80,6 +93,8 @@ export default function IssuesPage() {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [facetError, setFacetError] = useState<string | null>(null);
+  const [facets, setFacets] = useState<FacetResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -155,6 +170,41 @@ export default function IssuesPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadIssues(filterState.appliedFilters);
   }, [filterState.appliedFilters, isAuthed, loadIssues, ready]);
+
+  useEffect(() => {
+    if (!ready || !isAuthed) {
+      return;
+    }
+    let active = true;
+    async function loadFacets() {
+      setFacetError(null);
+      const query = {
+        query: filterState.appliedFilters.query || undefined,
+        ownerId: filterState.appliedFilters.ownerId || undefined,
+        assigneeId: filterState.appliedFilters.assigneeId || undefined,
+        memberId: filterState.appliedFilters.memberId || undefined,
+        projectId: filterState.appliedFilters.projectId || undefined,
+        status: filterState.appliedFilters.status || undefined,
+        phaseKind: filterState.appliedFilters.phaseKind || undefined,
+      };
+      const { data, error: apiError } = await api.GET("/issues/facets", {
+        params: { query },
+      });
+      if (!active) {
+        return;
+      }
+      if (apiError || !data) {
+        setFacetError("Unable to load facets.");
+        setFacets(null);
+        return;
+      }
+      setFacets(data as FacetResponse);
+    }
+    loadFacets();
+    return () => {
+      active = false;
+    };
+  }, [api, filterState.appliedFilters, isAuthed, ready]);
 
   useEffect(() => {
     if (!ready || !isAuthed) {
@@ -241,8 +291,10 @@ export default function IssuesPage() {
               Reset
             </button>
           </div>
-          {optionsError && (
-            <p className="text-xs text-rose-600">{optionsError}</p>
+          {(optionsError || facetError) && (
+            <p className="text-xs text-rose-600">
+              {optionsError ?? facetError}
+            </p>
           )}
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -288,7 +340,7 @@ export default function IssuesPage() {
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
                 placeholder="Owner"
                 value={filterState.filters.ownerId}
-                list="user-options"
+                list="owner-options"
                 onChange={(event) =>
                   dispatch({
                     type: "update",
@@ -310,7 +362,7 @@ export default function IssuesPage() {
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
                 placeholder="Assignee"
                 value={filterState.filters.assigneeId}
-                list="user-options"
+                list="assignee-options"
                 onChange={(event) =>
                   dispatch({
                     type: "update",
@@ -332,7 +384,7 @@ export default function IssuesPage() {
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
                 placeholder="Member"
                 value={filterState.filters.memberId}
-                list="user-options"
+                list="member-options"
                 onChange={(event) =>
                   dispatch({
                     type: "update",
@@ -395,43 +447,114 @@ export default function IssuesPage() {
           >
             Apply filters
           </button>
-          <datalist id="user-options">
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName}
-              </option>
-            ))}
+          <datalist id="owner-options">
+            {users
+              .filter((user) => {
+                if (!facets) {
+                  return true;
+                }
+                const validIds = new Set(
+                  facets.owners
+                    .map((option) => option.id)
+                    .filter(Boolean) as string[],
+                );
+                return validIds.size === 0 || validIds.has(user.id);
+              })
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+          </datalist>
+          <datalist id="assignee-options">
+            {users
+              .filter((user) => {
+                if (!facets) {
+                  return true;
+                }
+                const validIds = new Set(
+                  facets.assignees
+                    .map((option) => option.id)
+                    .filter(Boolean) as string[],
+                );
+                return validIds.size === 0 || validIds.has(user.id);
+              })
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+          </datalist>
+          <datalist id="member-options">
+            {users
+              .filter((user) => {
+                if (!facets) {
+                  return true;
+                }
+                const validIds = new Set(
+                  [
+                    ...facets.owners,
+                    ...facets.assignees,
+                  ]
+                    .map((option) => option.id)
+                    .filter(Boolean) as string[],
+                );
+                return validIds.size === 0 || validIds.has(user.id);
+              })
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
           </datalist>
           <datalist id="project-options">
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
+            {projects
+              .filter((project) => {
+                if (!facets) {
+                  return true;
+                }
+                const validIds = new Set(
+                  facets.projects
+                    .map((option) => option.id)
+                    .filter(Boolean) as string[],
+                );
+                return validIds.size === 0 || validIds.has(project.id);
+              })
+              .map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
           </datalist>
           <datalist id="phase-kind-options">
-            {[
-              "INVESTIGATION",
-              "PROPOSE_SOLUTION",
-              "DEVELOPMENT",
-              "ACCEPTANCE_TEST",
-              "ROLLOUT",
-            ].map((kind) => (
-              <option key={kind} value={kind} />
-            ))}
+            {(facets?.phaseKinds ?? [
+              { id: "INVESTIGATION" },
+              { id: "PROPOSE_SOLUTION" },
+              { id: "DEVELOPMENT" },
+              { id: "ACCEPTANCE_TEST" },
+              { id: "ROLLOUT" },
+            ])
+              .map((option) => option.id)
+              .filter(Boolean)
+              .map((kind) => (
+                <option key={kind} value={kind} />
+              ))}
           </datalist>
           <datalist id="issue-status-options">
-            {[
-              "CREATED",
-              "IN_ANALYSIS",
-              "IN_DEVELOPMENT",
-              "IN_TEST",
-              "IN_ROLLOUT",
-              "DONE",
-              "FAILED",
-            ].map((status) => (
-              <option key={status} value={status} />
-            ))}
+            {(facets?.statuses ?? [
+              { id: "CREATED" },
+              { id: "IN_ANALYSIS" },
+              { id: "IN_DEVELOPMENT" },
+              { id: "IN_TEST" },
+              { id: "IN_ROLLOUT" },
+              { id: "DONE" },
+              { id: "FAILED" },
+            ])
+              .map((option) => option.id)
+              .filter(Boolean)
+              .map((status) => (
+                <option key={status} value={status} />
+              ))}
           </datalist>
         </form>
 

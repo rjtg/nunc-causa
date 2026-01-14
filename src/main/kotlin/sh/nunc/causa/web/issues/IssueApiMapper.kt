@@ -2,6 +2,8 @@ package sh.nunc.causa.web.issues
 
 import sh.nunc.causa.issues.IssueDetailView
 import sh.nunc.causa.issues.IssueListView
+import sh.nunc.causa.issues.IssueFacetBundle
+import sh.nunc.causa.issues.IssueFacetView
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.PhaseView
@@ -9,6 +11,8 @@ import sh.nunc.causa.issues.TaskStatus
 import sh.nunc.causa.issues.TaskView
 import sh.nunc.causa.web.model.ActionDecision
 import sh.nunc.causa.web.model.IssueDetail
+import sh.nunc.causa.web.model.IssueFacetOption
+import sh.nunc.causa.web.model.IssueFacetResponse
 import sh.nunc.causa.web.model.IssueListItem
 import sh.nunc.causa.web.model.IssueStatus as ApiIssueStatus
 import sh.nunc.causa.web.model.PhaseKind
@@ -46,6 +50,23 @@ fun IssueListView.toListItem(): IssueListItem {
         projectId = projectId,
         phaseCount = phaseCount.toInt(),
         status = status.toIssueStatusEnum(),
+    )
+}
+
+fun IssueFacetBundle.toFacetResponse(): IssueFacetResponse {
+    return IssueFacetResponse(
+        owners = owners.map { it.toOption() },
+        assignees = assignees.map { it.toOption() },
+        projects = projects.map { it.toOption() },
+        statuses = statuses.map { it.toOption() },
+        phaseKinds = phaseKinds.map { it.toOption() },
+    )
+}
+
+private fun IssueFacetView.toOption(): IssueFacetOption {
+    return IssueFacetOption(
+        id = id,
+        count = count.toInt(),
     )
 }
 

@@ -10,6 +10,19 @@ data class IssueListView(
     val status: String,
 )
 
+data class IssueFacetView(
+    val id: String,
+    val count: Long,
+)
+
+data class IssueFacetBundle(
+    val owners: List<IssueFacetView>,
+    val assignees: List<IssueFacetView>,
+    val projects: List<IssueFacetView>,
+    val statuses: List<IssueFacetView>,
+    val phaseKinds: List<IssueFacetView>,
+)
+
 data class IssueDetailView(
     val id: String,
     val title: String,

@@ -83,6 +83,66 @@ class IssueService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getIssueFacets(
+        query: String?,
+        ownerId: String?,
+        assigneeId: String?,
+        memberId: String?,
+        projectId: String?,
+        status: IssueStatus?,
+        phaseKind: String?,
+    ): IssueFacetBundle {
+        val statusName = status?.name
+        return IssueFacetBundle(
+            owners = issueRepository.findOwnerFacets(
+                query,
+                projectId,
+                ownerId,
+                assigneeId,
+                memberId,
+                statusName,
+                phaseKind,
+            ),
+            assignees = issueRepository.findAssigneeFacets(
+                query,
+                projectId,
+                ownerId,
+                assigneeId,
+                memberId,
+                statusName,
+                phaseKind,
+            ),
+            projects = issueRepository.findProjectFacets(
+                query,
+                projectId,
+                ownerId,
+                assigneeId,
+                memberId,
+                statusName,
+                phaseKind,
+            ),
+            statuses = issueRepository.findStatusFacets(
+                query,
+                projectId,
+                ownerId,
+                assigneeId,
+                memberId,
+                statusName,
+                phaseKind,
+            ),
+            phaseKinds = issueRepository.findPhaseKindFacets(
+                query,
+                projectId,
+                ownerId,
+                assigneeId,
+                memberId,
+                statusName,
+                phaseKind,
+            ),
+        )
+    }
+
     @Transactional
     fun updateIssue(
         issueId: String,

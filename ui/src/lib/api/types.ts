@@ -39,6 +39,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/issues/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Faceted issue filters */
+        get: operations["getIssueFacets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/issues/{issueId}": {
         parameters: {
             query?: never;
@@ -402,6 +419,18 @@ export interface components {
                 [key: string]: components["schemas"]["ActionDecision"];
             };
         };
+        IssueFacetOption: {
+            id: string;
+            /** Format: int32 */
+            count: number;
+        };
+        IssueFacetResponse: {
+            owners: components["schemas"]["IssueFacetOption"][];
+            assignees: components["schemas"]["IssueFacetOption"][];
+            projects: components["schemas"]["IssueFacetOption"][];
+            statuses: components["schemas"]["IssueFacetOption"][];
+            phaseKinds: components["schemas"]["IssueFacetOption"][];
+        };
         PhaseResponse: {
             id: string;
             name: string;
@@ -589,6 +618,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IssueListItem"][];
+                };
+            };
+        };
+    };
+    getIssueFacets: {
+        parameters: {
+            query?: {
+                query?: string;
+                ownerId?: string;
+                assigneeId?: string;
+                memberId?: string;
+                projectId?: string;
+                status?: components["schemas"]["IssueStatus"];
+                phaseKind?: components["schemas"]["PhaseKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Faceted options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueFacetResponse"];
                 };
             };
         };

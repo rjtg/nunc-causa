@@ -102,6 +102,55 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IssueListItem'
+  /issues/facets:
+    get:
+      tags:
+        - Issues
+      summary: Faceted issue filters
+      operationId: getIssueFacets
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: assigneeId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IssueStatus'
+        - name: phaseKind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PhaseKind'
+      responses:
+        '200':
+          description: Faceted options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueFacetResponse'
   /issues/{issueId}:
     get:
       tags:
@@ -728,6 +777,46 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/ActionDecision'
+    IssueFacetOption:
+      type: object
+      required:
+        - id
+        - count
+      properties:
+        id:
+          type: string
+        count:
+          type: integer
+          format: int32
+    IssueFacetResponse:
+      type: object
+      required:
+        - owners
+        - assignees
+        - projects
+        - statuses
+        - phaseKinds
+      properties:
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFacetOption'
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFacetOption'
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFacetOption'
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFacetOption'
+        phaseKinds:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFacetOption'
     PhaseResponse:
       type: object
       required:

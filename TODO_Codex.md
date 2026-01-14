@@ -95,6 +95,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add Hibernate Search indexes for issues, phases, and tasks
     - Define index mappings
     - Add search queries for list view
+    - Use Hibernate Search for title + description faceted queries
 [x] Add activity feed storage separate from audit trail
 [ ] Implement audit trail entries in `/issues/{id}/history`
     - Map Envers revisions to API `AuditEntry`

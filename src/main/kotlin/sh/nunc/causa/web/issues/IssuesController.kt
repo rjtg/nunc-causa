@@ -25,6 +25,7 @@ import sh.nunc.causa.web.model.AssignOwnerRequest
 import sh.nunc.causa.web.model.CommentResponse
 import sh.nunc.causa.web.model.CreateIssueRequest
 import sh.nunc.causa.web.model.IssueDetail
+import sh.nunc.causa.web.model.IssueFacetResponse
 import sh.nunc.causa.web.model.IssueHistoryResponse
 import sh.nunc.causa.web.model.IssueListItem
 import sh.nunc.causa.web.model.UpdateIssueRequest
@@ -96,6 +97,30 @@ class IssuesController(
     override fun findSimilarIssues(query: String, limit: Int?): ResponseEntity<List<IssueListItem>> {
         val results = issueService.findSimilarIssues(query, limit)
         return ResponseEntity.ok(results.map { it.toListItem() })
+    }
+
+    @PreAuthorize("@accessPolicy.canListIssues(#projectId)")
+    override fun getIssueFacets(
+        query: String?,
+        ownerId: String?,
+        assigneeId: String?,
+        memberId: String?,
+        projectId: String?,
+        status: sh.nunc.causa.web.model.IssueStatus?,
+        phaseKind: sh.nunc.causa.web.model.PhaseKind?,
+    ): ResponseEntity<IssueFacetResponse> {
+        val currentUserId = accessPolicy.currentUserId()
+        val effectiveMemberId = memberId ?: currentUserId
+        val facets = issueService.getIssueFacets(
+            query,
+            ownerId,
+            assigneeId,
+            effectiveMemberId,
+            projectId,
+            status?.let { IssueStatus.valueOf(it.name) },
+            phaseKind?.name,
+        )
+        return ResponseEntity.ok(facets.toFacetResponse())
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
