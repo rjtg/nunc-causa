@@ -56,7 +56,7 @@ export default function IssueDetailPage() {
   const params = useParams();
   const issueId = params.issueId as string;
   const api = useApi();
-  const { token } = useAuth();
+  const { token, ready } = useAuth();
   const [issue, setIssue] = useState<IssueDetail | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
@@ -70,7 +70,7 @@ export default function IssueDetailPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!token) {
+    if (!ready || !token) {
       return;
     }
     let active = true;
@@ -105,7 +105,15 @@ export default function IssueDetailPage() {
     return () => {
       active = false;
     };
-  }, [api, issueId, token]);
+  }, [api, issueId, ready, token]);
+
+  if (!ready) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        Loading session…
+      </div>
+    );
+  }
 
   if (!token) {
     return (
@@ -237,7 +245,7 @@ export default function IssueDetailPage() {
               >
                 <div className="flex items-center justify-between text-xs text-slate-500">
                   <span>{entry.type}</span>
-                  <span>{new Date(entry.occurredAt).toLocaleString()}</span>
+                  <span>{formatTimestamp(entry.occurredAt)}</span>
                 </div>
                 <p className="mt-2 font-semibold">{entry.summary}</p>
                 {entry.actorId && (
@@ -305,7 +313,7 @@ export default function IssueDetailPage() {
               >
                 <div className="flex items-center justify-between text-xs text-slate-500">
                   <span>{comment.authorId}</span>
-                  <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                  <span>{formatTimestamp(comment.createdAt)}</span>
                 </div>
                 <p className="mt-2 text-sm text-slate-700">{comment.body}</p>
               </div>
@@ -315,4 +323,12 @@ export default function IssueDetailPage() {
       )}
     </div>
   );
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toISOString().replace("T", " ").replace("Z", " UTC");
 }

@@ -4,7 +4,15 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/context";
 
 export default function AuthStatus() {
-  const { token, baseUrl, clear } = useAuth();
+  const { token, baseUrl, ready, clear } = useAuth();
+
+  if (!ready) {
+    return (
+      <span className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">
+        Loading…
+      </span>
+    );
+  }
 
   if (!token) {
     return (

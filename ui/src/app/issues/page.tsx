@@ -35,7 +35,7 @@ const emptyFilters: Filters = {
 
 export default function IssuesPage() {
   const api = useApi();
-  const { token } = useAuth();
+  const { token, ready } = useAuth();
   const [issues, setIssues] = useState<IssueSummary[]>([]);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] =
@@ -108,12 +108,12 @@ export default function IssuesPage() {
   );
 
   useEffect(() => {
-    if (!token) {
+    if (!ready || !token) {
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadIssues(appliedFilters);
-  }, [appliedFilters, loadIssues, token]);
+  }, [appliedFilters, loadIssues, ready, token]);
 
   return (
     <div className="space-y-6">
@@ -134,7 +134,13 @@ export default function IssuesPage() {
         </Link>
       </header>
 
-      {!token && (
+      {!ready && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+          Loading session…
+        </div>
+      )}
+
+      {ready && !token && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
           Connect your API token to load issues.
         </div>

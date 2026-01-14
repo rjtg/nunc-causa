@@ -10,6 +10,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -17,6 +18,7 @@ import {
 type AuthState = {
   token: string | null;
   baseUrl: string;
+  ready: boolean;
   setToken: (token: string | null) => void;
   setBaseUrl: (url: string) => void;
   clear: () => void;
@@ -28,10 +30,18 @@ const defaultBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(() => readToken());
-  const [baseUrl, setBaseUrlState] = useState<string>(
-    () => readBaseUrl() ?? defaultBaseUrl,
-  );
+  const [token, setTokenState] = useState<string | null>(null);
+  const [baseUrl, setBaseUrlState] = useState<string>(defaultBaseUrl);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const storedToken = readToken();
+    const storedBase = readBaseUrl();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTokenState(storedToken);
+    setBaseUrlState(storedBase ?? defaultBaseUrl);
+    setReady(true);
+  }, []);
 
   const setToken = useCallback((nextToken: string | null) => {
     setTokenState(nextToken);
@@ -52,11 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       token,
       baseUrl,
+      ready,
       setToken,
       setBaseUrl,
       clear,
     }),
-    [token, baseUrl, setToken, setBaseUrl, clear],
+    [token, baseUrl, ready, setToken, setBaseUrl, clear],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

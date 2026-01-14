@@ -6,9 +6,17 @@ import { useAuth } from "@/lib/auth/context";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { token, baseUrl, setToken, setBaseUrl } = useAuth();
+  const { token, baseUrl, ready, setToken, setBaseUrl } = useAuth();
   const [draftToken, setDraftToken] = useState(token ?? "");
   const [draftUrl, setDraftUrl] = useState(baseUrl);
+
+  if (!ready) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        Loading session…
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

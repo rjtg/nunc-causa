@@ -12,13 +12,13 @@ type WorkResponse = {
 
 export default function WorkPage() {
   const api = useApi();
-  const { token } = useAuth();
+  const { token, ready } = useAuth();
   const [work, setWork] = useState<WorkResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!token) {
+    if (!ready || !token) {
       return;
     }
     let active = true;
@@ -41,7 +41,7 @@ export default function WorkPage() {
     return () => {
       active = false;
     };
-  }, [api, token]);
+  }, [api, ready, token]);
 
   return (
     <div className="space-y-6">
@@ -54,7 +54,13 @@ export default function WorkPage() {
         </h1>
       </header>
 
-      {!token && (
+      {!ready && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+          Loading session…
+        </div>
+      )}
+
+      {ready && !token && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
           Connect your API token to load your queue.
         </div>
