@@ -59,7 +59,9 @@ export default function LoginPage() {
   }, [draftUrl, ready]);
 
   const supportsBasic =
-    methods.some((method) => method.type === "basic") || Boolean(methodsError);
+    methods.some((method) => method.type === "basic") ||
+    methods.length === 0 ||
+    Boolean(methodsError);
   const oauthMethods = methods.filter((method) => method.type !== "basic");
 
   if (!ready) {
@@ -95,7 +97,9 @@ export default function LoginPage() {
           </p>
         )}
         {!methodsError && methods.length === 0 && (
-          <p className="mt-2 text-xs text-slate-500">No methods reported.</p>
+          <p className="mt-2 text-xs text-slate-500">
+            No methods reported. Defaulting to basic auth.
+          </p>
         )}
         {methods.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -160,17 +164,25 @@ export default function LoginPage() {
             </div>
           </div>
         )}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-            Bearer Token (optional)
-          </label>
-          <input
-            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
-            value={draftToken}
-            onChange={(event) => setDraftToken(event.target.value)}
-            placeholder="Paste token"
-          />
-        </div>
+        <details className="rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-600">
+          <summary className="cursor-pointer font-semibold">
+            Advanced: bearer token
+          </summary>
+          <div className="mt-3 space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Bearer Token (optional)
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
+              value={draftToken}
+              onChange={(event) => setDraftToken(event.target.value)}
+              placeholder="Paste token"
+            />
+            <p className="text-xs text-slate-500">
+              Leave empty in dev mode to use basic auth.
+            </p>
+          </div>
+        </details>
         <button className="rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white">
           Save connection
         </button>

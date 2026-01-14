@@ -18,13 +18,13 @@ export function createApiClient({
     baseUrl,
     fetch: async (input, init) => {
       const headers = new Headers(init?.headers);
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      } else if (username && password && typeof btoa !== "undefined") {
+      if (username && password && typeof btoa !== "undefined") {
         headers.set(
           "Authorization",
           `Basic ${btoa(`${username}:${password}`)}`,
         );
+      } else if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return fetch(input, { ...init, headers });
     },
