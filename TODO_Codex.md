@@ -126,6 +126,23 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add task-level granularity in dev phases
 [ ] Add workflow template management UI (if building frontend)
 [ ] Add activity stream view fed by activity feed model
+[ ] Add CLI client (Rust + clap)
+    - Generate OpenAPI client bindings
+    - Support login and basic issue workflows
+[ ] Start Web UI (Next.js)
+    - Create `ui/` app with App Router + TypeScript
+    - Generate OpenAPI client in shared package
+    - Implement auth stub screen (token/session)
+    - Issue list, issue detail, and My Work screens
+    - Add polling with ETags (SSE later)
+[ ] Produce UI wireframes
+    - Define information architecture and core navigation
+    - Draft wireframes for Issue list, Issue detail, My Work, and Admin setup
+    - Validate with workflow/role perspectives
+[ ] Integrate UI build into Gradle packaging
+    - Run UI build via Gradle (Node plugin)
+    - Copy built assets into Spring `resources/static`
+    - Ensure `./gradlew build` produces a single runnable artifact
 [ ] AI assistance via Spring AI (future ideation)
     - Summarize issues and phases for status updates
     - Suggest next actions based on workflow state
