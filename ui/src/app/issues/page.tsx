@@ -143,7 +143,7 @@ export default function IssuesPage() {
 
       {ready && !isAuthed && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Connect your API credentials to load issues.
+          Sign in to load issues.
         </div>
       )}
 

@@ -28,7 +28,7 @@ export default function NewIssuePage() {
   if (!isAuthed) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-        Connect your API credentials to create issues.
+        Sign in to create issues.
       </div>
     );
   }

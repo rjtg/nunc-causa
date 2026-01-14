@@ -63,7 +63,7 @@ export default function WorkPage() {
 
       {ready && !isAuthed && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Connect your API credentials to load your queue.
+          Sign in to load your queue.
         </div>
       )}
 

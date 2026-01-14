@@ -58,7 +58,8 @@ export default function LoginPage() {
     };
   }, [draftUrl, ready]);
 
-  const supportsBasic = methods.some((method) => method.type === "basic");
+  const supportsBasic =
+    methods.some((method) => method.type === "basic") || Boolean(methodsError);
   const oauthMethods = methods.filter((method) => method.type !== "basic");
 
   if (!ready) {
@@ -89,7 +90,9 @@ export default function LoginPage() {
           Available login methods
         </p>
         {methodsError && (
-          <p className="mt-2 text-xs text-rose-600">{methodsError}</p>
+          <p className="mt-2 text-xs text-rose-600">
+            {methodsError} Using basic auth by default.
+          </p>
         )}
         {!methodsError && methods.length === 0 && (
           <p className="mt-2 text-xs text-slate-500">No methods reported.</p>

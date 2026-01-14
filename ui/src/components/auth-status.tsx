@@ -20,7 +20,7 @@ export default function AuthStatus() {
         className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700"
         href="/login"
       >
-        Connect API
+        Login
       </Link>
     );
   }
