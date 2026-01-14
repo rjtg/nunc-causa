@@ -7,5 +7,7 @@ spring:
             type: lucene
             directory:
               type: local-heap
+            analysis:
+              configurer: bean:luceneAnalysisConfigurer
           schema_management:
             strategy: drop-and-create

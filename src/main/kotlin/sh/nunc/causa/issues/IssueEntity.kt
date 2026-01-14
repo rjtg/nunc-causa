@@ -33,11 +33,11 @@ class IssueEntity(
     @Column(name = "issue_id", nullable = false)
     var id: String,
 
-    @FullTextField
+    @FullTextField(analyzer = "autocomplete", searchAnalyzer = "autocompleteSearch")
     @Column(name = "title", nullable = false)
     var title: String,
 
-    @FullTextField
+    @FullTextField(analyzer = "autocomplete", searchAnalyzer = "autocompleteSearch")
     @Column(name = "description", nullable = false)
     var description: String,
 
