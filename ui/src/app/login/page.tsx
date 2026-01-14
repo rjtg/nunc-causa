@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 
 type AuthMethod = {
@@ -12,6 +12,7 @@ type AuthMethod = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     token,
     username,
@@ -29,6 +30,19 @@ export default function LoginPage() {
   const [draftUrl, setDraftUrl] = useState(baseUrl);
   const [methods, setMethods] = useState<AuthMethod[]>([]);
   const [methodsError, setMethodsError] = useState<string | null>(null);
+  const nextTarget = useMemo(() => {
+    const next = searchParams.get("next");
+    return next && next.startsWith("/") ? next : "/issues";
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    if (token || username) {
+      router.replace(nextTarget);
+    }
+  }, [nextTarget, ready, router, token, username]);
 
   useEffect(() => {
     let active = true;
@@ -123,7 +137,7 @@ export default function LoginPage() {
           setUsername(draftUsername || null);
           setPassword(draftPassword || null);
           setBaseUrl(draftUrl);
-          router.push("/issues");
+          router.push(nextTarget);
         }}
       >
         <div className="space-y-2">
