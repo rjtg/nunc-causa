@@ -16,6 +16,25 @@ echo "Starting UI dev server..."
 (cd "${ROOT_DIR}/ui" && npm run dev) &
 UI_PID=$!
 
+echo "Waiting for services to become ready..."
+
+wait_for() {
+  local name="$1"
+  local url="$2"
+  local retries=60
+  until curl -fsS "$url" >/dev/null 2>&1; do
+    retries=$((retries - 1))
+    if [ "$retries" -le 0 ]; then
+      echo "Timed out waiting for $name ($url)"
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+wait_for "API" "http://localhost:8080/actuator/health" || true
+wait_for "UI" "http://localhost:3000" || true
+
 echo "Dev servers running:"
 echo "- UI: http://localhost:3000"
 echo "- API: http://localhost:8080"
