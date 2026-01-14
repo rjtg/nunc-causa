@@ -583,3 +583,11 @@ databaseChangeLog:
             tableName: issue_tasks_AUD
             columnNames: task_id, rev
             constraintName: pk_issue_tasks_aud
+  - changeSet:
+      id: 009-revinfo-autoincrement
+      author: codex
+      changes:
+        - addAutoIncrement:
+            tableName: revinfo
+            columnName: rev
+            columnDataType: int
