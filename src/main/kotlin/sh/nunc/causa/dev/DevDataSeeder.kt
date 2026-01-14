@@ -109,7 +109,7 @@ class DevDataSeeder(
             val phases = defaultPhases(users)
             val issue = issueService.createIssue(
                 CreateIssueCommand(
-                    title = faker.lorem.words(amount = 4).joinToString(" ").replaceFirstChar { it.uppercase() },
+                    title = sampleTitle(faker, 4),
                     ownerId = owner.id,
                     projectId = project.id,
                     phases = phases,
@@ -120,12 +120,21 @@ class DevDataSeeder(
                     issueService.addTask(
                         issueId = issue.id,
                         phaseId = issue.phases.first { it.name == phase.name }.id,
-                        title = faker.lorem.words(amount = 3).joinToString(" "),
+                        title = sampleTitle(faker, 3),
                         assigneeId = phase.assigneeId,
                     )
                 }
             }
         }
+    }
+
+    private fun sampleTitle(faker: Faker, wordCount: Int): String {
+        val words = faker.lorem.words()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(wordCount)
+        val base = if (words.isNotEmpty()) words.joinToString(" ") else faker.company.name()
+        return base.replaceFirstChar { ch -> ch.uppercase() }
     }
 
     private fun defaultPhases(users: List<UserEntity>): List<CreatePhaseCommand> {
