@@ -456,6 +456,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MyWorkResponse'
+  /auth/methods:
+    get:
+      tags:
+        - Auth
+      summary: List available authentication methods
+      operationId: getAuthMethods
+      responses:
+        '200':
+          description: Auth methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMethodsResponse'
   /search:
     get:
       tags:
@@ -792,6 +805,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TaskWorkItem'
+    AuthMethodsResponse:
+      type: object
+      required:
+        - methods
+      properties:
+        methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthMethod'
+    AuthMethod:
+      type: object
+      required:
+        - type
+        - label
+      properties:
+        type:
+          type: string
+        label:
+          type: string
+        authorizeUrl:
+          type: string
     PhaseWorkItem:
       type: object
       required:
