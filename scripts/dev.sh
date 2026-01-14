@@ -9,7 +9,7 @@ if [ ! -d "${ROOT_DIR}/ui/node_modules" ]; then
 fi
 
 echo "Starting backend (dev profile)..."
-(cd "${ROOT_DIR}" && ./gradlew bootRun -Dspring-boot.run.profiles=dev) &
+(cd "${ROOT_DIR}" && SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --args="--spring.profiles.active=dev") &
 BACKEND_PID=$!
 
 echo "Starting UI dev server..."
