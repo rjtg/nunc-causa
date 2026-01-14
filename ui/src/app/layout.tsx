@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Providers from "./providers";
+import AuthStatus from "@/components/auth-status";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,57 +30,54 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
-          <header className="border-b border-white/10 bg-white/70 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-4">
-                <span className="text-lg font-semibold tracking-tight">
-                  Causa
-                </span>
-                <button
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm"
-                  type="button"
-                >
-                  Project: Alpha
-                </button>
+        <Providers>
+          <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
+            <header className="border-b border-white/10 bg-white/70 backdrop-blur">
+              <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-lg font-semibold tracking-tight">
+                    Causa
+                  </span>
+                  <button
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm"
+                    type="button"
+                  >
+                    Project: Alpha
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    className="w-56 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm"
+                    placeholder="Search issues"
+                    type="search"
+                  />
+                  <AuthStatus />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  className="w-56 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm"
-                  placeholder="Search issues"
-                  type="search"
-                />
-                <button
-                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm"
-                  type="button"
-                >
-                  Ada Lovelace
-                </button>
-              </div>
+            </header>
+            <div className="mx-auto flex max-w-6xl gap-6 px-6 py-6">
+              <aside className="w-48 shrink-0">
+                <nav className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                  <Link className="rounded-lg bg-white/80 px-4 py-2" href="/work">
+                    My Work
+                  </Link>
+                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/issues">
+                    Issues
+                  </Link>
+                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/projects">
+                    Projects
+                  </Link>
+                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/admin">
+                    Admin
+                  </Link>
+                </nav>
+              </aside>
+              <main className="min-h-[70vh] flex-1 space-y-6 rounded-2xl border border-white/40 bg-white/80 p-6 shadow-sm">
+                {children}
+              </main>
             </div>
-          </header>
-          <div className="mx-auto flex max-w-6xl gap-6 px-6 py-6">
-            <aside className="w-48 shrink-0">
-              <nav className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                <Link className="rounded-lg bg-white/80 px-4 py-2" href="/work">
-                  My Work
-                </Link>
-                <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/issues">
-                  Issues
-                </Link>
-                <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/projects">
-                  Projects
-                </Link>
-                <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/admin">
-                  Admin
-                </Link>
-              </nav>
-            </aside>
-            <main className="min-h-[70vh] flex-1 rounded-2xl border border-white/40 bg-white/80 p-6 shadow-sm">
-              {children}
-            </main>
           </div>
-        </div>
+        </Providers>
       </body>
     </html>
   );

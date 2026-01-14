@@ -1,4 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useApi } from "@/lib/api/use-api";
+import { useAuth } from "@/lib/auth/context";
+
+type WorkResponse = {
+  ownedIssues: { id?: string; title?: string }[];
+  assignedPhases: { issueId?: string; phaseName?: string; status?: string }[];
+  assignedTasks: { issueId?: string; taskTitle?: string; status?: string }[];
+};
+
 export default function WorkPage() {
+  const api = useApi();
+  const { token } = useAuth();
+  const [work, setWork] = useState<WorkResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      const { data, error: apiError } = await api.GET("/me/work");
+      if (!active) {
+        return;
+      }
+      if (apiError || !data) {
+        setError("Unable to load work queue.");
+        setLoading(false);
+        return;
+      }
+      setWork(data as WorkResponse);
+      setLoading(false);
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [api, token]);
+
   return (
     <div className="space-y-6">
       <header>
@@ -10,38 +54,69 @@ export default function WorkPage() {
         </h1>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {[
-          {
-            label: "Owned issues",
-            items: ["ISS-1042 Payments rollback", "ISS-1032 SSO sync gap"],
-          },
-          {
-            label: "Assigned phases",
-            items: ["Rollout: ISS-1042", "QA: ISS-1039"],
-          },
-          {
-            label: "Assigned tasks",
-            items: ["Reproduce auth loop", "Patch validation script"],
-          },
-        ].map((lane) => (
-          <div
-            key={lane.label}
-            className="rounded-2xl border border-slate-200/60 bg-white/90 p-4"
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-              {lane.label}
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700">
-              {lane.items.map((item) => (
-                <li key={item} className="rounded-lg border border-slate-100 bg-white px-3 py-2">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      {!token && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          Connect your API token to load your queue.
+        </div>
+      )}
+
+      {loading && <p className="text-sm text-slate-500">Loading work…</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+
+      {work && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {[
+            {
+              label: "Owned issues",
+              items: work.ownedIssues.map(
+                (issue) => `${issue.id ?? "—"} ${issue.title ?? ""}`,
+              ),
+            },
+            {
+              label: "Assigned phases",
+              items: work.assignedPhases.map(
+                (phase) =>
+                  `${phase.issueId ?? "—"} ${phase.phaseName ?? ""} (${
+                    phase.status ?? "—"
+                  })`,
+              ),
+            },
+            {
+              label: "Assigned tasks",
+              items: work.assignedTasks.map(
+                (task) =>
+                  `${task.issueId ?? "—"} ${task.taskTitle ?? ""} (${
+                    task.status ?? "—"
+                  })`,
+              ),
+            },
+          ].map((lane) => (
+            <div
+              key={lane.label}
+              className="rounded-2xl border border-slate-200/60 bg-white/90 p-4"
+            >
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                {lane.label}
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                {lane.items.length === 0 && (
+                  <li className="rounded-lg border border-slate-100 bg-white px-3 py-2 text-slate-500">
+                    Nothing assigned.
+                  </li>
+                )}
+                {lane.items.map((item) => (
+                  <li
+                    key={item}
+                    className="rounded-lg border border-slate-100 bg-white px-3 py-2"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

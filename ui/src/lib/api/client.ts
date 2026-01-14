@@ -1,8 +1,20 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./types";
 
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+type ClientOptions = {
+  baseUrl: string;
+  token?: string | null;
+};
 
-export const apiClient = createClient<paths>({
-  baseUrl,
-});
+export function createApiClient({ baseUrl, token }: ClientOptions) {
+  return createClient<paths>({
+    baseUrl,
+    fetch: async (input, init) => {
+      const headers = new Headers(init?.headers);
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return fetch(input, { ...init, headers });
+    },
+  });
+}
