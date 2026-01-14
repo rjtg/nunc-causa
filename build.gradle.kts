@@ -106,6 +106,12 @@ tasks.named("check") {
     dependsOn("detekt", "spotbugsMain", "spotbugsTest")
 }
 
+tasks.register<Exec>("dev") {
+    group = "application"
+    description = "Run backend and UI in dev mode."
+    commandLine("bash", "-lc", "./scripts/dev.sh")
+}
+
 val openApiSpec = layout.projectDirectory.file("src/main/resources/openapi/causa-api.yaml")
 val openApiOutputDir = layout.buildDirectory.dir("generated/openapi")
 
