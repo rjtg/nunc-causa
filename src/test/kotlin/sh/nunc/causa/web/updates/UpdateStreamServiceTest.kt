@@ -33,6 +33,7 @@ class UpdateStreamServiceTest {
         val issue = IssueEntity(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             owner = owner,
             projectId = "project-1",
             status = IssueStatus.CREATED.name,

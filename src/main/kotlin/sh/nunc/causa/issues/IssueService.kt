@@ -23,6 +23,7 @@ class IssueService(
         val issue = IssueEntity(
             id = UUID.randomUUID().toString(),
             title = command.title,
+            description = command.description,
             owner = owner,
             projectId = command.projectId,
             status = IssueStatus.CREATED.name,
@@ -63,6 +64,7 @@ class IssueService(
 
     @Transactional(readOnly = true)
     fun listIssues(
+        query: String?,
         ownerId: String?,
         assigneeId: String?,
         memberId: String?,
@@ -71,6 +73,7 @@ class IssueService(
         phaseKind: String?,
     ): List<IssueListView> {
         return issueRepository.findListView(
+            query = query,
             projectId = projectId,
             ownerId = ownerId,
             assigneeId = assigneeId,
@@ -81,10 +84,19 @@ class IssueService(
     }
 
     @Transactional
-    fun updateIssue(issueId: String, title: String?, ownerId: String?, projectId: String?): IssueEntity {
+    fun updateIssue(
+        issueId: String,
+        title: String?,
+        ownerId: String?,
+        projectId: String?,
+        description: String?,
+    ): IssueEntity {
         val issue = getIssue(issueId)
         if (title != null) {
             issue.title = title
+        }
+        if (description != null) {
+            issue.description = description
         }
         if (ownerId != null) {
             issue.owner = requireUser(ownerId)
@@ -274,6 +286,11 @@ class IssueService(
     }
 
     @Transactional(readOnly = true)
+    fun findSimilarIssues(query: String, limit: Int?): List<IssueListView> {
+        return emptyList()
+    }
+
+    @Transactional(readOnly = true)
     fun buildMyWork(userId: String): MyWorkView {
         val issues = issueRepository.findFiltered(
             projectId = null,
@@ -287,6 +304,7 @@ class IssueService(
             IssueListView(
                 id = issue.id,
                 title = issue.title,
+                description = issue.description,
                 ownerId = issue.owner.id,
                 projectId = issue.projectId,
                 phaseCount = issue.phases.size.toLong(),
@@ -365,6 +383,7 @@ class IssueService(
         return IssueDetailView(
             id = id,
             title = title,
+            description = description,
             ownerId = owner.id,
             projectId = projectId,
             status = status,

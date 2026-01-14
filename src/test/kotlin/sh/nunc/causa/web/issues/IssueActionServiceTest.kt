@@ -20,6 +20,7 @@ class IssueActionServiceTest {
         val issue = IssueDetailView(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.DONE.name,
@@ -70,6 +71,7 @@ class IssueActionServiceTest {
         val issue = IssueDetailView(
             id = "issue-2",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
@@ -96,6 +98,7 @@ class IssueActionServiceTest {
         val issue = IssueDetailView(
             id = "issue-3",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
@@ -122,6 +125,7 @@ class IssueActionServiceTest {
         val issue = IssueDetailView(
             id = "issue-3",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_DEVELOPMENT.name,
@@ -155,6 +159,7 @@ class IssueActionServiceTest {
         val issue = IssueDetailView(
             id = "issue-5",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_DEVELOPMENT.name,

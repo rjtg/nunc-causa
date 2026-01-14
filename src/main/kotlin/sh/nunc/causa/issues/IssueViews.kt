@@ -3,6 +3,7 @@ package sh.nunc.causa.issues
 data class IssueListView(
     val id: String,
     val title: String,
+    val description: String,
     val ownerId: String,
     val projectId: String?,
     val phaseCount: Long,
@@ -12,6 +13,7 @@ data class IssueListView(
 data class IssueDetailView(
     val id: String,
     val title: String,
+    val description: String,
     val ownerId: String,
     val projectId: String?,
     val status: String,

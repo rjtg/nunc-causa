@@ -24,6 +24,9 @@ class IssueEntity(
     @Column(name = "title", nullable = false)
     var title: String,
 
+    @Column(name = "description", nullable = false)
+    var description: String,
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)

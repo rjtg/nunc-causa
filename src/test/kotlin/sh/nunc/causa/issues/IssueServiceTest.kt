@@ -34,6 +34,7 @@ class IssueServiceTest {
         val result = service.createIssue(
             CreateIssueCommand(
                 title = "Issue",
+                description = "Issue description.",
                 ownerId = "owner-1",
                 projectId = "project-1",
                 phases = listOf(
@@ -58,6 +59,7 @@ class IssueServiceTest {
         val issue = IssueEntity(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             owner = currentOwner,
             projectId = null,
             status = IssueStatus.CREATED.name,
@@ -80,6 +82,7 @@ class IssueServiceTest {
         val issue = IssueEntity(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             owner = owner,
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
@@ -107,6 +110,7 @@ class IssueServiceTest {
         val issue = IssueEntity(
             id = "issue-2",
             title = "Issue",
+            description = "Issue description.",
             owner = owner,
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,

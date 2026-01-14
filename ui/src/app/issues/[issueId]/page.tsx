@@ -25,6 +25,7 @@ type Task = {
 type IssueDetail = {
   id: string;
   title: string;
+  description: string;
   ownerId: string;
   projectId?: string | null;
   status: string;
@@ -141,6 +142,7 @@ export default function IssueDetailPage() {
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
           {issue.title}
         </h1>
+        <p className="mt-3 text-sm text-slate-600">{issue.description}</p>
         <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-600">
           <span>Owner: {issue.ownerId}</span>
           <span>Status: {issue.status}</span>

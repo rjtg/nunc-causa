@@ -27,6 +27,7 @@ fun IssueDetailView.toDetail(actions: IssueActionProvider): IssueDetail {
     return IssueDetail(
         id = id,
         title = title,
+        description = description,
         ownerId = ownerId,
         projectId = projectId,
         phases = phases.map { it.toResponse(this, actions) },
@@ -40,6 +41,7 @@ fun IssueListView.toListItem(): IssueListItem {
     return IssueListItem(
         id = id,
         title = title,
+        description = description,
         ownerId = ownerId,
         projectId = projectId,
         phaseCount = phaseCount.toInt(),

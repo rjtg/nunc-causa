@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-issue-description
+      author: codex
+      changes:
+        - addColumn:
+            tableName: issues
+            columns:
+              - column:
+                  name: description
+                  type: text
+                  constraints:
+                    nullable: false
+                  defaultValue: ""
+        - addColumn:
+            tableName: issues_AUD
+            columns:
+              - column:
+                  name: description
+                  type: text
+                  constraints:
+                    nullable: true

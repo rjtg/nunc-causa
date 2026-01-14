@@ -32,6 +32,7 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
         select new sh.nunc.causa.issues.IssueListView(
             i.id,
             i.title,
+            i.description,
             i.owner.id,
             i.projectId,
             count(distinct p.id),
@@ -41,15 +42,17 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
         left join i.phases p
         left join p.tasks t
         where (:projectId is null or i.projectId = :projectId)
+          and (:query is null or lower(i.title) like lower(concat('%', :query, '%')) or lower(i.description) like lower(concat('%', :query, '%')))
           and (:ownerId is null or i.owner.id = :ownerId)
           and (:assigneeId is null or p.assignee.id = :assigneeId)
           and (:memberId is null or i.owner.id = :memberId or p.assignee.id = :memberId or t.assignee.id = :memberId)
           and (:status is null or i.status = :status)
           and (:phaseKind is null or p.kind = :phaseKind)
-        group by i.id, i.title, i.owner.id, i.projectId, i.status
+        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status
         """
     )
     fun findListView(
+        @Param("query") query: String?,
         @Param("projectId") projectId: String?,
         @Param("ownerId") ownerId: String?,
         @Param("assigneeId") assigneeId: String?,
@@ -72,6 +75,7 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
         select new sh.nunc.causa.issues.IssueListView(
             i.id,
             i.title,
+            i.description,
             i.owner.id,
             i.projectId,
             count(distinct p.id),
@@ -80,8 +84,11 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
         from IssueEntity i
         left join i.phases p
         where (:projectId is null or i.projectId = :projectId)
-          and lower(i.title) like lower(concat('%', :query, '%'))
-        group by i.id, i.title, i.owner.id, i.projectId, i.status
+          and (
+            lower(i.title) like lower(concat('%', :query, '%'))
+            or lower(i.description) like lower(concat('%', :query, '%'))
+          )
+        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status
         """
     )
     fun searchListView(

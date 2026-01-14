@@ -2,6 +2,7 @@ package sh.nunc.causa.issues
 
 data class CreateIssueCommand(
     val title: String,
+    val description: String,
     val ownerId: String,
     val projectId: String?,
     val phases: List<CreatePhaseCommand>,

@@ -15,6 +15,7 @@ class SearchControllerTest {
         val issue = IssueListView(
             id = "issue-1",
             title = "Search term",
+            description = "Search description.",
             ownerId = "owner-1",
             projectId = "project-1",
             phaseCount = 0,

@@ -110,6 +110,7 @@ class DevDataSeeder(
             val issue = issueService.createIssue(
                 CreateIssueCommand(
                     title = sampleTitle(faker, 4),
+                    description = sampleDescription(faker),
                     ownerId = owner.id,
                     projectId = project.id,
                     phases = phases,
@@ -135,6 +136,14 @@ class DevDataSeeder(
             .take(wordCount)
         val base = if (words.isNotEmpty()) words.joinToString(" ") else faker.company.name()
         return base.replaceFirstChar { ch -> ch.uppercase() }
+    }
+
+    private fun sampleDescription(faker: Faker): String {
+        val words = faker.lorem.words()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(12)
+        return words.joinToString(" ").ifBlank { "No description provided." }
     }
 
     private fun defaultPhases(users: List<UserEntity>): List<CreatePhaseCommand> {

@@ -22,6 +22,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/issues/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find similar issues */
+        get: operations["findSimilarIssues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/issues/{issueId}": {
         parameters: {
             query?: never;
@@ -321,12 +338,14 @@ export interface components {
             title: string;
             ownerId: string;
             projectId: string;
+            description: string;
             phases: components["schemas"]["CreatePhaseRequest"][];
         };
         UpdateIssueRequest: {
             title?: string;
             ownerId?: string;
             projectId?: string;
+            description?: string;
         };
         AssignOwnerRequest: {
             ownerId: string;
@@ -362,6 +381,7 @@ export interface components {
         IssueListItem: {
             id: string;
             title: string;
+            description?: string;
             ownerId: string;
             projectId?: string;
             /** Format: int32 */
@@ -371,6 +391,7 @@ export interface components {
         IssueDetail: {
             id: string;
             title: string;
+            description: string;
             ownerId: string;
             projectId?: string;
             phases: components["schemas"]["PhaseResponse"][];
@@ -501,6 +522,7 @@ export interface operations {
         parameters: {
             query?: {
                 ownerId?: string;
+                query?: string;
                 assigneeId?: string;
                 memberId?: string;
                 projectId?: string;
@@ -544,6 +566,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IssueDetail"];
+                };
+            };
+        };
+    };
+    findSimilarIssues: {
+        parameters: {
+            query: {
+                query: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Similar issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueListItem"][];
                 };
             };
         };

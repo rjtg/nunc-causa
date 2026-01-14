@@ -12,6 +12,7 @@ class IssueEntitiesTest {
         val issue = IssueEntity(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             owner = owner,
             projectId = null,
             status = IssueStatus.CREATED.name,

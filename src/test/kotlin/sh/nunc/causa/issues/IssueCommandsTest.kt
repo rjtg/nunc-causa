@@ -8,6 +8,7 @@ class IssueCommandsTest {
     fun `creates issue command`() {
         val command = CreateIssueCommand(
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             phases = listOf(CreatePhaseCommand(name = "Investigate", assigneeId = "user-1", kind = null)),

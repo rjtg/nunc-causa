@@ -13,6 +13,12 @@ type PhaseDraft = {
 
 const emptyPhase: PhaseDraft = { name: "", assigneeId: "", kind: "" };
 
+type SimilarIssue = {
+  id: string;
+  title: string;
+  description?: string | null;
+};
+
 type UserOption = {
   id: string;
   displayName: string;
@@ -29,6 +35,7 @@ export default function NewIssuePage() {
   const { token, username } = useAuth();
   const isAuthed = Boolean(token || username);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [phases, setPhases] = useState<PhaseDraft[]>([]);
@@ -37,6 +44,9 @@ export default function NewIssuePage() {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [similarIssues, setSimilarIssues] = useState<SimilarIssue[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [similarError, setSimilarError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -75,6 +85,49 @@ export default function NewIssuePage() {
     };
   }, [api, isAuthed]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!isAuthed) {
+      return;
+    }
+    const query = `${title} ${description}`.trim();
+    if (query.length < 5) {
+      setSimilarIssues([]);
+      setSimilarError(null);
+      return;
+    }
+    let active = true;
+    const handle = setTimeout(async () => {
+      setSimilarLoading(true);
+      setSimilarError(null);
+      const { data, error: apiError } = await api.GET("/issues/similar", {
+        params: { query: { query, limit: 5 } },
+      });
+      if (!active) {
+        return;
+      }
+      if (apiError) {
+        setSimilarError("Unable to check similar issues.");
+        setSimilarIssues([]);
+        setSimilarLoading(false);
+        return;
+      }
+      setSimilarIssues(
+        (data ?? []).map((issue) => ({
+          id: issue.id ?? "unknown",
+          title: issue.title ?? "Untitled",
+          description: issue.description ?? null,
+        })),
+      );
+      setSimilarLoading(false);
+    }, 400);
+    return () => {
+      active = false;
+      clearTimeout(handle);
+    };
+  }, [api, description, isAuthed, title]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   if (!isAuthed) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
@@ -99,14 +152,20 @@ export default function NewIssuePage() {
         onSubmit={async (event) => {
           event.preventDefault();
           setError(null);
-          if (!title.trim() || !ownerId.trim() || !projectId.trim()) {
-            setError("Title, owner, and project are required.");
+          if (
+            !title.trim() ||
+            !description.trim() ||
+            !ownerId.trim() ||
+            !projectId.trim()
+          ) {
+            setError("Title, description, owner, and project are required.");
             return;
           }
           setSaving(true);
           const { data, error: apiError } = await api.POST("/issues", {
             body: {
               title,
+              description,
               ownerId,
               projectId,
               phases: phases
@@ -139,6 +198,17 @@ export default function NewIssuePage() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Issue title"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Description
+            </label>
+            <textarea
+              className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="What happened and what needs to change?"
             />
           </div>
           <div className="space-y-2">
@@ -263,6 +333,40 @@ export default function NewIssuePage() {
                   Remove
                 </button>
               </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Similar issues
+            </h2>
+            {similarLoading && (
+              <span className="text-xs text-slate-500">Checking…</span>
+            )}
+          </div>
+          {similarError && (
+            <p className="text-xs text-rose-600">{similarError}</p>
+          )}
+          {!similarLoading && !similarError && similarIssues.length === 0 && (
+            <p className="text-xs text-slate-500">
+              No similar issues found yet.
+            </p>
+          )}
+          {similarIssues.map((issue) => (
+            <div
+              key={issue.id}
+              className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs text-slate-700"
+            >
+              <p className="font-semibold text-slate-900">{issue.title}</p>
+              {issue.description && (
+                <p className="mt-1 text-slate-500">
+                  {issue.description.length > 120
+                    ? `${issue.description.slice(0, 120)}…`
+                    : issue.description}
+                </p>
+              )}
             </div>
           ))}
         </div>

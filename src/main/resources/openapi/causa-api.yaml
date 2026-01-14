@@ -36,6 +36,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
         - name: assigneeId
           in: query
           required: false
@@ -64,6 +69,33 @@ paths:
       responses:
         '200':
           description: Issue list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueListItem'
+  /issues/similar:
+    get:
+      tags:
+        - Issues
+      summary: Find similar issues
+      operationId: findSimilarIssues
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Similar issues
           content:
             application/json:
               schema:
@@ -545,6 +577,7 @@ components:
         - title
         - ownerId
         - projectId
+        - description
         - phases
       properties:
         title:
@@ -552,6 +585,8 @@ components:
         ownerId:
           type: string
         projectId:
+          type: string
+        description:
           type: string
         phases:
           type: array
@@ -565,6 +600,8 @@ components:
         ownerId:
           type: string
         projectId:
+          type: string
+        description:
           type: string
     AssignOwnerRequest:
       type: object
@@ -646,6 +683,8 @@ components:
           type: string
         title:
           type: string
+        description:
+          type: string
         ownerId:
           type: string
         projectId:
@@ -661,6 +700,7 @@ components:
         - id
         - title
         - ownerId
+        - description
         - phases
         - status
         - version
@@ -668,6 +708,8 @@ components:
         id:
           type: string
         title:
+          type: string
+        description:
           type: string
         ownerId:
           type: string

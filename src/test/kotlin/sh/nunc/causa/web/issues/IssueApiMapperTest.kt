@@ -16,6 +16,7 @@ class IssueApiMapperTest {
         val issue = IssueDetailView(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
@@ -53,6 +54,7 @@ class IssueApiMapperTest {
         val issue = IssueListView(
             id = "issue-2",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = null,
             phaseCount = 2,

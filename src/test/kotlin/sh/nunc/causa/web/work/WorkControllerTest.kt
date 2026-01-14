@@ -20,6 +20,7 @@ class WorkControllerTest {
         val issue = IssueListView(
             id = "issue-1",
             title = "Issue",
+            description = "Issue description.",
             ownerId = "owner-1",
             projectId = null,
             phaseCount = 0,

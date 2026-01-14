@@ -41,6 +41,7 @@ class IssuesControllerTest {
     fun createIssueAcceptsJsonPayload() {
         val payload = mapOf(
             "title" to "tadaa",
+            "description" to "Something is not behaving as expected.",
             "ownerId" to "dev",
             "projectId" to "project-alpha",
             "phases" to listOf(

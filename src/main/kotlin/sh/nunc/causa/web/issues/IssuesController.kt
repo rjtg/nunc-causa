@@ -45,6 +45,7 @@ class IssuesController(
         val issue = issueService.createIssue(
             CreateIssueCommand(
                 title = createIssueRequest.title,
+                description = createIssueRequest.description,
                 ownerId = createIssueRequest.ownerId,
                 projectId = createIssueRequest.projectId,
                 phases = createIssueRequest.phases.map {
@@ -70,6 +71,7 @@ class IssuesController(
     @PreAuthorize("@accessPolicy.canListIssues(#projectId)")
     override fun listIssues(
         ownerId: String?,
+        query: String?,
         assigneeId: String?,
         memberId: String?,
         projectId: String?,
@@ -79,6 +81,7 @@ class IssuesController(
         val currentUserId = accessPolicy.currentUserId()
         val effectiveMemberId = memberId ?: currentUserId
         val issues = issueService.listIssues(
+            query,
             ownerId,
             assigneeId,
             effectiveMemberId,
@@ -87,6 +90,12 @@ class IssuesController(
             phaseKind?.name,
         )
         return ResponseEntity.ok(issues.map { it.toListItem() })
+    }
+
+    @PreAuthorize("@accessPolicy.canListIssues(null)")
+    override fun findSimilarIssues(query: String, limit: Int?): ResponseEntity<List<IssueListItem>> {
+        val results = issueService.findSimilarIssues(query, limit)
+        return ResponseEntity.ok(results.map { it.toListItem() })
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
@@ -100,6 +109,7 @@ class IssuesController(
                 updateIssueRequest.title,
                 updateIssueRequest.ownerId,
                 updateIssueRequest.projectId,
+                updateIssueRequest.description,
             )
         }
         val detail = issueService.getIssueDetail(issue.id)

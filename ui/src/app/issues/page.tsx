@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth/context";
 type IssueSummary = {
   id: string;
   title: string;
+  description?: string | null;
   ownerId: string;
   status: string;
   phaseCount: number;
@@ -89,34 +90,8 @@ export default function IssuesPage() {
       }
       setLoading(true);
       setError(null);
-      const hasSearch = nextFilters.query.trim().length > 0;
-      if (hasSearch) {
-        const { data, error: apiError } = await api.GET("/search", {
-          params: {
-            query: {
-              q: nextFilters.query,
-              projectId: nextFilters.projectId || undefined,
-            },
-          },
-        });
-        if (apiError || !data) {
-          setError("Unable to search issues.");
-          setLoading(false);
-          return;
-        }
-        setIssues(
-          data.map((issue) => ({
-            id: issue.id ?? "unknown",
-            title: issue.title ?? "Untitled",
-            ownerId: issue.ownerId ?? "Unassigned",
-            status: issue.status ?? "UNKNOWN",
-            phaseCount: issue.phaseCount ?? 0,
-          })),
-        );
-        setLoading(false);
-        return;
-      }
       const query = {
+        query: nextFilters.query || undefined,
         ownerId: nextFilters.ownerId || undefined,
         assigneeId: nextFilters.assigneeId || undefined,
         memberId: nextFilters.memberId || undefined,
@@ -136,6 +111,7 @@ export default function IssuesPage() {
         data.map((issue) => ({
           id: issue.id ?? "unknown",
           title: issue.title ?? "Untitled",
+          description: issue.description ?? null,
           ownerId: issue.ownerId ?? "Unassigned",
           status: issue.status ?? "UNKNOWN",
           phaseCount: issue.phaseCount ?? 0,
@@ -219,21 +195,18 @@ export default function IssuesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-            Issues
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-            All issues
-          </h1>
-        </div>
-        <Link
-          className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
-          href="/issues/new"
-        >
-          New issue
-        </Link>
+      <header>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          Issues
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+          {filterState.appliedFilters.query
+            ? `Search results for “${filterState.appliedFilters.query}”`
+            : "All issues"}
+        </h1>
+        <p className="mt-2 text-xs text-slate-500">
+          {issues.length} results · refine with filters
+        </p>
       </header>
 
       {!ready && (
@@ -248,188 +221,221 @@ export default function IssuesPage() {
         </div>
       )}
 
-      <form
-        className="grid gap-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          dispatch({ type: "apply" });
-        }}
-      >
-        {optionsError && (
-          <p className="text-xs text-rose-600">{optionsError}</p>
-        )}
-        <div className="grid gap-2 md:grid-cols-3">
-          <input
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-            placeholder="Search (title)"
-            value={filterState.filters.query}
-            onChange={(event) =>
-              dispatch({ type: "update", payload: { query: event.target.value } })
-            }
-          />
-          <div className="relative">
+      <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+        <form
+          className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            dispatch({ type: "apply" });
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Filters
+            </h2>
+            <button
+              className="text-xs text-slate-500 underline-offset-2 hover:underline"
+              type="button"
+              onClick={() => dispatch({ type: "reset" })}
+            >
+              Reset
+            </button>
+          </div>
+          {optionsError && (
+            <p className="text-xs text-rose-600">{optionsError}</p>
+          )}
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Search
+            </label>
             <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Project"
-              value={filterState.filters.projectId}
-              list="project-options"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+              placeholder="Title or description"
+              value={filterState.filters.query}
               onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { projectId: event.target.value },
-                })
+                dispatch({ type: "update", payload: { query: event.target.value } })
               }
             />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
           </div>
-          <div className="relative">
-            <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Owner"
-              value={filterState.filters.ownerId}
-              list="user-options"
-              onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { ownerId: event.target.value },
-                })
-              }
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Project
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Project"
+                value={filterState.filters.projectId}
+                list="project-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { projectId: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="grid gap-2 md:grid-cols-4">
-          <div className="relative">
-            <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Assignee"
-              value={filterState.filters.assigneeId}
-              list="user-options"
-              onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { assigneeId: event.target.value },
-                })
-              }
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Owner
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Owner"
+                value={filterState.filters.ownerId}
+                list="user-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { ownerId: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
-          <div className="relative">
-            <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Member"
-              value={filterState.filters.memberId}
-              list="user-options"
-              onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { memberId: event.target.value },
-                })
-              }
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Assignee
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Assignee"
+                value={filterState.filters.assigneeId}
+                list="user-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { assigneeId: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
-          <div className="relative">
-            <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Phase kind"
-              value={filterState.filters.phaseKind}
-              list="phase-kind-options"
-              onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { phaseKind: event.target.value },
-                })
-              }
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Member
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Member"
+                value={filterState.filters.memberId}
+                list="user-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { memberId: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
-          <div className="relative">
-            <input
-              className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
-              placeholder="Status"
-              value={filterState.filters.status}
-              list="issue-status-options"
-              onChange={(event) =>
-                dispatch({
-                  type: "update",
-                  payload: { status: event.target.value },
-                })
-              }
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-              ▾
-            </span>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Phase kind
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Phase kind"
+                value={filterState.filters.phaseKind}
+                list="phase-kind-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { phaseKind: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Status
+            </label>
+            <div className="relative">
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                placeholder="Status"
+                value={filterState.filters.status}
+                list="issue-status-options"
+                onChange={(event) =>
+                  dispatch({
+                    type: "update",
+                    payload: { status: event.target.value },
+                  })
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
+                ▾
+              </span>
+            </div>
+          </div>
           <button
-            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+            className="w-full rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
             type="submit"
           >
-            Apply
+            Apply filters
           </button>
-          <button
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-700"
-            type="button"
-            onClick={() => {
-              dispatch({ type: "reset" });
-            }}
-          >
-            Reset
-          </button>
-        </div>
-        <datalist id="user-options">
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.displayName}
-            </option>
-          ))}
-        </datalist>
-        <datalist id="project-options">
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </datalist>
-        <datalist id="phase-kind-options">
-          {[
-            "INVESTIGATION",
-            "PROPOSE_SOLUTION",
-            "DEVELOPMENT",
-            "ACCEPTANCE_TEST",
-            "ROLLOUT",
-          ].map((kind) => (
-            <option key={kind} value={kind} />
-          ))}
-        </datalist>
-        <datalist id="issue-status-options">
-          {[
-            "CREATED",
-            "IN_ANALYSIS",
-            "IN_DEVELOPMENT",
-            "IN_TEST",
-            "IN_ROLLOUT",
-            "DONE",
-            "FAILED",
-          ].map((status) => (
-            <option key={status} value={status} />
-          ))}
-        </datalist>
-      </form>
+          <datalist id="user-options">
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.displayName}
+              </option>
+            ))}
+          </datalist>
+          <datalist id="project-options">
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </datalist>
+          <datalist id="phase-kind-options">
+            {[
+              "INVESTIGATION",
+              "PROPOSE_SOLUTION",
+              "DEVELOPMENT",
+              "ACCEPTANCE_TEST",
+              "ROLLOUT",
+            ].map((kind) => (
+              <option key={kind} value={kind} />
+            ))}
+          </datalist>
+          <datalist id="issue-status-options">
+            {[
+              "CREATED",
+              "IN_ANALYSIS",
+              "IN_DEVELOPMENT",
+              "IN_TEST",
+              "IN_ROLLOUT",
+              "DONE",
+              "FAILED",
+            ].map((status) => (
+              <option key={status} value={status} />
+            ))}
+          </datalist>
+        </form>
 
-      <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
+        <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
         {loading && (
           <p className="text-sm text-slate-500">Loading issues…</p>
         )}
@@ -441,21 +447,31 @@ export default function IssuesPage() {
           <Link
             key={issue.id}
             href={`/issues/${issue.id}`}
-            className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 hover:border-slate-200"
+            className="space-y-2 rounded-xl border border-slate-100 bg-white px-4 py-3 hover:border-slate-200"
           >
-            <div>
-              <p className="text-xs text-slate-500">{issue.id}</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {issue.title}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500">{issue.id}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {issue.title}
+                </p>
+              </div>
+              <div className="flex items-center gap-6 text-xs text-slate-600">
+                <span>{issue.ownerId}</span>
+                <span>{issue.status}</span>
+                <span>{issue.phaseCount} phases</span>
+              </div>
+            </div>
+            {issue.description && (
+              <p className="text-xs text-slate-500">
+                {issue.description.length > 160
+                  ? `${issue.description.slice(0, 160)}…`
+                  : issue.description}
               </p>
-            </div>
-            <div className="flex items-center gap-6 text-xs text-slate-600">
-              <span>{issue.ownerId}</span>
-              <span>{issue.status}</span>
-              <span>{issue.phaseCount} phases</span>
-            </div>
+            )}
           </Link>
         ))}
+        </div>
       </div>
     </div>
   );
