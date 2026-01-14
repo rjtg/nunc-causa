@@ -24,15 +24,11 @@ class DevAccessPolicyService(
     teamMembershipRepository,
     orgMembershipRepository,
 ) {
-    private fun isSignedIn(): Boolean {
-        return currentUserService.currentUserId() != null
-    }
-
-    override fun canCreateIssue(projectId: String?): Boolean = isSignedIn()
-    override fun canViewIssue(issueId: String): Boolean = isSignedIn()
-    override fun canModifyIssue(issueId: String): Boolean = isSignedIn()
-    override fun canListIssues(projectId: String?): Boolean = isSignedIn()
-    override fun canSearchIssues(projectId: String?): Boolean = isSignedIn()
-    override fun canAccessWork(): Boolean = isSignedIn()
-    override fun isAuthenticated(): Boolean = isSignedIn()
+    override fun canCreateIssue(projectId: String?): Boolean = true
+    override fun canViewIssue(issueId: String): Boolean = true
+    override fun canModifyIssue(issueId: String): Boolean = true
+    override fun canListIssues(projectId: String?): Boolean = true
+    override fun canSearchIssues(projectId: String?): Boolean = true
+    override fun canAccessWork(): Boolean = true
+    override fun isAuthenticated(): Boolean = currentUserService.currentUserId() != null
 }
