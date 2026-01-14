@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 
@@ -13,27 +13,81 @@ type IssueSummary = {
   phaseCount: number;
 };
 
+type Filters = {
+  query: string;
+  ownerId: string;
+  assigneeId: string;
+  memberId: string;
+  projectId: string;
+  status: string;
+  phaseKind: string;
+};
+
+const emptyFilters: Filters = {
+  query: "",
+  ownerId: "",
+  assigneeId: "",
+  memberId: "",
+  projectId: "",
+  status: "",
+  phaseKind: "",
+};
+
 export default function IssuesPage() {
   const api = useApi();
   const { token } = useAuth();
   const [issues, setIssues] = useState<IssueSummary[]>([]);
+  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] =
+    useState<Filters>(emptyFilters);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
-    let active = true;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      const { data, error: apiError } = await api.GET("/issues", {
-        params: { query: {} },
-      });
-      if (!active) {
+  const loadIssues = useCallback(
+    async (nextFilters: Filters) => {
+      if (!token) {
         return;
       }
+      setLoading(true);
+      setError(null);
+      const hasSearch = nextFilters.query.trim().length > 0;
+      if (hasSearch) {
+        const { data, error: apiError } = await api.GET("/search", {
+          params: {
+            query: {
+              q: nextFilters.query,
+              projectId: nextFilters.projectId || undefined,
+            },
+          },
+        });
+        if (apiError || !data) {
+          setError("Unable to search issues.");
+          setLoading(false);
+          return;
+        }
+        setIssues(
+          data.map((issue) => ({
+            id: issue.id ?? "unknown",
+            title: issue.title ?? "Untitled",
+            ownerId: issue.ownerId ?? "Unassigned",
+            status: issue.status ?? "UNKNOWN",
+            phaseCount: issue.phaseCount ?? 0,
+          })),
+        );
+        setLoading(false);
+        return;
+      }
+      const query = {
+        ownerId: nextFilters.ownerId || undefined,
+        assigneeId: nextFilters.assigneeId || undefined,
+        memberId: nextFilters.memberId || undefined,
+        projectId: nextFilters.projectId || undefined,
+        status: nextFilters.status || undefined,
+        phaseKind: nextFilters.phaseKind || undefined,
+      };
+      const { data, error: apiError } = await api.GET("/issues", {
+        params: { query },
+      });
       if (apiError || !data) {
         setError("Unable to load issues.");
         setLoading(false);
@@ -49,12 +103,17 @@ export default function IssuesPage() {
         })),
       );
       setLoading(false);
+    },
+    [api, token],
+  );
+
+  useEffect(() => {
+    if (!token) {
+      return;
     }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [api, token]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadIssues(appliedFilters);
+  }, [appliedFilters, loadIssues, token]);
 
   return (
     <div className="space-y-6">
@@ -67,9 +126,12 @@ export default function IssuesPage() {
             All issues
           </h1>
         </div>
-        <button className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white">
+        <Link
+          className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+          href="/issues/new"
+        >
           New issue
-        </button>
+        </Link>
       </header>
 
       {!token && (
@@ -78,30 +140,98 @@ export default function IssuesPage() {
         </div>
       )}
 
-      <div className="grid gap-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
-        <div className="grid gap-2 md:grid-cols-5">
+      <form
+        className="grid gap-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setAppliedFilters(filters);
+        }}
+      >
+        <div className="grid gap-2 md:grid-cols-3">
           <input
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Owner"
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Assignee"
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Phase kind"
-          />
-          <input
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
-            placeholder="Status"
+            placeholder="Search (title)"
+            value={filters.query}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, query: event.target.value }))
+            }
           />
           <input
             className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
             placeholder="Project"
+            value={filters.projectId}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, projectId: event.target.value }))
+            }
+          />
+          <input
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            placeholder="Owner"
+            value={filters.ownerId}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, ownerId: event.target.value }))
+            }
           />
         </div>
-      </div>
+        <div className="grid gap-2 md:grid-cols-4">
+          <input
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            placeholder="Assignee"
+            value={filters.assigneeId}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                assigneeId: event.target.value,
+              }))
+            }
+          />
+          <input
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            placeholder="Member"
+            value={filters.memberId}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, memberId: event.target.value }))
+            }
+          />
+          <input
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            placeholder="Phase kind"
+            value={filters.phaseKind}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                phaseKind: event.target.value,
+              }))
+            }
+          />
+          <input
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700"
+            placeholder="Status"
+            value={filters.status}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, status: event.target.value }))
+            }
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+            type="submit"
+          >
+            Apply
+          </button>
+          <button
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-700"
+            type="button"
+            onClick={() => {
+              setFilters(emptyFilters);
+              setAppliedFilters(emptyFilters);
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </form>
 
       <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
         {loading && (

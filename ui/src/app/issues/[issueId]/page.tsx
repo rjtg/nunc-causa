@@ -32,6 +32,26 @@ type IssueDetail = {
   allowedActions?: Record<string, { allowed: boolean; reason?: string }>;
 };
 
+type ActivityEntry = {
+  id: string;
+  type: string;
+  summary: string;
+  actorId?: string | null;
+  occurredAt: string;
+};
+
+type CommentEntry = {
+  id: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+};
+
+type HistoryResponse = {
+  activity?: ActivityEntry[];
+  audit?: ActivityEntry[];
+};
+
 export default function IssueDetailPage() {
   const params = useParams();
   const issueId = params.issueId as string;
@@ -39,6 +59,13 @@ export default function IssueDetailPage() {
   const { token } = useAuth();
   const [issue, setIssue] = useState<IssueDetail | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
+  const [history, setHistory] = useState<HistoryResponse | null>(null);
+  const [comments, setComments] = useState<CommentEntry[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"overview" | "activity" | "comments">(
+    "overview",
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,23 +77,27 @@ export default function IssueDetailPage() {
     async function load() {
       setLoading(true);
       setError(null);
-      const { data, error: apiError } = await api.GET("/issues/{issueId}", {
-        params: { path: { issueId } },
-      });
-      const history = await api.GET("/issues/{issueId}/history", {
-        params: { path: { issueId } },
-      });
+      const [issueResponse, historyResponse, commentResponse] =
+        await Promise.all([
+          api.GET("/issues/{issueId}", { params: { path: { issueId } } }),
+          api.GET("/issues/{issueId}/history", { params: { path: { issueId } } }),
+          api.GET("/issues/{issueId}/comments", { params: { path: { issueId } } }),
+        ]);
       if (!active) {
         return;
       }
-      if (apiError || !data) {
+      if (issueResponse.error || !issueResponse.data) {
         setError("Unable to load issue.");
         setLoading(false);
         return;
       }
-      setIssue(data as IssueDetail);
-      if (history.data?.activity) {
-        setHistoryCount(history.data.activity.length);
+      setIssue(issueResponse.data as IssueDetail);
+      if (historyResponse.data?.activity) {
+        setHistoryCount(historyResponse.data.activity.length);
+        setHistory(historyResponse.data as HistoryResponse);
+      }
+      if (commentResponse.data) {
+        setComments(commentResponse.data as CommentEntry[]);
       }
       setLoading(false);
     }
@@ -109,62 +140,179 @@ export default function IssueDetailPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <div className="space-y-4">
-          {issue.phases.map((phase) => (
-            <div
-              key={phase.id}
-              className="rounded-2xl border border-slate-200/60 bg-white/90 p-4"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500">{phase.status}</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {phase.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Assignee: {phase.assigneeId}
-                  </p>
+      <div className="flex gap-2 text-xs font-semibold text-slate-600">
+        {[
+          { id: "overview", label: "Overview" },
+          { id: "activity", label: `Activity (${historyCount})` },
+          { id: "comments", label: `Comments (${comments.length})` },
+        ].map((item) => (
+          <button
+            key={item.id}
+            className={`rounded-full px-4 py-2 ${
+              tab === item.id
+                ? "bg-slate-900 text-white"
+                : "border border-slate-200 bg-white"
+            }`}
+            type="button"
+            onClick={() =>
+              setTab(item.id as "overview" | "activity" | "comments")
+            }
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+        <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <div className="space-y-4">
+            {issue.phases.map((phase) => (
+              <div
+                key={phase.id}
+                className="rounded-2xl border border-slate-200/60 bg-white/90 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">{phase.status}</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      {phase.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Assignee: {phase.assigneeId}
+                    </p>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {phase.tasks.length} tasks
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                  {phase.tasks.length} tasks
+                <div className="mt-3 space-y-2">
+                  {phase.tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-700"
+                    >
+                      <span>{task.title}</span>
+                      <span className="text-xs text-slate-500">
+                        {task.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="mt-3 space-y-2">
-                {phase.tasks.map((task) => (
+            ))}
+          </div>
+
+          <aside className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Allowed actions
+            </h2>
+            <div className="space-y-2 text-xs text-slate-600">
+              {issue.allowedActions &&
+                Object.entries(issue.allowedActions).map(([key, action]) => (
                   <div
-                    key={task.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-700"
+                    key={key}
+                    className="rounded-lg border border-slate-100 bg-white px-3 py-2"
                   >
-                    <span>{task.title}</span>
-                    <span className="text-xs text-slate-500">
-                      {task.status}
-                    </span>
+                    <p className="font-semibold text-slate-800">{key}</p>
+                    <p>
+                      {action.allowed ? "Allowed" : action.reason ?? "Blocked"}
+                    </p>
                   </div>
                 ))}
-              </div>
+              {!issue.allowedActions && (
+                <p className="text-slate-500">No actions available.</p>
+              )}
             </div>
-          ))}
-        </div>
+          </aside>
+        </section>
+      )}
 
-        <aside className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Allowed actions
-          </h2>
-          <div className="space-y-2 text-xs text-slate-600">
-            {issue.allowedActions &&
-              Object.entries(issue.allowedActions).map(([key, action]) => (
-                <div key={key} className="rounded-lg border border-slate-100 bg-white px-3 py-2">
-                  <p className="font-semibold text-slate-800">{key}</p>
-                  <p>{action.allowed ? "Allowed" : action.reason ?? "Blocked"}</p>
+      {tab === "activity" && (
+        <section className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
+          {history?.activity?.length ? (
+            history.activity.map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-700"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>{entry.type}</span>
+                  <span>{new Date(entry.occurredAt).toLocaleString()}</span>
                 </div>
-              ))}
-            {!issue.allowedActions && (
-              <p className="text-slate-500">No actions available.</p>
+                <p className="mt-2 font-semibold">{entry.summary}</p>
+                {entry.actorId && (
+                  <p className="text-xs text-slate-500">
+                    Actor: {entry.actorId}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-slate-500">No activity yet.</p>
+          )}
+        </section>
+      )}
+
+      {tab === "comments" && (
+        <section className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
+          <form
+            className="space-y-3"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!commentBody.trim()) {
+                return;
+              }
+              setCommentError(null);
+              const { data, error: apiError } = await api.POST(
+                "/issues/{issueId}/comments",
+                {
+                  params: { path: { issueId } },
+                  body: { body: commentBody, mentions: [] },
+                },
+              );
+              if (apiError || !data) {
+                setCommentError("Unable to add comment.");
+                return;
+              }
+              setComments((prev) => [data as CommentEntry, ...prev]);
+              setCommentBody("");
+            }}
+          >
+            <textarea
+              className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              placeholder="Add a comment…"
+              value={commentBody}
+              onChange={(event) => setCommentBody(event.target.value)}
+            />
+            <div className="flex items-center gap-3">
+              <button className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">
+                Post comment
+              </button>
+              {commentError && (
+                <span className="text-xs text-rose-600">{commentError}</span>
+              )}
+            </div>
+          </form>
+
+          <div className="space-y-3">
+            {comments.length === 0 && (
+              <p className="text-sm text-slate-500">No comments yet.</p>
             )}
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="rounded-xl border border-slate-100 bg-white px-4 py-3"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>{comment.authorId}</span>
+                  <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                </div>
+                <p className="mt-2 text-sm text-slate-700">{comment.body}</p>
+              </div>
+            ))}
           </div>
-        </aside>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
