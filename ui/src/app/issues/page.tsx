@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 
@@ -33,6 +34,17 @@ type Filters = {
   phaseKind: string;
 };
 
+type FilterState = {
+  filters: Filters;
+  appliedFilters: Filters;
+};
+
+type FilterAction =
+  | { type: "sync"; payload: Filters }
+  | { type: "update"; payload: Partial<Filters> }
+  | { type: "apply" }
+  | { type: "reset" };
+
 const emptyFilters: Filters = {
   query: "",
   ownerId: "",
@@ -43,14 +55,27 @@ const emptyFilters: Filters = {
   phaseKind: "",
 };
 
+function filterReducer(state: FilterState, action: FilterAction): FilterState {
+  switch (action.type) {
+    case "sync":
+      return { filters: action.payload, appliedFilters: action.payload };
+    case "update":
+      return { ...state, filters: { ...state.filters, ...action.payload } };
+    case "apply":
+      return { ...state, appliedFilters: state.filters };
+    case "reset":
+      return { filters: emptyFilters, appliedFilters: emptyFilters };
+    default:
+      return state;
+  }
+}
+
 export default function IssuesPage() {
   const api = useApi();
+  const searchParams = useSearchParams();
   const { token, username, ready } = useAuth();
   const isAuthed = Boolean(token || username);
   const [issues, setIssues] = useState<IssueSummary[]>([]);
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] =
-    useState<Filters>(emptyFilters);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [optionsError, setOptionsError] = useState<string | null>(null);
@@ -59,7 +84,7 @@ export default function IssuesPage() {
 
   const loadIssues = useCallback(
     async (nextFilters: Filters) => {
-      if (!token) {
+      if (!isAuthed) {
         return;
       }
       setLoading(true);
@@ -118,16 +143,42 @@ export default function IssuesPage() {
       );
       setLoading(false);
     },
-    [api, token],
+    [api, isAuthed],
+  );
+
+  const queryFilters = useMemo(() => {
+    const get = (key: keyof Filters) => searchParams.get(key) ?? "";
+    return {
+      query: get("query"),
+      ownerId: get("ownerId"),
+      assigneeId: get("assigneeId"),
+      memberId: get("memberId"),
+      projectId: get("projectId"),
+      status: get("status"),
+      phaseKind: get("phaseKind"),
+    };
+  }, [searchParams]);
+
+  const [filterState, dispatch] = useReducer(
+    filterReducer,
+    queryFilters,
+    (initial) => ({ filters: initial, appliedFilters: initial }),
   );
 
   useEffect(() => {
     if (!ready || !isAuthed) {
       return;
     }
+    dispatch({ type: "sync", payload: queryFilters });
+  }, [isAuthed, queryFilters, ready]);
+
+  useEffect(() => {
+    if (!ready || !isAuthed) {
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadIssues(appliedFilters);
-  }, [appliedFilters, isAuthed, loadIssues, ready]);
+    loadIssues(filterState.appliedFilters);
+  }, [filterState.appliedFilters, isAuthed, loadIssues, ready]);
 
   useEffect(() => {
     if (!ready || !isAuthed) {
@@ -201,7 +252,7 @@ export default function IssuesPage() {
         className="grid gap-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4"
         onSubmit={(event) => {
           event.preventDefault();
-          setAppliedFilters(filters);
+          dispatch({ type: "apply" });
         }}
       >
         {optionsError && (
@@ -211,19 +262,22 @@ export default function IssuesPage() {
           <input
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
             placeholder="Search (title)"
-            value={filters.query}
+            value={filterState.filters.query}
             onChange={(event) =>
-              setFilters((prev) => ({ ...prev, query: event.target.value }))
+              dispatch({ type: "update", payload: { query: event.target.value } })
             }
           />
           <div className="relative">
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Project"
-              value={filters.projectId}
+              value={filterState.filters.projectId}
               list="project-options"
               onChange={(event) =>
-                setFilters((prev) => ({ ...prev, projectId: event.target.value }))
+                dispatch({
+                  type: "update",
+                  payload: { projectId: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -234,10 +288,13 @@ export default function IssuesPage() {
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Owner"
-              value={filters.ownerId}
+              value={filterState.filters.ownerId}
               list="user-options"
               onChange={(event) =>
-                setFilters((prev) => ({ ...prev, ownerId: event.target.value }))
+                dispatch({
+                  type: "update",
+                  payload: { ownerId: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -250,13 +307,13 @@ export default function IssuesPage() {
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Assignee"
-              value={filters.assigneeId}
+              value={filterState.filters.assigneeId}
               list="user-options"
               onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  assigneeId: event.target.value,
-                }))
+                dispatch({
+                  type: "update",
+                  payload: { assigneeId: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -267,10 +324,13 @@ export default function IssuesPage() {
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Member"
-              value={filters.memberId}
+              value={filterState.filters.memberId}
               list="user-options"
               onChange={(event) =>
-                setFilters((prev) => ({ ...prev, memberId: event.target.value }))
+                dispatch({
+                  type: "update",
+                  payload: { memberId: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -281,13 +341,13 @@ export default function IssuesPage() {
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Phase kind"
-              value={filters.phaseKind}
+              value={filterState.filters.phaseKind}
               list="phase-kind-options"
               onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  phaseKind: event.target.value,
-                }))
+                dispatch({
+                  type: "update",
+                  payload: { phaseKind: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -298,10 +358,13 @@ export default function IssuesPage() {
             <input
               className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700"
               placeholder="Status"
-              value={filters.status}
+              value={filterState.filters.status}
               list="issue-status-options"
               onChange={(event) =>
-                setFilters((prev) => ({ ...prev, status: event.target.value }))
+                dispatch({
+                  type: "update",
+                  payload: { status: event.target.value },
+                })
               }
             />
             <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
@@ -320,8 +383,7 @@ export default function IssuesPage() {
             className="rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-700"
             type="button"
             onClick={() => {
-              setFilters(emptyFilters);
-              setAppliedFilters(emptyFilters);
+              dispatch({ type: "reset" });
             }}
           >
             Reset

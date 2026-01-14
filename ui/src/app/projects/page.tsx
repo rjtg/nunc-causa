@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
@@ -80,9 +81,10 @@ export default function ProjectsPage() {
             <p className="text-sm text-slate-500">No projects found.</p>
           )}
           {projects.map((project) => (
-            <div
+            <Link
               key={project.id}
-              className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-700"
+              href={`/issues?projectId=${encodeURIComponent(project.id)}`}
+              className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
             >
               <div>
                 <span className="font-semibold text-slate-900">
@@ -91,7 +93,7 @@ export default function ProjectsPage() {
                 <p className="text-xs text-slate-500">{project.id}</p>
               </div>
               <span>Team: {project.teamId}</span>
-            </div>
+            </Link>
           ))}
         </div>
       )}
