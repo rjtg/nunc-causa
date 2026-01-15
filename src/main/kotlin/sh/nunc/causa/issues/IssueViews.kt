@@ -7,7 +7,38 @@ data class IssueListView(
     val ownerId: String,
     val projectId: String?,
     val phaseCount: Long,
+    val phaseStatusCounts: Map<String, Long>,
+    val phaseProgress: List<PhaseProgressView>,
     val status: String,
+) {
+    constructor(
+        id: String,
+        title: String,
+        description: String,
+        ownerId: String,
+        projectId: String?,
+        phaseCount: Long,
+        status: String,
+    ) : this(
+        id = id,
+        title = title,
+        description = description,
+        ownerId = ownerId,
+        projectId = projectId,
+        phaseCount = phaseCount,
+        phaseStatusCounts = emptyMap(),
+        phaseProgress = emptyList(),
+        status = status,
+    )
+}
+
+data class PhaseProgressView(
+    val phaseId: String,
+    val phaseName: String,
+    val assigneeId: String,
+    val status: String,
+    val taskStatusCounts: Map<String, Long>,
+    val taskTotal: Long,
 )
 
 data class IssueFacetView(

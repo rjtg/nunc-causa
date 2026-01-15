@@ -16,6 +16,15 @@ type IssueSummary = {
   ownerId: string;
   status: string;
   phaseCount: number;
+  phaseStatusCounts?: Record<string, number> | null;
+  phaseProgress?: {
+    phaseId: string;
+    phaseName: string;
+    assigneeId: string;
+    status: string;
+    taskStatusCounts: Record<string, number>;
+    taskTotal: number;
+  }[];
 };
 
 type FacetOption = {
@@ -112,6 +121,80 @@ const issueStatusBadgeStyle = (status: string) => {
   }
 };
 
+const issueProgressTone = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "bg-emerald-500";
+    case "FAILED":
+      return "bg-rose-500";
+    case "IN_ANALYSIS":
+      return "bg-amber-400";
+    case "IN_DEVELOPMENT":
+      return "bg-sky-400";
+    case "IN_TEST":
+      return "bg-violet-400";
+    case "IN_ROLLOUT":
+      return "bg-emerald-500";
+    default:
+      return "bg-slate-300";
+  }
+};
+
+const issuePhaseSegments = (phases: IssueSummary["phaseProgress"]) => {
+  if (!phases || phases.length === 0) {
+    return undefined;
+  }
+  const phaseWeight = 1 / phases.length;
+  return phases.flatMap((phase, phaseIndex) => {
+    const tooltip = (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-slate-800">{phase.phaseName}</p>
+        <p className="text-[11px] text-slate-600">Assignee: {phase.assigneeId}</p>
+      </div>
+    );
+    if (!phase.taskTotal) {
+      const phaseTone = (() => {
+        switch (phase.status) {
+          case "DONE":
+            return "bg-emerald-500";
+          case "FAILED":
+            return "bg-rose-400";
+          case "IN_PROGRESS":
+            return "bg-sky-400";
+          default:
+            return "bg-slate-300";
+        }
+      })();
+      return [
+        {
+          color: phaseTone,
+          count: phaseWeight,
+          tooltip,
+          separator: phaseIndex > 0,
+        },
+      ];
+    }
+    const counts = phase.taskStatusCounts ?? {};
+    const total = phase.taskTotal;
+    const segments = [
+      { key: "DONE", color: "bg-emerald-500" },
+      { key: "IN_PROGRESS", color: "bg-sky-400" },
+      { key: "PAUSED", color: "bg-amber-400" },
+      { key: "ABANDONED", color: "bg-rose-400" },
+      { key: "NOT_STARTED", color: "bg-slate-300" },
+    ];
+    return segments.map((segment, index) => {
+      const count = counts[segment.key] ?? 0;
+      return {
+        color: segment.color,
+        count: phaseWeight * (count / total),
+        tooltip,
+        separator: phaseIndex > 0 && index === 0,
+      };
+    });
+  });
+};
+
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
     case "sync":
@@ -189,6 +272,8 @@ export default function IssuesPage() {
           ownerId: issue.ownerId ?? "Unassigned",
           status: issue.status ?? "UNKNOWN",
           phaseCount: issue.phaseCount ?? 0,
+          phaseStatusCounts: issue.phaseStatusCounts ?? null,
+          phaseProgress: issue.phaseProgress ?? [],
         })),
       );
       setLoading(false);
@@ -566,6 +651,11 @@ export default function IssuesPage() {
             id={issue.id}
             title={issue.title ?? issue.id}
             href={`/issues/${issue.id}`}
+            progressSegments={issuePhaseSegments(issue.phaseProgress)}
+            progressTotal={1}
+            progressTone={
+              issue.phaseCount > 0 ? undefined : issueProgressTone(issue.status)
+            }
             description={
               issue.description
                 ? issue.description.length > 160

@@ -331,6 +331,72 @@ const DependencyPicker = ({
     );
   };
 
+  const issuePhaseSegments = (detail: IssueDetail | null) => {
+    if (!detail || detail.phases.length === 0) {
+      return null;
+    }
+    const phaseWeight = 1 / detail.phases.length;
+    return detail.phases.flatMap((phase, phaseIndex) => {
+      const tooltip = (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-slate-800">{phaseLabel(phase)}</p>
+          <p className="text-[11px] text-slate-600">
+            Assignee: {userLabel(phase.assigneeId)}
+          </p>
+        </div>
+      );
+      if (phase.tasks.length === 0) {
+        const phaseTone = (() => {
+          switch (phase.status) {
+            case "DONE":
+              return "bg-emerald-500";
+            case "FAILED":
+              return "bg-rose-400";
+            case "IN_PROGRESS":
+              return "bg-sky-400";
+            default:
+              return "bg-slate-300";
+          }
+        })();
+        return [
+          {
+            color: phaseTone,
+            count: phaseWeight,
+            tooltip,
+            separator: phaseIndex > 0,
+          },
+        ];
+      }
+      const counts = phase.tasks.reduce(
+        (acc, task) => {
+          acc[task.status] = (acc[task.status] ?? 0) + 1;
+          return acc;
+        },
+        {
+          NOT_STARTED: 0,
+          IN_PROGRESS: 0,
+          PAUSED: 0,
+          ABANDONED: 0,
+          DONE: 0,
+        } as Record<string, number>,
+      );
+      const total = phase.tasks.length;
+      const segments = [
+        { key: "DONE", color: "bg-emerald-500" },
+        { key: "IN_PROGRESS", color: "bg-sky-400" },
+        { key: "PAUSED", color: "bg-amber-400" },
+        { key: "ABANDONED", color: "bg-rose-400" },
+        { key: "NOT_STARTED", color: "bg-slate-300" },
+      ];
+      return segments.map((segment, index) => ({
+        color: segment.color,
+        count: phaseWeight * ((counts[segment.key] ?? 0) / total),
+        tooltip,
+        separator: phaseIndex > 0 && index === 0,
+      }));
+    });
+  };
+
   const isIssueExpanded = (issueId: string) =>
     state.expandedIssues.includes(issueId);
 
@@ -471,6 +537,8 @@ const DependencyPicker = ({
               }
               tone={isCurrent ? "muted" : "default"}
               tooltip={issueTooltip(detail ?? null, summary)}
+              progressSegments={issuePhaseSegments(detail ?? null) ?? undefined}
+              progressTotal={1}
               right={
                 <>
                   <button

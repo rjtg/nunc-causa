@@ -957,6 +957,15 @@ components:
         phaseCount:
           type: integer
           format: int32
+        phaseStatusCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        phaseProgress:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseProgressItem'
         status:
           $ref: '#/components/schemas/IssueStatus'
     IssueDetail:
@@ -996,6 +1005,32 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/ActionDecision'
+    PhaseProgressItem:
+      type: object
+      required:
+        - phaseId
+        - phaseName
+        - assigneeId
+        - status
+        - taskStatusCounts
+        - taskTotal
+      properties:
+        phaseId:
+          type: string
+        phaseName:
+          type: string
+        assigneeId:
+          type: string
+        status:
+          $ref: '#/components/schemas/PhaseStatus'
+        taskStatusCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        taskTotal:
+          type: integer
+          format: int32
     IssueFacetOption:
       type: object
       required:

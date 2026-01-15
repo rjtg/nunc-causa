@@ -104,6 +104,24 @@ class IssueService(
             ),
         )
         return results.map { issue ->
+            val statusCounts = issue.phases
+                .groupingBy { it.status }
+                .eachCount()
+                .mapValues { it.value.toLong() }
+            val phaseProgress = issue.phases.map { phase ->
+                val taskStatusCounts = phase.tasks
+                    .groupingBy { it.status }
+                    .eachCount()
+                    .mapValues { it.value.toLong() }
+                PhaseProgressView(
+                    phaseId = phase.id,
+                    phaseName = phase.name,
+                    assigneeId = phase.assignee.id,
+                    status = phase.status,
+                    taskStatusCounts = taskStatusCounts,
+                    taskTotal = phase.tasks.size.toLong(),
+                )
+            }
             IssueListView(
                 id = issue.id,
                 title = issue.title,
@@ -111,6 +129,8 @@ class IssueService(
                 ownerId = issue.owner.id,
                 projectId = issue.projectId,
                 phaseCount = issue.phases.size.toLong(),
+                phaseStatusCounts = statusCounts,
+                phaseProgress = phaseProgress,
                 status = issue.status,
             )
         }
@@ -460,6 +480,24 @@ class IssueService(
             IssueSearchFilters(query = query, projectId = projectId),
         )
         return results.map { issue ->
+            val statusCounts = issue.phases
+                .groupingBy { it.status }
+                .eachCount()
+                .mapValues { it.value.toLong() }
+            val phaseProgress = issue.phases.map { phase ->
+                val taskStatusCounts = phase.tasks
+                    .groupingBy { it.status }
+                    .eachCount()
+                    .mapValues { it.value.toLong() }
+                PhaseProgressView(
+                    phaseId = phase.id,
+                    phaseName = phase.name,
+                    assigneeId = phase.assignee.id,
+                    status = phase.status,
+                    taskStatusCounts = taskStatusCounts,
+                    taskTotal = phase.tasks.size.toLong(),
+                )
+            }
             IssueListView(
                 id = issue.id,
                 title = issue.title,
@@ -467,6 +505,8 @@ class IssueService(
                 ownerId = issue.owner.id,
                 projectId = issue.projectId,
                 phaseCount = issue.phases.size.toLong(),
+                phaseStatusCounts = statusCounts,
+                phaseProgress = phaseProgress,
                 status = issue.status,
             )
         }
@@ -488,6 +528,24 @@ class IssueService(
             phaseKind = null,
         )
         val owned = issues.filter { it.owner.id == userId }.map { issue ->
+            val statusCounts = issue.phases
+                .groupingBy { it.status }
+                .eachCount()
+                .mapValues { it.value.toLong() }
+            val phaseProgress = issue.phases.map { phase ->
+                val taskStatusCounts = phase.tasks
+                    .groupingBy { it.status }
+                    .eachCount()
+                    .mapValues { it.value.toLong() }
+                PhaseProgressView(
+                    phaseId = phase.id,
+                    phaseName = phase.name,
+                    assigneeId = phase.assignee.id,
+                    status = phase.status,
+                    taskStatusCounts = taskStatusCounts,
+                    taskTotal = phase.tasks.size.toLong(),
+                )
+            }
             IssueListView(
                 id = issue.id,
                 title = issue.title,
@@ -495,6 +553,8 @@ class IssueService(
                 ownerId = issue.owner.id,
                 projectId = issue.projectId,
                 phaseCount = issue.phases.size.toLong(),
+                phaseStatusCounts = statusCounts,
+                phaseProgress = phaseProgress,
                 status = issue.status,
             )
         }

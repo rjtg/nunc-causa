@@ -579,6 +579,10 @@ export interface components {
             projectId?: string;
             /** Format: int32 */
             phaseCount: number;
+            phaseStatusCounts?: {
+                [key: string]: number;
+            };
+            phaseProgress?: components["schemas"]["PhaseProgressItem"][];
             status: components["schemas"]["IssueStatus"];
         };
         IssueDetail: {
@@ -596,6 +600,17 @@ export interface components {
             allowedActions?: {
                 [key: string]: components["schemas"]["ActionDecision"];
             };
+        };
+        PhaseProgressItem: {
+            phaseId: string;
+            phaseName: string;
+            assigneeId: string;
+            status: components["schemas"]["PhaseStatus"];
+            taskStatusCounts: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            taskTotal: number;
         };
         IssueFacetOption: {
             id: string;

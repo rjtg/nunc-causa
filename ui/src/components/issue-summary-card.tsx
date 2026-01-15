@@ -13,6 +13,9 @@ type IssueSummaryCardProps = {
   tone?: "default" | "muted";
   tooltip?: ReactNode;
   right?: ReactNode;
+  progressTone?: string;
+  progressSegments?: Array<{ color: string; count: number; tooltip?: ReactNode; separator?: boolean }>;
+  progressTotal?: number;
   children?: ReactNode;
 };
 
@@ -25,6 +28,9 @@ export function IssueSummaryCard({
   tone = "default",
   tooltip,
   right,
+  progressTone,
+  progressSegments,
+  progressTotal,
   children,
 }: IssueSummaryCardProps) {
   const Wrapper: typeof Link | "div" = href ? Link : "div";
@@ -47,12 +53,44 @@ export function IssueSummaryCard({
       <div className="mt-1 flex items-center justify-between gap-3">
         <Tooltip content={tooltip ?? title}>
           <div>
-            <p className="text-xs font-semibold text-slate-700">{title}</p>
             <p className="text-[11px] text-slate-500">{id}</p>
+            <p className="text-xs font-semibold text-slate-700">{title}</p>
           </div>
         </Tooltip>
         {right && <div className="flex items-center gap-2">{right}</div>}
       </div>
+      {(progressTone || progressSegments) && (
+        <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          {progressSegments
+            ? (() => {
+                const total =
+                  progressTotal ??
+                  progressSegments.reduce((sum, segment) => sum + segment.count, 0);
+                return progressSegments.map((segment, index) => {
+                  const width = total > 0 ? (segment.count / total) * 100 : 0;
+                  if (width <= 0) {
+                    return null;
+                  }
+                  const span = (
+                    <span
+                      key={`${segment.color}-${index}`}
+                      className={`${segment.color} ${segment.separator ? "border-l border-white/70" : ""}`}
+                      style={{ width: `${width}%` }}
+                    />
+                  );
+                  if (!segment.tooltip) {
+                    return span;
+                  }
+                  return (
+                    <Tooltip key={`${segment.color}-${index}`} content={segment.tooltip}>
+                      {span}
+                    </Tooltip>
+                  );
+                });
+              })()
+            : progressTone && <span className={`block h-1.5 w-full ${progressTone}`} />}
+        </div>
+      )}
       {description && (
         <p className="mt-2 text-[11px] text-slate-500">{description}</p>
       )}

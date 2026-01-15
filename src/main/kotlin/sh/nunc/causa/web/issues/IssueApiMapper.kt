@@ -52,6 +52,17 @@ fun IssueListView.toListItem(): IssueListItem {
         ownerId = ownerId,
         projectId = projectId,
         phaseCount = phaseCount.toInt(),
+        phaseStatusCounts = phaseStatusCounts.mapValues { it.value.toInt() },
+        phaseProgress = phaseProgress.map {
+            sh.nunc.causa.web.model.PhaseProgressItem(
+                phaseId = it.phaseId,
+                phaseName = it.phaseName,
+                assigneeId = it.assigneeId,
+                status = it.status.toPhaseStatusEnum(),
+                taskStatusCounts = it.taskStatusCounts.mapValues { entry -> entry.value.toInt() },
+                taskTotal = it.taskTotal.toInt(),
+            )
+        },
         status = status.toIssueStatusEnum(),
     )
 }
