@@ -515,8 +515,17 @@ export function PhaseBoard({
   const [taskDrafts, setTaskDrafts] = useState<Record<string, TaskDraft>>({});
   const [openTaskDatePopover, setOpenTaskDatePopover] = useState<string | null>(null);
   const [openTaskDependencyPopover, setOpenTaskDependencyPopover] = useState<string | null>(null);
+  const [openTaskAssigneePopover, setOpenTaskAssigneePopover] = useState<string | null>(null);
   const [taskMetaDrafts, setTaskMetaDrafts] = useState<
-    Record<string, { startDate: string; dueDate: string; dependencies: { type: string; targetId: string }[] }>
+    Record<
+      string,
+      {
+        startDate: string;
+        dueDate: string;
+        assigneeId: string;
+        dependencies: { type: string; targetId: string }[];
+      }
+    >
   >({});
   const [completionDrafts, setCompletionDrafts] = useState<Record<string, CompletionDraft>>({});
   const [phaseStatusSaving, setPhaseStatusSaving] = useState<Record<string, boolean>>({});
@@ -552,6 +561,13 @@ export function PhaseBoard({
     },
   );
 
+  const userLabel = (userId?: string | null) => {
+    if (!userId) {
+      return "Unassigned";
+    }
+    return users.find((user) => user.id === userId)?.displayName ?? userId;
+  };
+
   const getTaskDraft = (phaseId: string): TaskDraft =>
     taskDrafts[phaseId] ?? {
       title: "",
@@ -577,6 +593,7 @@ export function PhaseBoard({
     taskMetaDrafts[task.id] ?? {
       startDate: task.startDate ?? "",
       dueDate: task.dueDate ?? "",
+      assigneeId: task.assigneeId ?? "",
       dependencies:
         task.dependencies?.map((dep) => ({
           type: dep.type ?? "TASK",
@@ -589,6 +606,7 @@ export function PhaseBoard({
     next: Partial<{
       startDate: string;
       dueDate: string;
+      assigneeId: string;
       dependencies: { type: string; targetId: string }[];
     }>,
   ) => {
@@ -1218,13 +1236,7 @@ export function PhaseBoard({
                     >
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-800">{task.title}</p>
-                        <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-slate-500">
-                          {task.startDate && <span>Start: {task.startDate}</span>}
-                          {task.dueDate && <span>Due: {task.dueDate}</span>}
-                          {task.dependencies && task.dependencies.length > 0 && (
-                            <span>Depends on: {task.dependencies.length}</span>
-                          )}
-                        </div>
+                        <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-slate-500" />
                       </div>
                       <div className="flex items-center gap-2">
                         <Tooltip
@@ -1251,6 +1263,24 @@ export function PhaseBoard({
                             {task.startDate || task.dueDate
                               ? `${task.startDate ?? "—"} → ${task.dueDate ?? "—"}`
                               : "Dates"}
+                          </button>
+                        </Tooltip>
+                        <Tooltip content={`Assignee: ${userLabel(task.assigneeId)}`}>
+                          <button
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
+                              task.assigneeId
+                                ? "border-violet-200 bg-violet-100 text-violet-700"
+                                : "border-slate-200 bg-white text-slate-500"
+                            }`}
+                            type="button"
+                            onClick={() =>
+                              setOpenTaskAssigneePopover((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                          >
+                            <Icon name="user" size={12} />
+                            {userLabel(task.assigneeId)}
                           </button>
                         </Tooltip>
                         <Tooltip
@@ -1527,6 +1557,77 @@ export function PhaseBoard({
                             Save
                           </button>
                         </div>
+                      </div>
+                    )}
+                    {openTaskAssigneePopover === task.id && (
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          Assignee
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-end gap-3">
+                          <label className="min-w-[200px] text-[11px] text-slate-500">
+                            User
+                            <input
+                              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
+                              placeholder="Select user"
+                              list={`task-assignee-options-${task.id}`}
+                              value={getTaskMetaDraft(task).assigneeId}
+                              onChange={(event) =>
+                                updateTaskMetaDraft(task, {
+                                  assigneeId: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <div className="flex gap-2">
+                            <button
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                              type="button"
+                              onClick={() => {
+                                updateTaskMetaDraft(task, { assigneeId: "" });
+                              }}
+                            >
+                              <Icon name="x" size={12} />
+                              Clear
+                            </button>
+                            <button
+                              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                              type="button"
+                              onClick={async () => {
+                                const draft = getTaskMetaDraft(task);
+                                const { data, error: apiError } = await api.PATCH(
+                                  "/issues/{issueId}/phases/{phaseId}/tasks/{taskId}",
+                                  {
+                                    params: {
+                                      path: {
+                                        issueId,
+                                        phaseId: phase.id,
+                                        taskId: task.id,
+                                      },
+                                    },
+                                    body: {
+                                      assigneeId: draft.assigneeId || undefined,
+                                    },
+                                  },
+                                );
+                                if (!apiError && data) {
+                                  onIssueUpdate(data as IssueDetail);
+                                  setOpenTaskAssigneePopover(null);
+                                }
+                              }}
+                            >
+                              <Icon name="check" size={12} />
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                        <datalist id={`task-assignee-options-${task.id}`}>
+                          {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.displayName}
+                            </option>
+                          ))}
+                        </datalist>
                       </div>
                     )}
                   </div>
