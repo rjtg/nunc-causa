@@ -225,6 +225,7 @@ UI interaction guidance:
 - Keep inputs compact; use inline icon controls with popovers for extended metadata.
 - Show phase/task status visually (badges, small progress bars) alongside actions.
 - Progress bars should reflect **phase-weighted task progress** and support hover context + phase jump.
+- Place **critical actions and context at the point of use** (header/tab row), avoiding hidden side panels.
 - Comments behave like a messenger (sticky composer, jump to unread/latest, read receipts).
 - Buttons should include decorative icons for quick scanning.
 - Use styled tooltips/popovers (not browser defaults) to show richer context

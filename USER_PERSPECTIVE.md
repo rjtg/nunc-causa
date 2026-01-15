@@ -176,6 +176,7 @@ Keep them separate in UI and storage.
 - Use **status badges + progress bars** to summarize phase/task state without extra text.
 - Progress bars should be **hierarchical** (each phase weighs equally, then subdivided by task status).
 - Progress segments should be **interactive**: hover shows phase badges (assignee/task count/deadline), click jumps to the phase.
+- Keep **primary actions and key context always visible** near the user’s current focus (e.g., tab row, header controls), not buried in side panels.
 - Comments behave like a messenger:
   - Sticky one-line composer that expands with typing
   - Ctrl+Enter sends
