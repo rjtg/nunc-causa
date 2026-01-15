@@ -110,6 +110,11 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Re-enable SpotBugs for tests with targeted filters
     - Reduce global excludes
     - Add test-specific exclude rules if needed
+[ ] Refactor IssueService into focused services
+    - Extract workflow actions (close/abandon/fail/reopen) into IssueWorkflowService
+    - Extract list/search/facet/work views into IssueQueryService
+    - Extract deadline validation/propagation into IssueDeadlineService
+    - Keep IssueService as an orchestrator or remove after split
 [ ] Add dev-mode banner + maintenance actions in UI
     - Expose backend endpoint for runtime environment (dev/test/prod)
     - Show a banner in UI with the environment label
@@ -134,6 +139,24 @@ Use src/main/kotlin and src/test/kotlin.
     - Weight each phase equally, subdivide by task status
     - Show phase badges (assignee/task count/deadline) on hover
     - Click a segment to jump to the phase section
+[ ] Refactor Issue Detail UI composition
+    - Extract IssueHeader (title/description/owner/status/deadline controls)
+    - Extract IssueTabs (tab buttons + action controls)
+    - Extract IssueActivityPanel and IssueCommentsPanel
+    - Add useIssueDetailData hook for fetching + mutations
+[ ] Refactor PhaseBoard into smaller components
+    - Extract PhaseCard/PhaseHeader/PhaseProgressBar/TaskRow
+    - Move DependencyPicker + DependencyBadge into shared components
+    - Consolidate assignee/deadline popovers into reusable widgets
+[ ] Refactor Issue List page into composable pieces
+    - Extract IssueSearchFilters and IssueList components
+    - Add useIssueSearch hook for filters + facets + data
+    - Reuse IssueSummaryCard + IssueProgressBar consistently
+[ ] Split UI consistency tests by concern
+    - Move icon checks, tooltip checks, hover checks, read-tracking into separate test files
+[ ] Consolidate action/permission mapping in controllers
+    - Move request mapping into a web mapper per module
+    - Keep controllers thin (validate + delegate + map response)
 [ ] Define completion artifact integrations per phase
     - Brainstorm integration options (GitHub/GitLab PRs, docs, PDFs)
     - Define dev-phase rule: link to PR(s) and require merge before completion
