@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import TopBar from "@/components/top-bar";
+import HealthBanner from "@/components/health-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         <Providers>
           <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
             <TopBar />
+            <HealthBanner />
             <div className="mx-auto flex max-w-6xl gap-5 px-5 py-5">
               <aside className="w-48 shrink-0">
                 <nav className="flex flex-col gap-2 text-sm font-medium text-slate-700">

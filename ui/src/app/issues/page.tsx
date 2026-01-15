@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
+import { useHealth } from "@/lib/health/context";
 
 type IssueSummary = {
   id: string;
@@ -89,6 +90,7 @@ export default function IssuesPage() {
   const api = useApi();
   const searchParams = useSearchParams();
   const { token, username, ready } = useAuth();
+  const { recoveries } = useHealth();
   const isAuthed = Boolean(token || username);
   const [issues, setIssues] = useState<IssueSummary[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -170,7 +172,7 @@ export default function IssuesPage() {
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadIssues(filterState.appliedFilters);
-  }, [filterState.appliedFilters, isAuthed, loadIssues, ready]);
+  }, [filterState.appliedFilters, isAuthed, loadIssues, ready, recoveries]);
 
   useEffect(() => {
     if (!ready || !isAuthed) {
@@ -205,7 +207,7 @@ export default function IssuesPage() {
     return () => {
       active = false;
     };
-  }, [api, filterState.appliedFilters, isAuthed, ready]);
+  }, [api, filterState.appliedFilters, isAuthed, ready, recoveries]);
 
   useEffect(() => {
     if (!ready || !isAuthed) {
@@ -242,7 +244,7 @@ export default function IssuesPage() {
     return () => {
       active = false;
     };
-  }, [api, isAuthed, ready]);
+  }, [api, isAuthed, ready, recoveries]);
 
   return (
     <div className="space-y-6">

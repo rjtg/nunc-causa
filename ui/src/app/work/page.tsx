@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { useHealth } from "@/lib/health/context";
 
 type WorkResponse = {
   ownedIssues: { id?: string; title?: string }[];
@@ -25,6 +26,7 @@ type WorkResponse = {
 export default function WorkPage() {
   const api = useApi();
   const { token, username, ready } = useAuth();
+  const { recoveries } = useHealth();
   const isAuthed = Boolean(token || username);
   const [work, setWork] = useState<WorkResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function WorkPage() {
     return () => {
       active = false;
     };
-  }, [api, isAuthed, ready]);
+  }, [api, isAuthed, ready, recoveries]);
 
   return (
     <div className="space-y-6">

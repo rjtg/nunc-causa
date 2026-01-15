@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { useHealth } from "@/lib/health/context";
 
 type Project = {
   id: string;
@@ -15,6 +16,7 @@ type Project = {
 export default function ProjectsPage() {
   const api = useApi();
   const { token, username, ready } = useAuth();
+  const { recoveries } = useHealth();
   const isAuthed = Boolean(token || username);
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function ProjectsPage() {
     return () => {
       active = false;
     };
-  }, [api, isAuthed, ready]);
+  }, [api, isAuthed, ready, recoveries]);
 
   return (
     <div className="space-y-6">
