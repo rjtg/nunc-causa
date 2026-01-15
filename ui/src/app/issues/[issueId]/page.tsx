@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
+import { Tooltip } from "@/components/tooltip";
 import { useHealth } from "@/lib/health/context";
 import type { CommentThread, HistoryResponse, IssueDetail, UserOption } from "./types";
 import { PhaseBoard } from "./components/PhaseBoard";
@@ -449,25 +450,28 @@ export default function IssueDetailPage() {
                   <span>{comment.authorId}</span>
                   <span className="flex items-center gap-2">
                     {totalTargets > 0 && (
-                      <button
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          allRead
-                            ? "bg-sky-100 text-sky-700"
-                            : someRead
-                              ? "bg-slate-100 text-slate-600"
-                              : "bg-transparent text-slate-400"
-                        }`}
-                        type="button"
-                        title={`${readByCount} read · ${unreadByCount} unread`}
-                        onClick={() =>
-                          setOpenReceiptId((current) =>
-                            current === comment.id ? null : comment.id,
-                          )
-                        }
+                      <Tooltip
+                        content={`${readByCount} read · ${unreadByCount} unread`}
                       >
-                        <Icon name="check" size={12} />
-                        {readByCount}/{totalTargets}
-                      </button>
+                        <button
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            allRead
+                              ? "bg-sky-100 text-sky-700"
+                              : someRead
+                                ? "bg-slate-100 text-slate-600"
+                                : "bg-transparent text-slate-400"
+                          }`}
+                          type="button"
+                          onClick={() =>
+                            setOpenReceiptId((current) =>
+                              current === comment.id ? null : comment.id,
+                            )
+                          }
+                        >
+                          <Icon name="check" size={12} />
+                          {readByCount}/{totalTargets}
+                        </button>
+                      </Tooltip>
                     )}
                     <span>{formatTimestamp(comment.createdAt)}</span>
                   </span>
@@ -585,18 +589,19 @@ export default function IssueDetailPage() {
                     }
                   }}
                 />
-                <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                  type="submit"
-                  disabled={!commentBody.trim()}
-                  aria-label="Send comment"
-                  title="Send comment"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Icon name="send" size={12} />
-                    Send
-                  </span>
-                </button>
+                <Tooltip content="Send comment">
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                    type="submit"
+                    disabled={!commentBody.trim()}
+                    aria-label="Send comment"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Icon name="send" size={12} />
+                      Send
+                    </span>
+                  </button>
+                </Tooltip>
               </div>
               {showJumpToLatest && (
                 <div className="flex justify-center">

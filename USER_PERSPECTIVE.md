@@ -180,6 +180,8 @@ Keep them separate in UI and storage.
   - Jump to latest/unread controls
   - Read receipts for relevant participants (owner + assignees)
 - Buttons should include **decorative icons** for scanability.
+- Use **styled tooltips/popovers** (not browser defaults) to show rich context
+  like status, deadlines, and counts.
 
 ---
 

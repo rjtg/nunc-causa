@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
+import { Tooltip } from "@/components/tooltip";
+import Link from "next/link";
 import type { IssueDetail, Phase, Task, UserOption } from "../types";
+import type { ReactNode } from "react";
 import type { createApiClient } from "@/lib/api/client";
 
 type ApiClient = ReturnType<typeof createApiClient>;
@@ -12,8 +15,6 @@ type TaskDraft = {
   assigneeId: string;
   startDate: string;
   dueDate: string;
-  dependencyDraftType: string;
-  dependencyDraftTarget: string;
   dependencies: { type: string; targetId: string }[];
   saving: boolean;
   error: string | null;
@@ -25,6 +26,21 @@ type CompletionDraft = {
   saving: boolean;
   error: string | null;
   pendingStatus?: string | null;
+};
+
+type IssueSummary = {
+  id: string;
+  title: string;
+  description?: string | null;
+};
+
+type DependencySearchState = {
+  query: string;
+  results: IssueSummary[];
+  loading: boolean;
+  error: string | null;
+  expandedIssues: string[];
+  expandedPhases: Record<string, string[]>;
 };
 
 type PhaseBoardProps = {
@@ -79,6 +95,46 @@ const phaseStatusStyle = (status: string) => {
     default:
       return "border-slate-200 bg-slate-100 text-slate-700";
   }
+};
+
+const issueStatusStyle = (status: string) => phaseStatusStyle(status);
+
+const issueProgressBarStyle = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "bg-emerald-500";
+    case "IN_PROGRESS":
+      return "bg-sky-500";
+    case "FAILED":
+      return "bg-rose-500";
+    default:
+      return "bg-slate-300";
+  }
+};
+
+const statusSeverityOrder: Record<string, number> = {
+  FAILED: 5,
+  ABANDONED: 4,
+  PAUSED: 3,
+  IN_PROGRESS: 2,
+  NOT_STARTED: 1,
+  DONE: 0,
+};
+
+const worstStatus = (statuses: Array<string | null | undefined>) => {
+  let worst: string | null = null;
+  let worstScore = -1;
+  statuses.forEach((status) => {
+    if (!status) {
+      return;
+    }
+    const score = statusSeverityOrder[status] ?? -1;
+    if (score > worstScore) {
+      worstScore = score;
+      worst = status;
+    }
+  });
+  return worst;
 };
 
 const isDateRangeValid = (startDate?: string, dueDate?: string) => {
@@ -157,6 +213,297 @@ const phaseLabel = (phase: Phase) => {
   return phase.name;
 };
 
+const createDependencyState = (): DependencySearchState => ({
+  query: "",
+  results: [],
+  loading: false,
+  error: null,
+  expandedIssues: [],
+  expandedPhases: {},
+});
+
+const DependencyBadge = ({
+  label,
+  tooltip,
+  style,
+  onRemove,
+  href,
+}: {
+  label: string;
+  tooltip: ReactNode;
+  style: string;
+  onRemove: () => void;
+  href?: string;
+}) => {
+  const Wrapper: typeof Link | "span" = href ? Link : "span";
+  return (
+    <Wrapper
+      {...(href ? { href } : {})}
+      className={`group relative inline-flex items-center gap-2 rounded-full border px-3 py-1 ${style}`}
+    >
+      <Icon name="link" size={12} />
+      <span className="text-[11px]">{label}</span>
+      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-max max-w-[240px] -translate-x-1/2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+        {tooltip}
+      </span>
+      <button
+        className="inline-flex items-center"
+        type="button"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onRemove();
+        }}
+        aria-label="Remove dependency"
+      >
+        <Icon name="x" size={12} />
+      </button>
+    </Wrapper>
+  );
+};
+
+const DependencyPicker = ({
+  issue,
+  dependencyIssues,
+  state,
+  setState,
+  onSearch,
+  ensureIssueDetail,
+  onAdd,
+}: {
+  issue: IssueDetail;
+  dependencyIssues: Record<string, IssueDetail>;
+  state: DependencySearchState;
+  setState: (updater: (current: DependencySearchState) => DependencySearchState) => void;
+  onSearch: (query: string) => void;
+  ensureIssueDetail: (issueId: string) => Promise<IssueDetail | null>;
+  onAdd: (dep: { type: string; targetId: string }) => void;
+}) => {
+  const currentIssueSummary = {
+    id: issue.id,
+    title: issue.title,
+    description: issue.description ?? null,
+  };
+  const results = state.query.trim().length > 0 ? state.results : [];
+  const visibleResults = results.filter((result) => result.id !== issue.id);
+  const issuesToShow = [currentIssueSummary, ...visibleResults];
+
+  const issueTooltip = (detail: IssueDetail | null, fallback: IssueSummary) => {
+    if (!detail) {
+      return fallback.title;
+    }
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-slate-800">{detail.title}</p>
+        {detail.deadline && (
+          <div className="text-[11px] text-slate-600">
+            — → {detail.deadline}
+          </div>
+        )}
+        {detail.phases.length > 0 && (
+          <div className="h-1.5 w-full rounded-full bg-slate-100">
+            <div
+              className={`h-1.5 rounded-full ${issueProgressBarStyle(detail.status)}`}
+              style={{ width: "100%" }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const isIssueExpanded = (issueId: string) =>
+    state.expandedIssues.includes(issueId);
+
+  const isPhaseExpanded = (issueId: string, phaseId: string) =>
+    state.expandedPhases[issueId]?.includes(phaseId) ?? false;
+
+  const toggleIssue = async (issueId: string) => {
+    const isExpanded = isIssueExpanded(issueId);
+    setState((current) => ({
+      ...current,
+      expandedIssues: isExpanded
+        ? current.expandedIssues.filter((id) => id !== issueId)
+        : [...current.expandedIssues, issueId],
+    }));
+    if (!isExpanded && issueId !== issue.id) {
+      await ensureIssueDetail(issueId);
+    }
+  };
+
+  const togglePhase = (issueId: string, phaseId: string) => {
+    setState((current) => {
+      const currentExpanded = current.expandedPhases[issueId] ?? [];
+      const nextExpanded = currentExpanded.includes(phaseId)
+        ? currentExpanded.filter((id) => id !== phaseId)
+        : [...currentExpanded, phaseId];
+      return {
+        ...current,
+        expandedPhases: {
+          ...current.expandedPhases,
+          [issueId]: nextExpanded,
+        },
+      };
+    });
+  };
+
+  const renderIssueDetail = (detail: IssueDetail) => {
+    if (detail.phases.length === 0) {
+      return (
+        <p className="text-[11px] text-slate-400">No phases available.</p>
+      );
+    }
+    return (
+      <div className="mt-2 space-y-2">
+        {detail.phases.map((phase) => (
+          <div
+            key={phase.id}
+            className="rounded-lg border border-slate-100 bg-white px-3 py-2"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-slate-700">
+                  {phaseLabel(phase)}
+                </p>
+                <p className="text-[11px] text-slate-500">Phase {phase.id}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
+                  type="button"
+                  onClick={() => onAdd({ type: "PHASE", targetId: phase.id })}
+                >
+                  <Icon name="plus" size={12} />
+                  Use phase
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
+                  type="button"
+                  onClick={() => togglePhase(detail.id, phase.id)}
+                >
+                  <Icon
+                    name={
+                      isPhaseExpanded(detail.id, phase.id)
+                        ? "chevron-up"
+                        : "chevron-down"
+                    }
+                    size={12}
+                  />
+                  Tasks
+                </button>
+              </div>
+            </div>
+            {isPhaseExpanded(detail.id, phase.id) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {phase.tasks.map((task) => (
+                  <button
+                    key={task.id}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
+                    type="button"
+                    onClick={() => onAdd({ type: "TASK", targetId: task.id })}
+                  >
+                    <Icon name="plus" size={12} />
+                    {task.title}
+                  </button>
+                ))}
+                {phase.tasks.length === 0 && (
+                  <span className="text-[11px] text-slate-400">
+                    No tasks yet.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-2 space-y-2">
+      <input
+        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
+        placeholder="Search issues"
+        value={state.query}
+        onChange={(event) => {
+          const nextQuery = event.target.value;
+          setState((current) => ({ ...current, query: nextQuery }));
+          onSearch(nextQuery);
+        }}
+      />
+      {state.loading && <p className="text-xs text-slate-400">Searching…</p>}
+      {state.error && <p className="text-xs text-rose-600">{state.error}</p>}
+      <div className="space-y-2">
+          {issuesToShow.map((summary, index) => {
+            const isCurrent = summary.id === issue.id;
+            const detail = isCurrent ? issue : dependencyIssues[summary.id];
+            return (
+            <div
+              key={summary.id}
+              className={`rounded-lg border px-3 py-2 ${
+                isCurrent
+                  ? "border-slate-200 bg-slate-50"
+                  : "border-slate-200 bg-white"
+              }`}
+            >
+              {isCurrent && (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Current issue
+                </p>
+              )}
+              {!isCurrent && index === 0 && state.query.trim().length > 0 && (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Search results
+                </p>
+              )}
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <Tooltip content={issueTooltip(detail ?? null, summary)}>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-700">
+                      {summary.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500">{summary.id}</p>
+                  </div>
+                </Tooltip>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
+                    type="button"
+                    onClick={() => onAdd({ type: "ISSUE", targetId: summary.id })}
+                  >
+                    <Icon name="link" size={12} />
+                    Use issue
+                  </button>
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
+                    type="button"
+                    onClick={() => void toggleIssue(summary.id)}
+                  >
+                    <Icon
+                      name={isIssueExpanded(summary.id) ? "chevron-up" : "chevron-down"}
+                      size={12}
+                    />
+                    {isIssueExpanded(summary.id) ? "Hide" : "Expand"}
+                  </button>
+                </div>
+              </div>
+              {isIssueExpanded(summary.id) && detail && renderIssueDetail(detail)}
+              {isIssueExpanded(summary.id) && !detail && (
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Loading issue details…
+                </p>
+              )}
+            </div>
+          );
+        })}
+        {issuesToShow.length === 1 && state.query.trim().length > 0 && (
+          <p className="text-xs text-slate-400">No matching issues.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export function PhaseBoard({
   issueId,
   issue,
@@ -177,6 +524,33 @@ export function PhaseBoard({
   const [statusError, setStatusError] = useState<string | null>(null);
   const [openPhaseDeadlinePopover, setOpenPhaseDeadlinePopover] = useState<string | null>(null);
   const [phaseDeadlineDrafts, setPhaseDeadlineDrafts] = useState<Record<string, string>>({});
+  const [dependencySearch, setDependencySearch] = useState<Record<string, DependencySearchState>>({});
+  const [dependencyIssues, setDependencyIssues] = useState<Record<string, IssueDetail>>({});
+
+  const allIssues = [issue, ...Object.values(dependencyIssues)];
+  const dependencyIndex = allIssues.reduce(
+    (acc, currentIssue) => {
+      acc.issueById[currentIssue.id] = currentIssue;
+      currentIssue.phases.forEach((phase) => {
+        acc.phaseById[phase.id] = phase;
+        acc.issueForPhase[phase.id] = currentIssue.id;
+        phase.tasks.forEach((task) => {
+          acc.taskById[task.id] = task;
+          acc.issueForTask[task.id] = currentIssue.id;
+          acc.phaseForTask[task.id] = phase.id;
+        });
+      });
+      return acc;
+    },
+    {
+      issueById: {} as Record<string, IssueDetail>,
+      phaseById: {} as Record<string, Phase>,
+      taskById: {} as Record<string, Task>,
+      issueForPhase: {} as Record<string, string>,
+      issueForTask: {} as Record<string, string>,
+      phaseForTask: {} as Record<string, string>,
+    },
+  );
 
   const getTaskDraft = (phaseId: string): TaskDraft =>
     taskDrafts[phaseId] ?? {
@@ -184,8 +558,6 @@ export function PhaseBoard({
       assigneeId: "",
       startDate: "",
       dueDate: "",
-      dependencyDraftType: "TASK",
-      dependencyDraftTarget: "",
       dependencies: [],
       saving: false,
       error: null,
@@ -262,6 +634,241 @@ export function PhaseBoard({
       ...prev,
       [phaseId]: deadline,
     }));
+  };
+
+  const getDependencyState = (key: string) =>
+    dependencySearch[key] ?? createDependencyState();
+
+  const setDependencyState = (
+    key: string,
+    updater: (current: DependencySearchState) => DependencySearchState,
+  ) => {
+    setDependencySearch((prev) => {
+      const current = prev[key] ?? createDependencyState();
+      return {
+        ...prev,
+        [key]: updater(current),
+      };
+    });
+  };
+
+  const updateDependencyState = (key: string, next: Partial<DependencySearchState>) => {
+    setDependencyState(key, (current) => ({
+      ...current,
+      ...next,
+    }));
+  };
+
+  const searchIssues = async (key: string, query: string) => {
+    if (query.trim().length < 2) {
+      updateDependencyState(key, {
+        query,
+        results: [],
+        loading: false,
+        error: null,
+      });
+      return;
+    }
+    updateDependencyState(key, { query, loading: true, error: null });
+    const { data, error } = await api.GET("/search", {
+      params: {
+        query: {
+          q: query,
+          projectId: issue.projectId ?? undefined,
+        },
+      },
+    });
+    if (error) {
+      updateDependencyState(key, {
+        query,
+        loading: false,
+        error: "Unable to search issues.",
+      });
+      return;
+    }
+    const results = (data ?? []).map((item) => ({
+      id: item.id ?? "unknown",
+      title: item.title ?? "Untitled",
+      description: item.description ?? null,
+    }));
+    updateDependencyState(key, { query, results, loading: false, error: null });
+  };
+
+  const ensureIssueDetail = async (issueId: string) => {
+    if (dependencyIssues[issueId]) {
+      return dependencyIssues[issueId];
+    }
+    const { data, error } = await api.GET("/issues/{issueId}", {
+      params: { path: { issueId } },
+    });
+    if (!error && data) {
+      const detail = data as IssueDetail;
+      setDependencyIssues((prev) => ({ ...prev, [issueId]: detail }));
+      return detail;
+    }
+    return null;
+  };
+
+  const addDependencyForTask = (task: Task, dep: { type: string; targetId: string }) => {
+    const nextDeps = [...getTaskMetaDraft(task).dependencies, dep];
+    updateTaskMetaDraft(task, { dependencies: nextDeps });
+  };
+
+  const addDependencyForDraft = (phaseId: string, dep: { type: string; targetId: string }) => {
+    const draft = getTaskDraft(phaseId);
+    updateTaskDraft(phaseId, {
+      dependencies: [...draft.dependencies, dep],
+    });
+  };
+
+  useEffect(() => {
+    const issueDeps = new Set<string>();
+    issue.phases.forEach((phase) => {
+      phase.tasks.forEach((task) => {
+        task.dependencies?.forEach((dep) => {
+          if ((dep.type ?? "TASK") === "ISSUE" && dep.targetId) {
+            issueDeps.add(dep.targetId);
+          }
+        });
+      });
+    });
+    issueDeps.forEach((depIssueId) => {
+      if (!dependencyIssues[depIssueId]) {
+        void ensureIssueDetail(depIssueId);
+      }
+    });
+  }, [issue, dependencyIssues]);
+
+  const dependencyBadgeStyle = (kind: string, status?: string | null) => {
+    if (!status) {
+      return "border-slate-200 bg-white text-slate-600";
+    }
+    if (kind === "TASK") {
+      return `${taskStatusStyle(status)} text-slate-700`;
+    }
+    return issueStatusStyle(status);
+  };
+
+  const dependencyStatus = (dep: { type?: string | null; targetId?: string | null }) => {
+    const type = dep.type ?? "TASK";
+    const targetId = dep.targetId ?? "";
+    if (type === "ISSUE") {
+      return dependencyIndex.issueById[targetId]?.status ?? null;
+    }
+    if (type === "PHASE") {
+      return dependencyIndex.phaseById[targetId]?.status ?? null;
+    }
+    return dependencyIndex.taskById[targetId]?.status ?? null;
+  };
+
+  const dependencyHref = (dep: { type?: string | null; targetId?: string | null }) => {
+    const type = dep.type ?? "TASK";
+    const targetId = dep.targetId ?? "";
+    if (type === "ISSUE") {
+      return `/issues/${targetId}`;
+    }
+    if (type === "PHASE") {
+      const issueId = dependencyIndex.issueForPhase[targetId];
+      return issueId ? `/issues/${issueId}` : undefined;
+    }
+    const issueId = dependencyIndex.issueForTask[targetId];
+    return issueId ? `/issues/${issueId}` : undefined;
+  };
+
+  const formatDependency = (dep: { type?: string | null; targetId?: string | null }) => {
+    const type = dep.type ?? "TASK";
+    const targetId = dep.targetId ?? "unknown";
+    if (type === "ISSUE") {
+      const issueDetail = dependencyIndex.issueById[targetId];
+      if (!issueDetail) {
+        return {
+          label: targetId,
+          tooltip: `Issue ${targetId}`,
+          style: dependencyBadgeStyle(type, null),
+        };
+      }
+      return {
+        label: issueDetail.id,
+        tooltip: (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-800">
+              {issueDetail.title}
+            </p>
+            {issueDetail.deadline && (
+              <div className="text-[11px] text-slate-600">
+                — → {issueDetail.deadline}
+              </div>
+            )}
+            {issueDetail.phases.length > 0 && (
+              <div className="h-1.5 w-full rounded-full bg-slate-100">
+                <div
+                  className={`h-1.5 rounded-full ${issueProgressBarStyle(
+                    issueDetail.status,
+                  )}`}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+          </div>
+        ),
+        style: dependencyBadgeStyle(type, issueDetail.status),
+      };
+    }
+    if (type === "PHASE") {
+      const phase = dependencyIndex.phaseById[targetId];
+      if (!phase) {
+        return {
+          label: `phase:${targetId}`,
+          tooltip: `Phase ${targetId}`,
+          style: dependencyBadgeStyle(type, null),
+        };
+      }
+      const issueKey = dependencyIndex.issueForPhase[targetId] ?? "issue";
+      return {
+        label: `${issueKey}:${phaseLabel(phase)}`,
+        tooltip: (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-800">
+              {phaseLabel(phase)}
+            </p>
+            {phase.deadline && (
+              <div className="text-[11px] text-slate-600">
+                — → {phase.deadline}
+              </div>
+            )}
+            {phase.tasks.length > 0 && (
+              <div className="h-1.5 w-full rounded-full bg-slate-100">
+                <div
+                  className={`h-1.5 rounded-full ${issueProgressBarStyle(
+                    phase.status,
+                  )}`}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+          </div>
+        ),
+        style: dependencyBadgeStyle(type, phase.status),
+      };
+    }
+    const task = dependencyIndex.taskById[targetId];
+    if (!task) {
+      return {
+        label: `task:${targetId}`,
+        tooltip: `Task ${targetId}`,
+        style: dependencyBadgeStyle(type, null),
+      };
+    }
+    const issueKey = dependencyIndex.issueForTask[targetId] ?? "issue";
+    const phaseId = dependencyIndex.phaseForTask[targetId];
+    const phase = phaseId ? dependencyIndex.phaseById[phaseId] : null;
+    const phaseName = phase ? phaseLabel(phase) : "phase";
+    const dueSuffix = task.dueDate ? ` · Due ${task.dueDate}` : "";
+    return {
+      label: `${issueKey}:${phaseName}:${task.title}`,
+      tooltip: `${task.title} · ${statusLabel(task.status)}${dueSuffix}`,
+      style: dependencyBadgeStyle("TASK", task.status),
+    };
   };
 
   return (
@@ -620,50 +1227,76 @@ export function PhaseBoard({
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
-                            task.startDate || task.dueDate
-                              ? "border-sky-200 bg-sky-100 text-sky-700"
-                              : "border-slate-200 bg-white text-slate-500"
-                          }`}
-                          type="button"
-                          title={
+                        <Tooltip
+                          content={
                             task.startDate || task.dueDate
                               ? `Start: ${task.startDate ?? "—"} · Due: ${task.dueDate ?? "—"}`
                               : "Set dates"
                           }
-                          onClick={() =>
-                            setOpenTaskDatePopover((current) =>
-                              current === task.id ? null : task.id,
+                        >
+                          <button
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
+                              task.startDate || task.dueDate
+                                ? "border-sky-200 bg-sky-100 text-sky-700"
+                                : "border-slate-200 bg-white text-slate-500"
+                            }`}
+                            type="button"
+                            onClick={() =>
+                              setOpenTaskDatePopover((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                          >
+                            <Icon name="calendar" size={12} />
+                            {task.startDate || task.dueDate
+                              ? `${task.startDate ?? "—"} → ${task.dueDate ?? "—"}`
+                              : "Dates"}
+                          </button>
+                        </Tooltip>
+                        <Tooltip
+                          content={
+                            task.dependencies && task.dependencies.length > 0 ? (
+                              <div className="space-y-1">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                  Dependencies
+                                </p>
+                                <ul className="space-y-1">
+                                  {task.dependencies.map((dep, index) => (
+                                    <li key={`${dep.type}-${dep.targetId}-${index}`}>
+                                      {formatDependency(dep).label}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              "Set dependencies"
                             )
                           }
                         >
-                          <Icon name="calendar" size={12} />
-                          {task.startDate || task.dueDate ? "Dates" : "Dates"}
-                        </button>
-                        <button
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
-                            task.dependencies && task.dependencies.length > 0
-                              ? "border-amber-200 bg-amber-100 text-amber-700"
-                              : "border-slate-200 bg-white text-slate-500"
-                          }`}
-                          type="button"
-                          title={
-                            task.dependencies && task.dependencies.length > 0
-                              ? `${task.dependencies.length} dependencies`
-                              : "Set dependencies"
-                          }
-                          onClick={() =>
-                            setOpenTaskDependencyPopover((current) =>
-                              current === task.id ? null : task.id,
-                            )
-                          }
-                        >
-                          <Icon name="link" size={12} />
-                          {task.dependencies && task.dependencies.length > 0
-                            ? task.dependencies.length
-                            : "Deps"}
-                        </button>
+                          <button
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
+                              task.dependencies && task.dependencies.length > 0
+                                ? dependencyBadgeStyle(
+                                    "TASK",
+                                    worstStatus(
+                                      task.dependencies.map((dep) => dependencyStatus(dep)),
+                                    ),
+                                  )
+                                : "border-slate-200 bg-white text-slate-500"
+                            }`}
+                            type="button"
+                            onClick={() =>
+                              setOpenTaskDependencyPopover((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                          >
+                            <Icon name="link" size={12} />
+                            {task.dependencies && task.dependencies.length > 0
+                              ? `${task.dependencies.length} deps`
+                              : "Deps"}
+                          </button>
+                        </Tooltip>
                         <select
                           className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
                           value={task.status}
@@ -828,83 +1461,33 @@ export function PhaseBoard({
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-600">
                           {getTaskMetaDraft(task).dependencies.map((dep, depIndex) => (
-                            <span
+                            <DependencyBadge
                               key={`${dep.type}-${dep.targetId}-${depIndex}`}
-                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
-                            >
-                              <Icon name="link" size={12} />
-                              {dep.type}:{dep.targetId}
-                              <button
-                                className="inline-flex items-center"
-                                type="button"
-                                onClick={() => {
-                                  const nextDeps = getTaskMetaDraft(task).dependencies.filter(
-                                    (_, index) => index !== depIndex,
-                                  );
-                                  updateTaskMetaDraft(task, { dependencies: nextDeps });
-                                }}
-                              >
-                                <Icon name="x" size={12} />
-                              </button>
-                            </span>
+                              label={formatDependency(dep).label}
+                              tooltip={formatDependency(dep).tooltip}
+                              style={formatDependency(dep).style}
+                              href={dependencyHref(dep)}
+                              onRemove={() => {
+                                const nextDeps = getTaskMetaDraft(task).dependencies.filter(
+                                  (_, index) => index !== depIndex,
+                                );
+                                updateTaskMetaDraft(task, { dependencies: nextDeps });
+                              }}
+                            />
                           ))}
                           {getTaskMetaDraft(task).dependencies.length === 0 && (
                             <span className="text-slate-400">No dependencies yet.</span>
                           )}
                         </div>
-                        <div className="mt-2 grid gap-2 md:grid-cols-[140px_minmax(0,1fr)_auto]">
-                          <select
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                            value={getTaskMetaDraft(task).dependencies[0]?.type ?? "TASK"}
-                            onChange={(event) => {
-                              const current = getTaskMetaDraft(task).dependencies[0];
-                              const next = {
-                                type: event.target.value,
-                                targetId: current?.targetId ?? "",
-                              };
-                              const rest = getTaskMetaDraft(task).dependencies.slice(1);
-                              updateTaskMetaDraft(task, { dependencies: [next, ...rest] });
-                            }}
-                          >
-                            <option value="TASK">Task</option>
-                            <option value="PHASE">Phase</option>
-                            <option value="ISSUE">Issue</option>
-                          </select>
-                          <input
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                            placeholder="Target ID"
-                            value={getTaskMetaDraft(task).dependencies[0]?.targetId ?? ""}
-                            onChange={(event) => {
-                              const current = getTaskMetaDraft(task).dependencies[0] ?? {
-                                type: "TASK",
-                                targetId: "",
-                              };
-                              const rest = getTaskMetaDraft(task).dependencies.slice(1);
-                              updateTaskMetaDraft(task, {
-                                dependencies: [{ ...current, targetId: event.target.value }, ...rest],
-                              });
-                            }}
-                          />
-                          <button
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"
-                            type="button"
-                            onClick={() => {
-                              const [first, ...rest] = getTaskMetaDraft(task).dependencies;
-                              if (!first || !first.targetId.trim()) {
-                                return;
-                              }
-                              updateTaskMetaDraft(task, {
-                                dependencies: [
-                                  ...rest,
-                                  { type: first.type, targetId: first.targetId.trim() },
-                                ],
-                              });
-                            }}
-                          >
-                            <Icon name="plus" size={12} />
-                            Add dependency
-                          </button>
-                        </div>
+                        <DependencyPicker
+                          issue={issue}
+                          dependencyIssues={dependencyIssues}
+                          state={getDependencyState(task.id)}
+                          setState={(updater) => setDependencyState(task.id, updater)}
+                          onSearch={(query) => void searchIssues(task.id, query)}
+                          ensureIssueDetail={ensureIssueDetail}
+                          onAdd={(dep) => addDependencyForTask(task, dep)}
+                        />
                         <div className="mt-2 flex justify-end gap-2">
                           <button
                             className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
@@ -967,39 +1550,88 @@ export function PhaseBoard({
                       }
                     />
                     <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
-                      <button
-                        className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                      <Tooltip
+                        content={
                           getTaskDraft(phase.id).startDate ||
                           getTaskDraft(phase.id).dueDate
-                            ? "border-sky-200 bg-sky-100 text-sky-700"
-                            : "border-slate-200 bg-white text-slate-500"
-                        }`}
-                        type="button"
-                        title="Set dates"
-                        onClick={() =>
-                          setOpenTaskDatePopover((current) =>
-                            current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
+                            ? `Start: ${getTaskDraft(phase.id).startDate || "—"} · Due: ${getTaskDraft(phase.id).dueDate || "—"}`
+                            : "Set dates"
+                        }
+                      >
+                        <button
+                          className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                            getTaskDraft(phase.id).startDate ||
+                            getTaskDraft(phase.id).dueDate
+                              ? "border-sky-200 bg-sky-100 text-sky-700"
+                              : "border-slate-200 bg-white text-slate-500"
+                          }`}
+                          type="button"
+                          onClick={() =>
+                            setOpenTaskDatePopover((current) =>
+                              current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
+                            )
+                          }
+                        >
+                          <Icon name="calendar" size={12} />
+                          {(getTaskDraft(phase.id).startDate ||
+                            getTaskDraft(phase.id).dueDate) && (
+                            <span className="ml-1 text-[11px]">
+                              {getTaskDraft(phase.id).startDate || "—"} →{" "}
+                              {getTaskDraft(phase.id).dueDate || "—"}
+                            </span>
+                          )}
+                        </button>
+                      </Tooltip>
+                      <Tooltip
+                        content={
+                          getTaskDraft(phase.id).dependencies.length > 0 ? (
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                Dependencies
+                              </p>
+                              <ul className="space-y-1">
+                                {getTaskDraft(phase.id).dependencies.map(
+                                  (dep, index) => (
+                                    <li key={`${dep.type}-${dep.targetId}-${index}`}>
+                                      {formatDependency(dep).label}
+                                    </li>
+                                  ),
+                                )}
+                              </ul>
+                            </div>
+                          ) : (
+                            "Set dependencies"
                           )
                         }
                       >
-                        <Icon name="calendar" size={12} />
-                      </button>
-                      <button
-                        className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
-                          getTaskDraft(phase.id).dependencies.length > 0
-                            ? "border-amber-200 bg-amber-100 text-amber-700"
-                            : "border-slate-200 bg-white text-slate-500"
-                        }`}
-                        type="button"
-                        title="Set dependencies"
-                        onClick={() =>
-                          setOpenTaskDependencyPopover((current) =>
-                            current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
-                          )
-                        }
-                      >
-                        <Icon name="link" size={12} />
-                      </button>
+                        <button
+                          className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                            getTaskDraft(phase.id).dependencies.length > 0
+                              ? dependencyBadgeStyle(
+                                  "TASK",
+                                  worstStatus(
+                                    getTaskDraft(phase.id).dependencies.map((dep) =>
+                                      dependencyStatus(dep),
+                                    ),
+                                  ),
+                                )
+                              : "border-slate-200 bg-white text-slate-500"
+                          }`}
+                          type="button"
+                          onClick={() =>
+                            setOpenTaskDependencyPopover((current) =>
+                              current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
+                            )
+                          }
+                        >
+                          <Icon name="link" size={12} />
+                          {getTaskDraft(phase.id).dependencies.length > 0 && (
+                            <span className="ml-1 text-[11px]">
+                              {getTaskDraft(phase.id).dependencies.length}
+                            </span>
+                          )}
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                   <div className="relative min-w-[180px]">
@@ -1072,8 +1704,6 @@ export function PhaseBoard({
                         startDate: "",
                         dueDate: "",
                         dependencies: [],
-                        dependencyDraftType: "TASK",
-                        dependencyDraftTarget: "",
                         saving: false,
                         error: null,
                       });
@@ -1142,76 +1772,35 @@ export function PhaseBoard({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
                       Dependencies
                     </p>
-                    <div className="mt-2 grid gap-2 md:grid-cols-[140px_minmax(0,1fr)_auto]">
-                      <select
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                        value={getTaskDraft(phase.id).dependencyDraftType}
-                        onChange={(event) =>
-                          updateTaskDraft(phase.id, {
-                            dependencyDraftType: event.target.value,
-                          })
-                        }
-                      >
-                        <option value="TASK">Task</option>
-                        <option value="PHASE">Phase</option>
-                        <option value="ISSUE">Issue</option>
-                      </select>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                        placeholder="Target ID"
-                        value={getTaskDraft(phase.id).dependencyDraftTarget}
-                        onChange={(event) =>
-                          updateTaskDraft(phase.id, {
-                            dependencyDraftTarget: event.target.value,
-                          })
-                        }
-                      />
-                      <button
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"
-                        type="button"
-                        onClick={() => {
-                          const draft = getTaskDraft(phase.id);
-                          if (!draft.dependencyDraftTarget.trim()) {
-                            return;
-                          }
-                          updateTaskDraft(phase.id, {
-                            dependencies: [
-                              ...draft.dependencies,
-                              {
-                                type: draft.dependencyDraftType,
-                                targetId: draft.dependencyDraftTarget.trim(),
-                              },
-                            ],
-                            dependencyDraftTarget: "",
-                          });
-                        }}
-                      >
-                        <Icon name="plus" size={12} />
-                        Add dependency
-                      </button>
-                    </div>
+                    <DependencyPicker
+                      issue={issue}
+                      dependencyIssues={dependencyIssues}
+                      state={getDependencyState(`draft-${phase.id}`)}
+                      setState={(updater) =>
+                        setDependencyState(`draft-${phase.id}`, updater)
+                      }
+                      onSearch={(query) =>
+                        void searchIssues(`draft-${phase.id}`, query)
+                      }
+                      ensureIssueDetail={ensureIssueDetail}
+                      onAdd={(dep) => addDependencyForDraft(phase.id, dep)}
+                    />
                     {getTaskDraft(phase.id).dependencies.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-600">
                         {getTaskDraft(phase.id).dependencies.map((dep, depIndex) => (
-                          <span
+                          <DependencyBadge
                             key={`${dep.type}-${dep.targetId}-${depIndex}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
-                          >
-                            <Icon name="link" size={12} />
-                            {dep.type}:{dep.targetId}
-                            <button
-                              className="inline-flex items-center"
-                              type="button"
-                              onClick={() => {
-                                const nextDeps = getTaskDraft(phase.id).dependencies.filter(
-                                  (_, index) => index !== depIndex,
-                                );
-                                updateTaskDraft(phase.id, { dependencies: nextDeps });
-                              }}
-                            >
-                              <Icon name="x" size={12} />
-                            </button>
-                          </span>
+                            label={formatDependency(dep).label}
+                            tooltip={formatDependency(dep).tooltip}
+                            style={formatDependency(dep).style}
+                            href={dependencyHref(dep)}
+                            onRemove={() => {
+                              const nextDeps = getTaskDraft(phase.id).dependencies.filter(
+                                (_, index) => index !== depIndex,
+                              );
+                              updateTaskDraft(phase.id, { dependencies: nextDeps });
+                            }}
+                          />
                         ))}
                       </div>
                     )}

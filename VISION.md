@@ -226,6 +226,8 @@ UI interaction guidance:
 - Show phase/task status visually (badges, small progress bars) alongside actions.
 - Comments behave like a messenger (sticky composer, jump to unread/latest, read receipts).
 - Buttons should include decorative icons for quick scanning.
+- Use styled tooltips/popovers (not browser defaults) to show richer context
+  like status, deadlines, and counts.
 
 ### 5.2 Live update via SSE (optional)
 

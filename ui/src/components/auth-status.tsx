@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
+import { Tooltip } from "@/components/tooltip";
 
 export default function AuthStatus() {
   const { token, username, baseUrl, ready, clear } = useAuth();
@@ -28,14 +29,15 @@ export default function AuthStatus() {
   }
 
   return (
-    <button
-      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm"
-      onClick={clear}
-      type="button"
-      title={baseUrl}
-    >
-      <Icon name="arrow-left" size={12} />
-      {username ? `Signed in: ${username}` : "Token active"}
-    </button>
+    <Tooltip content={baseUrl ?? undefined}>
+      <button
+        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm"
+        onClick={clear}
+        type="button"
+      >
+        <Icon name="arrow-left" size={12} />
+        {username ? `Signed in: ${username}` : "Token active"}
+      </button>
+    </Tooltip>
   );
 }
