@@ -6,7 +6,7 @@ import org.springframework.test.context.ActiveProfiles
 import sh.nunc.causa.web.CausaApplication
 
 @SpringBootTest(classes = [CausaApplication::class], webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@ActiveProfiles("dev")
+@ActiveProfiles("dev", "test")
 class DevProfileContextTest {
     @Test
     fun `dev profile context loads`() {

@@ -23,6 +23,7 @@ enum class TaskDependencyType {
 
 enum class IssueStatus {
     CREATED,
+    NOT_ACTIVE,
     IN_ANALYSIS,
     IN_DEVELOPMENT,
     IN_TEST,

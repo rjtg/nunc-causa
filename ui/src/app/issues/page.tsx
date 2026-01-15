@@ -21,6 +21,8 @@ type IssueSummary = {
     phaseId: string;
     phaseName: string;
     assigneeId: string;
+    phaseKind?: string | null;
+    deadline?: string | null;
     status: string;
     taskStatusCounts: Record<string, number>;
     taskTotal: number;
@@ -46,6 +48,10 @@ type UserOption = {
   openIssueCount?: number | null;
   openPhaseCount?: number | null;
   openTaskCount?: number | null;
+};
+
+const userLabel = (users: UserOption[], userId: string) => {
+  return users.find((user) => user.id === userId)?.displayName ?? userId;
 };
 
 type ProjectOption = {
@@ -140,16 +146,52 @@ const issueProgressTone = (status: string) => {
   }
 };
 
-const issuePhaseSegments = (phases: IssueSummary["phaseProgress"]) => {
+const issuePhaseSegments = (
+  phases: IssueSummary["phaseProgress"],
+  users: UserOption[],
+) => {
   if (!phases || phases.length === 0) {
     return undefined;
   }
-  const phaseWeight = 1 / phases.length;
-  return phases.flatMap((phase, phaseIndex) => {
+  const phaseOrder = [
+    "INVESTIGATION",
+    "PROPOSE_SOLUTION",
+    "DEVELOPMENT",
+    "ACCEPTANCE_TEST",
+    "ROLLOUT",
+  ];
+  const sortedPhases = [...phases].sort((a, b) => {
+    const orderA = phaseOrder.indexOf(a.phaseKind ?? "");
+    const orderB = phaseOrder.indexOf(b.phaseKind ?? "");
+    if (orderA === -1 && orderB === -1) {
+      return a.phaseName.localeCompare(b.phaseName);
+    }
+    if (orderA === -1) {
+      return 1;
+    }
+    if (orderB === -1) {
+      return -1;
+    }
+    return orderA - orderB;
+  });
+  const phaseWeight = 1 / sortedPhases.length;
+  return sortedPhases.flatMap((phase, phaseIndex) => {
     const tooltip = (
-      <div className="space-y-1">
+      <div className="space-y-2">
         <p className="text-xs font-semibold text-slate-800">{phase.phaseName}</p>
-        <p className="text-[11px] text-slate-600">Assignee: {phase.assigneeId}</p>
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-violet-700">
+            {userLabel(users, phase.assigneeId)}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-600">
+            {phase.taskTotal} tasks
+          </span>
+          {phase.deadline && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-sky-700">
+              Due {phase.deadline}
+            </span>
+          )}
+        </div>
       </div>
     );
     if (!phase.taskTotal) {
@@ -651,7 +693,7 @@ export default function IssuesPage() {
             id={issue.id}
             title={issue.title ?? issue.id}
             href={`/issues/${issue.id}`}
-            progressSegments={issuePhaseSegments(issue.phaseProgress)}
+            progressSegments={issuePhaseSegments(issue.phaseProgress, users)}
             progressTotal={1}
             progressTone={
               issue.phaseCount > 0 ? undefined : issueProgressTone(issue.status)
@@ -665,8 +707,8 @@ export default function IssuesPage() {
             }
             right={
               <>
-                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-600">
-                  {issue.ownerId}
+                <span className="rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-violet-700">
+                  {userLabel(users, issue.ownerId)}
                 </span>
                 <span
                   className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${issueStatusBadgeStyle(
@@ -674,9 +716,6 @@ export default function IssuesPage() {
                   )}`}
                 >
                   {issueStatusLabel(issue.status)}
-                </span>
-                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-600">
-                  {issue.phaseCount} phases
                 </span>
               </>
             }

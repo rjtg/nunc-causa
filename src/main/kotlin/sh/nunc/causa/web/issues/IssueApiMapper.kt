@@ -58,6 +58,8 @@ fun IssueListView.toListItem(): IssueListItem {
                 phaseId = it.phaseId,
                 phaseName = it.phaseName,
                 assigneeId = it.assigneeId,
+                phaseKind = it.phaseKind?.let { kind -> PhaseKind.valueOf(kind) },
+                deadline = it.deadline?.let { date -> java.time.LocalDate.parse(date) },
                 status = it.status.toPhaseStatusEnum(),
                 taskStatusCounts = it.taskStatusCounts.mapValues { entry -> entry.value.toInt() },
                 taskTotal = it.taskTotal.toInt(),

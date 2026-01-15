@@ -335,14 +335,45 @@ const DependencyPicker = ({
     if (!detail || detail.phases.length === 0) {
       return null;
     }
-    const phaseWeight = 1 / detail.phases.length;
-    return detail.phases.flatMap((phase, phaseIndex) => {
+    const phaseOrder = [
+      "INVESTIGATION",
+      "PROPOSE_SOLUTION",
+      "DEVELOPMENT",
+      "ACCEPTANCE_TEST",
+      "ROLLOUT",
+    ];
+    const sortedPhases = [...detail.phases].sort((a, b) => {
+      const orderA = phaseOrder.indexOf(a.kind ?? "");
+      const orderB = phaseOrder.indexOf(b.kind ?? "");
+      if (orderA === -1 && orderB === -1) {
+        return a.name.localeCompare(b.name);
+      }
+      if (orderA === -1) {
+        return 1;
+      }
+      if (orderB === -1) {
+        return -1;
+      }
+      return orderA - orderB;
+    });
+    const phaseWeight = 1 / sortedPhases.length;
+    return sortedPhases.flatMap((phase, phaseIndex) => {
       const tooltip = (
-        <div className="space-y-1">
+        <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-800">{phaseLabel(phase)}</p>
-          <p className="text-[11px] text-slate-600">
-            Assignee: {userLabel(phase.assigneeId)}
-          </p>
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-violet-700">
+              {userLabel(phase.assigneeId)}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-600">
+              {phase.tasks.length} tasks
+            </span>
+            {phase.deadline && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-sky-700">
+                Due {phase.deadline}
+              </span>
+            )}
+          </div>
         </div>
       );
       if (phase.tasks.length === 0) {
@@ -1075,6 +1106,7 @@ export function PhaseBoard({
           return (
             <div
               key={phase.id}
+              id={`phase-${phase.id}`}
               className="rounded-2xl border border-slate-200/60 bg-white/90 p-4"
             >
               <div className="flex items-center justify-between">
@@ -1349,11 +1381,11 @@ export function PhaseBoard({
               {phase.tasks.length > 0 && (() => {
                 const progress = phaseProgress(phase.tasks);
                 const segments = [
-                  { key: "NOT_STARTED", color: "bg-slate-300" },
+                  { key: "DONE", color: "bg-emerald-500" },
                   { key: "IN_PROGRESS", color: "bg-sky-400" },
                   { key: "PAUSED", color: "bg-amber-400" },
                   { key: "ABANDONED", color: "bg-rose-400" },
-                  { key: "DONE", color: "bg-emerald-500" },
+                  { key: "NOT_STARTED", color: "bg-slate-300" },
                 ];
                 return (
                   <div className="mt-3">

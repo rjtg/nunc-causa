@@ -6,6 +6,7 @@ import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { useHealth } from "@/lib/health/context";
 import { Icon } from "@/components/icons";
+import { Typeahead } from "@/components/typeahead";
 
 type PhaseDraft = {
   enabled: boolean;
@@ -31,6 +32,9 @@ type SimilarIssue = {
 type UserOption = {
   id: string;
   displayName: string;
+  openIssueCount?: number | null;
+  openPhaseCount?: number | null;
+  openTaskCount?: number | null;
 };
 
 type ProjectOption = {
@@ -48,6 +52,13 @@ const phaseLabel = (kind: string) =>
       ROLLOUT: "Rollout",
     } as Record<string, string>
   )[kind] ?? "Phase";
+
+const workloadLabel = (user: UserOption) => {
+  const openIssues = user.openIssueCount ?? 0;
+  const openPhases = user.openPhaseCount ?? 0;
+  const openTasks = user.openTaskCount ?? 0;
+  return `${openIssues} / ${openPhases} / ${openTasks}`;
+};
 
 const isOnOrBefore = (value?: string, limit?: string) => {
   if (!value || !limit) {
@@ -132,6 +143,9 @@ export default function NewIssuePage() {
       const nextUsers = (usersResponse.data ?? []).map((user) => ({
         id: user.id ?? "unknown",
         displayName: user.displayName ?? "Unknown",
+        openIssueCount: user.openIssueCount ?? 0,
+        openPhaseCount: user.openPhaseCount ?? 0,
+        openTaskCount: user.openTaskCount ?? 0,
       }));
       setUsers(nextUsers);
       setOwnerId((previousOwner) =>
@@ -289,18 +303,16 @@ export default function NewIssuePage() {
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Project ID
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
-                value={projectId}
-                onChange={(event) => setProjectId(event.target.value)}
-                list="project-options"
-                placeholder="project-123"
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={projectId}
+              onChange={setProjectId}
+              options={projects.map((project) => ({
+                value: project.id,
+                label: project.name,
+              }))}
+              placeholder="project-123"
+              inputClassName="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -317,18 +329,17 @@ export default function NewIssuePage() {
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Owner ID
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
-                value={ownerId}
-                onChange={(event) => setOwnerId(event.target.value)}
-                list="user-options"
-                placeholder="user-123"
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={ownerId}
+              onChange={setOwnerId}
+              options={users.map((user) => ({
+                value: user.id,
+                label: user.displayName,
+                meta: workloadLabel(user),
+              }))}
+              placeholder="user-123"
+              inputClassName="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
+            />
           </div>
         </div>
 
@@ -375,25 +386,24 @@ export default function NewIssuePage() {
                 </span>
               </div>
               <div className="relative">
-                <input
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
-                  placeholder="Assignee ID"
+                <Typeahead
                   value={phase.assigneeId}
-                  list="user-options"
-                  disabled={!phase.enabled}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     setPhases((prev) =>
                       prev.map((item, idx) =>
-                        idx === index
-                          ? { ...item, assigneeId: event.target.value }
-                          : item,
+                        idx === index ? { ...item, assigneeId: value } : item,
                       ),
                     )
                   }
+                  options={users.map((user) => ({
+                    value: user.id,
+                    label: user.displayName,
+                    meta: workloadLabel(user),
+                  }))}
+                  placeholder="Assignee"
+                  inputClassName="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                  className={phase.enabled ? "" : "opacity-50 pointer-events-none"}
                 />
-                <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
-                  ▾
-                </span>
               </div>
               <div className="md:col-span-2">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -470,20 +480,6 @@ export default function NewIssuePage() {
           </button>
           {error && <span className="text-xs text-rose-600">{error}</span>}
         </div>
-        <datalist id="user-options">
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.displayName}
-            </option>
-          ))}
-        </datalist>
-        <datalist id="project-options">
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </datalist>
       </form>
     </div>
   );

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { Tooltip } from "@/components/tooltip";
+import { IssueProgressBar } from "@/components/issue-progress-bar";
 
 type IssueSummaryCardProps = {
   id: string;
@@ -60,35 +61,12 @@ export function IssueSummaryCard({
         {right && <div className="flex items-center gap-2">{right}</div>}
       </div>
       {(progressTone || progressSegments) && (
-        <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-          {progressSegments
-            ? (() => {
-                const total =
-                  progressTotal ??
-                  progressSegments.reduce((sum, segment) => sum + segment.count, 0);
-                return progressSegments.map((segment, index) => {
-                  const width = total > 0 ? (segment.count / total) * 100 : 0;
-                  if (width <= 0) {
-                    return null;
-                  }
-                  const span = (
-                    <span
-                      key={`${segment.color}-${index}`}
-                      className={`${segment.color} ${segment.separator ? "border-l border-white/70" : ""}`}
-                      style={{ width: `${width}%` }}
-                    />
-                  );
-                  if (!segment.tooltip) {
-                    return span;
-                  }
-                  return (
-                    <Tooltip key={`${segment.color}-${index}`} content={segment.tooltip}>
-                      {span}
-                    </Tooltip>
-                  );
-                });
-              })()
-            : progressTone && <span className={`block h-1.5 w-full ${progressTone}`} />}
+        <div className="mt-2">
+          <IssueProgressBar
+            progressTone={progressTone}
+            progressSegments={progressSegments}
+            progressTotal={progressTotal}
+          />
         </div>
       )}
       {description && (

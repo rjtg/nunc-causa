@@ -187,6 +187,66 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
 
     @Query(
         """
+        select new sh.nunc.causa.issues.UserWorkloadView(
+            i.owner.id,
+            count(distinct i.id)
+        )
+        from IssueEntity i
+        where (:projectId is null or i.projectId = :projectId)
+          and i.owner.id in :userIds
+          and i.status not in (:closedStatuses)
+        group by i.owner.id
+        """
+    )
+    fun findOwnerWorkload(
+        @Param("userIds") userIds: Collection<String>,
+        @Param("projectId") projectId: String?,
+        @Param("closedStatuses") closedStatuses: Collection<String>,
+    ): List<UserWorkloadView>
+
+    @Query(
+        """
+        select new sh.nunc.causa.issues.UserWorkloadView(
+            p.assignee.id,
+            count(distinct p.id)
+        )
+        from IssueEntity i
+        join i.phases p
+        where (:projectId is null or i.projectId = :projectId)
+          and p.assignee.id in :userIds
+          and p.status not in (:closedStatuses)
+        group by p.assignee.id
+        """
+    )
+    fun findPhaseWorkload(
+        @Param("userIds") userIds: Collection<String>,
+        @Param("projectId") projectId: String?,
+        @Param("closedStatuses") closedStatuses: Collection<String>,
+    ): List<UserWorkloadView>
+
+    @Query(
+        """
+        select new sh.nunc.causa.issues.UserWorkloadView(
+            t.assignee.id,
+            count(distinct t.id)
+        )
+        from IssueEntity i
+        join i.phases p
+        join p.tasks t
+        where (:projectId is null or i.projectId = :projectId)
+          and t.assignee.id in :userIds
+          and t.status not in (:closedStatuses)
+        group by t.assignee.id
+        """
+    )
+    fun findTaskWorkload(
+        @Param("userIds") userIds: Collection<String>,
+        @Param("projectId") projectId: String?,
+        @Param("closedStatuses") closedStatuses: Collection<String>,
+    ): List<UserWorkloadView>
+
+    @Query(
+        """
         select new sh.nunc.causa.issues.IssueFacetView(
             i.status,
             count(distinct i.id)

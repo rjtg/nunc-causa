@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.server.ResponseStatusException
 import jakarta.validation.Valid
 import sh.nunc.causa.issues.CreateIssueCommand
@@ -75,6 +76,7 @@ class IssuesController(
     }
 
     @PreAuthorize("@accessPolicy.canListIssues(#projectId)")
+    @GetMapping("/issues")
     override fun listIssues(
         ownerId: String?,
         query: String?,
@@ -103,6 +105,7 @@ class IssuesController(
     }
 
     @PreAuthorize("@accessPolicy.canListIssues(#projectId)")
+    @GetMapping("/issues/facets")
     override fun getIssueFacets(
         query: String?,
         ownerId: String?,

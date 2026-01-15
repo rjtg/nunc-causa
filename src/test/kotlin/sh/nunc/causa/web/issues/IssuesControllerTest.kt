@@ -15,7 +15,7 @@ import sh.nunc.causa.users.UserRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("dev")
+@ActiveProfiles("dev", "test")
 class IssuesControllerTest {
 
     @Autowired

@@ -69,4 +69,7 @@ export type HistoryResponse = {
 export type UserOption = {
   id: string;
   displayName: string;
+  openIssueCount?: number | null;
+  openPhaseCount?: number | null;
+  openTaskCount?: number | null;
 };

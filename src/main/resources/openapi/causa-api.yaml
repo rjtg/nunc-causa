@@ -1021,6 +1021,13 @@ components:
           type: string
         assigneeId:
           type: string
+        phaseKind:
+          $ref: '#/components/schemas/PhaseKind'
+          nullable: true
+        deadline:
+          type: string
+          format: date
+          nullable: true
         status:
           $ref: '#/components/schemas/PhaseStatus'
         taskStatusCounts:

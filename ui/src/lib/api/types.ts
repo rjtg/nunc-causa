@@ -605,6 +605,9 @@ export interface components {
             phaseId: string;
             phaseName: string;
             assigneeId: string;
+            phaseKind?: components["schemas"]["PhaseKind"];
+            /** Format: date */
+            deadline?: string | null;
             status: components["schemas"]["PhaseStatus"];
             taskStatusCounts: {
                 [key: string]: number;

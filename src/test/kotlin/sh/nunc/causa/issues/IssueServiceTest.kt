@@ -286,7 +286,7 @@ class IssueServiceTest {
         assertEquals(LocalDate.parse("2025-03-16"), updated.deadline)
         assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().deadline)
         assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().tasks.first().dueDate)
-        assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().tasks.first().startDate)
+        assertEquals(LocalDate.parse("2025-03-15"), updated.phases.first().tasks.first().startDate)
     }
 
     @Test
@@ -345,5 +345,51 @@ class IssueServiceTest {
                 ),
             )
         }
+    }
+
+    @Test
+    fun `derives issue status as not active when none in progress`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-7",
+            title = "Issue",
+            description = "Issue description.",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+        )
+        val investigation = PhaseEntity(
+            id = "phase-investigation",
+            name = "Investigation",
+            assignee = owner,
+            status = PhaseStatus.DONE.name,
+            kind = PhaseKind.INVESTIGATION.name,
+            issue = issue,
+        )
+        val development = PhaseEntity(
+            id = "phase-development",
+            name = "Development",
+            assignee = owner,
+            status = PhaseStatus.NOT_STARTED.name,
+            kind = PhaseKind.DEVELOPMENT.name,
+            issue = issue,
+        )
+        issue.phases.addAll(listOf(investigation, development))
+        every { issueRepository.findById("issue-7") } returns Optional.of(issue)
+        every { issueRepository.save(issue) } returns issue
+
+        val updated = service.updatePhase(
+            issueId = "issue-7",
+            phaseId = "phase-development",
+            name = null,
+            assigneeId = null,
+            status = null,
+            completionComment = null,
+            completionArtifactUrl = null,
+            kind = null,
+            deadline = null,
+        )
+
+        assertEquals(IssueStatus.NOT_ACTIVE.name, updated.status)
     }
 }

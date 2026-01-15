@@ -5,6 +5,8 @@ import "./globals.css";
 import Providers from "./providers";
 import TopBar from "@/components/top-bar";
 import HealthBanner from "@/components/health-banner";
+import { Icon } from "@/components/icons";
+import { Tooltip } from "@/components/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,21 +37,25 @@ export default function RootLayout({
           <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
             <TopBar />
             <HealthBanner />
-            <div className="mx-auto flex max-w-6xl gap-5 px-5 py-5">
-              <aside className="w-48 shrink-0">
-                <nav className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                  <Link className="rounded-lg bg-white/80 px-4 py-2" href="/work">
-                    My Work
-                  </Link>
-                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/issues">
-                    Issues
-                  </Link>
-                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/projects">
-                    Projects
-                  </Link>
-                  <Link className="rounded-lg px-4 py-2 hover:bg-white/70" href="/admin">
-                    Admin
-                  </Link>
+            <div className="mx-auto flex w-full gap-5 px-5 py-5">
+              <aside className="shrink-0">
+                <nav className="flex flex-col items-center gap-2 rounded-2xl border border-white/60 bg-white/70 p-2 text-slate-700 shadow-sm">
+                  {[
+                    { href: "/work", label: "My Work", icon: "comment" as const },
+                    { href: "/issues", label: "Issues", icon: "filter" as const },
+                    { href: "/projects", label: "Projects", icon: "link" as const },
+                    { href: "/admin", label: "Admin", icon: "reset" as const },
+                  ].map((item) => (
+                    <Tooltip key={item.href} content={item.label}>
+                      <Link
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent bg-white/80 text-slate-700 shadow-sm transition hover:border-slate-200 hover:bg-white"
+                        href={item.href}
+                        aria-label={item.label}
+                      >
+                        <Icon name={item.icon} size={16} />
+                      </Link>
+                    </Tooltip>
+                  ))}
                 </nav>
               </aside>
               <main className="min-h-[70vh] flex-1 space-y-6 rounded-2xl border border-white/40 bg-white/80 p-6 shadow-sm">

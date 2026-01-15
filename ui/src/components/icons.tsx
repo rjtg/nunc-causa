@@ -8,6 +8,7 @@ export type IconName =
   | "check"
   | "chevron-down"
   | "comment"
+  | "edit"
   | "filter"
   | "link"
   | "plus"
@@ -112,6 +113,13 @@ export function Icon({ name, size = 14, className, ...rest }: IconProps) {
       return (
         <svg {...common} {...rest}>
           <path d="M4 5h16v10H7l-3 3V5z" />
+        </svg>
+      );
+    case "edit":
+      return (
+        <svg {...common} {...rest}>
+          <path d="M4 20h4l10-10-4-4L4 16v4z" />
+          <path d="M14 6l4 4" />
         </svg>
       );
     default:

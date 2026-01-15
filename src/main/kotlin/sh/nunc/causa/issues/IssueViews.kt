@@ -36,6 +36,8 @@ data class PhaseProgressView(
     val phaseId: String,
     val phaseName: String,
     val assigneeId: String,
+    val phaseKind: String?,
+    val deadline: String?,
     val status: String,
     val taskStatusCounts: Map<String, Long>,
     val taskTotal: Long,
