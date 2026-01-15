@@ -110,6 +110,10 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Re-enable SpotBugs for tests with targeted filters
     - Reduce global excludes
     - Add test-specific exclude rules if needed
+[ ] Add dev-mode banner + maintenance actions in UI
+    - Expose backend endpoint for runtime environment (dev/test/prod)
+    - Show a banner in UI with the environment label
+    - Add maintenance actions (e.g., trigger search reindex)
 
 ---
 
@@ -144,6 +148,10 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Add task-level granularity in dev phases
 [ ] Add workflow template management UI (if building frontend)
 [ ] Add activity stream view fed by activity feed model
+[ ] Add workload scope toggle for user typeaheads
+    - Allow switching workload counts between project-scoped and org-wide
+    - Add API query param (e.g., `workloadScope=project|org`)
+    - Update UI to surface the toggle and reflect selection
 [ ] Add CLI client (Rust + clap)
     - Generate OpenAPI client bindings
     - Support login and basic issue workflows
