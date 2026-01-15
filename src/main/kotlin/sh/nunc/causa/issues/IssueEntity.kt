@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.Transient
+import java.time.LocalDate
 import org.hibernate.envers.Audited
 import org.hibernate.envers.RelationTargetAuditMode
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField
@@ -56,6 +57,9 @@ class IssueEntity(
     @KeywordField(aggregable = Aggregable.YES, sortable = Sortable.YES)
     @Column(name = "status", nullable = false)
     var status: String,
+
+    @Column(name = "deadline")
+    var deadline: LocalDate? = null,
 ) {
     @get:Transient
     @get:KeywordField(aggregable = Aggregable.YES)

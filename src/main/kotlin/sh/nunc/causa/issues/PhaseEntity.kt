@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.Transient
+import java.time.LocalDate
 import org.hibernate.envers.Audited
 import org.hibernate.envers.RelationTargetAuditMode
 import org.hibernate.search.engine.backend.types.Aggregable
@@ -48,6 +49,9 @@ class PhaseEntity(
     @KeywordField(aggregable = Aggregable.YES)
     @Column(name = "kind")
     var kind: String?,
+
+    @Column(name = "deadline")
+    var deadline: LocalDate? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "issue_id", nullable = false)

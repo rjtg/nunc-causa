@@ -37,6 +37,7 @@ class IssueCommentServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = emptyList(),
         )
         every { userRepository.findAllById(any<Iterable<String>>()) } returns listOf(
@@ -71,6 +72,7 @@ class IssueCommentServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = emptyList(),
         )
         every { userRepository.findAllById(any<Iterable<String>>()) } returns listOf(
@@ -104,6 +106,7 @@ class IssueCommentServiceTest {
             ownerId = "user-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = emptyList(),
         )
         every { userRepository.findAllById(any<Iterable<String>>()) } returns listOf(
@@ -154,6 +157,7 @@ class IssueCommentServiceTest {
             ownerId = "user-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = emptyList(),
         )
         every { userRepository.findAllById(any<Iterable<String>>()) } returns listOf(

@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/changes/005-comment-reads.yaml
   - include:
       file: db/changelog/changes/006-task-metadata-deps.yaml
+  - include:
+      file: db/changelog/changes/007-deadlines.yaml

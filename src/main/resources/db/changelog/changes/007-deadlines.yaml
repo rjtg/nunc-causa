@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-deadlines
+      author: codex
+      changes:
+        - addColumn:
+            tableName: issues
+            columns:
+              - column:
+                  name: deadline
+                  type: date
+        - addColumn:
+            tableName: issue_phases
+            columns:
+              - column:
+                  name: deadline
+                  type: date
+        - addColumn:
+            tableName: issues_AUD
+            columns:
+              - column:
+                  name: deadline
+                  type: date
+        - addColumn:
+            tableName: issue_phases_AUD
+            columns:
+              - column:
+                  name: deadline
+                  type: date

@@ -125,6 +125,7 @@ class DevDataSeeder(
                     description = sampleDescription(faker),
                     ownerId = owner.id,
                     projectId = project.id,
+                    deadline = null,
                     phases = phases,
                 ),
             )
@@ -174,6 +175,7 @@ class DevDataSeeder(
                 name = kind.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() },
                 assigneeId = users.random().id,
                 kind = kind,
+                deadline = null,
             )
         }
     }

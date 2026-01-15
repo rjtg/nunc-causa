@@ -38,6 +38,7 @@ fun IssueDetailView.toDetail(actions: IssueActionProvider): IssueDetail {
         projectId = projectId,
         phases = phases.map { it.toResponse(this, actions) },
         status = status.toIssueStatusEnum(),
+        deadline = deadline?.let { java.time.LocalDate.parse(it) },
         version = 0,
         allowedActions = actions.issueActions(this),
     )
@@ -81,6 +82,7 @@ private fun PhaseView.toResponse(issue: IssueDetailView, actions: IssueActionPro
         kind = kind?.let { PhaseKind.valueOf(it) },
         completionComment = completionComment,
         completionArtifactUrl = completionArtifactUrl?.let { URI.create(it) },
+        deadline = deadline?.let { java.time.LocalDate.parse(it) },
         tasks = tasks.map { it.toResponse(issue, id, actions) },
         allowedActions = actions.phaseActions(issue, id),
     )

@@ -52,11 +52,13 @@ class IssuesController(
                 description = createIssueRequest.description,
                 ownerId = createIssueRequest.ownerId,
                 projectId = createIssueRequest.projectId,
+                deadline = createIssueRequest.deadline,
                 phases = createIssueRequest.phases.map {
                     CreatePhaseCommand(
                         name = it.name,
                         assigneeId = it.assigneeId,
                         kind = it.kind?.name,
+                        deadline = it.deadline,
                     )
                 },
             ),
@@ -138,6 +140,7 @@ class IssuesController(
                 updateIssueRequest.ownerId,
                 updateIssueRequest.projectId,
                 updateIssueRequest.description,
+                updateIssueRequest.deadline,
             )
         }
         val detail = issueService.getIssueDetail(issue.id)
@@ -165,6 +168,7 @@ class IssuesController(
                 addPhaseRequest.name,
                 addPhaseRequest.assigneeId,
                 addPhaseRequest.kind?.name,
+                addPhaseRequest.deadline,
             )
         }
         val detail = issueService.getIssueDetail(issue.id)
@@ -231,6 +235,7 @@ class IssuesController(
                     updatePhaseRequest.completionComment,
                     updatePhaseRequest.completionArtifactUrl?.toString(),
                     updatePhaseRequest.kind?.name,
+                    updatePhaseRequest.deadline,
                 )
             }
         }

@@ -7,6 +7,7 @@ import sh.nunc.causa.reporting.IssueHistoryService
 import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.users.UserRepository
+import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -42,9 +43,11 @@ class IssueService(
             projectId = projectId,
             issueNumber = issueNumber,
             status = IssueStatus.CREATED.name,
+            deadline = command.deadline,
         )
 
         command.phases.forEach { phaseCommand ->
+            ensurePhaseDeadlineWithinIssue(issue, phaseCommand.deadline)
             val assignee = requireUser(phaseCommand.assigneeId)
             val phase = PhaseEntity(
                 id = UUID.randomUUID().toString(),
@@ -52,11 +55,13 @@ class IssueService(
                 assignee = assignee,
                 status = PhaseStatus.NOT_STARTED.name,
                 kind = phaseCommand.kind,
+                deadline = phaseCommand.deadline,
                 issue = issue,
             )
             issue.phases.add(phase)
         }
 
+        applyIssueDeadlineConstraints(issue)
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
@@ -141,6 +146,7 @@ class IssueService(
         ownerId: String?,
         projectId: String?,
         description: String?,
+        deadline: java.time.LocalDate?,
     ): IssueEntity {
         val issue = getIssue(issueId)
         if (title != null) {
@@ -157,6 +163,12 @@ class IssueService(
                 throw IllegalStateException("Cannot move issue between projects")
             }
             issue.projectId = projectId
+        }
+        if (deadline != null) {
+            issue.deadline = deadline
+        }
+        if (deadline != null) {
+            applyIssueDeadlineConstraints(issue)
         }
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
@@ -175,8 +187,9 @@ class IssueService(
     }
 
     @Transactional
-    fun addPhase(issueId: String, name: String, assigneeId: String, kind: String?): IssueEntity {
+    fun addPhase(issueId: String, name: String, assigneeId: String, kind: String?, deadline: java.time.LocalDate?): IssueEntity {
         val issue = getIssue(issueId)
+        ensurePhaseDeadlineWithinIssue(issue, deadline)
         val assigneeEntity = requireUser(assigneeId)
         val phase = PhaseEntity(
             id = UUID.randomUUID().toString(),
@@ -184,6 +197,7 @@ class IssueService(
             assignee = assigneeEntity,
             status = PhaseStatus.NOT_STARTED.name,
             kind = kind,
+            deadline = deadline,
             issue = issue,
         )
         issue.phases.add(phase)
@@ -204,6 +218,7 @@ class IssueService(
         completionComment: String?,
         completionArtifactUrl: String?,
         kind: String?,
+        deadline: java.time.LocalDate?,
     ): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
@@ -245,6 +260,13 @@ class IssueService(
         if (kind != null) {
             phase.kind = kind
         }
+        if (deadline != null) {
+            ensurePhaseDeadlineWithinIssue(issue, deadline)
+            phase.deadline = deadline
+        }
+        if (deadline != null) {
+            clampTaskDeadlines(issue, phase)
+        }
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
@@ -282,6 +304,8 @@ class IssueService(
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
+        val dependencyViews = dependencies.orEmpty()
+        validateTaskDates(issue, phase, startDate, dueDate, dependencyViews)
         val assigneeEntity = assigneeId?.let { requireUser(it) }
         val task = TaskEntity(
             id = UUID.randomUUID().toString(),
@@ -292,7 +316,7 @@ class IssueService(
             dueDate = dueDate,
             phase = phase,
         )
-        dependencies?.forEach { dependency ->
+        dependencyViews.forEach { dependency ->
             task.dependencies.add(
                 TaskDependencyEntity(
                     id = UUID.randomUUID().toString(),
@@ -327,6 +351,12 @@ class IssueService(
             ?: throw NoSuchElementException("Phase $phaseId not found")
         val task = phase.tasks.firstOrNull { it.id == taskId }
             ?: throw NoSuchElementException("Task $taskId not found")
+        val effectiveDependencies = dependencies ?: task.dependencies.map {
+            TaskDependencyView(type = it.type, targetId = it.targetId)
+        }
+        val effectiveStartDate = startDate ?: task.startDate
+        val effectiveDueDate = dueDate ?: task.dueDate
+        validateTaskDates(issue, phase, effectiveStartDate, effectiveDueDate, effectiveDependencies)
         if (title != null) {
             task.title = title
         }
@@ -525,6 +555,7 @@ class IssueService(
             ownerId = owner.id,
             projectId = projectId,
             status = status,
+            deadline = deadline?.toString(),
             phases = phases.map { phase ->
                 PhaseView(
                     id = phase.id,
@@ -534,6 +565,7 @@ class IssueService(
                     kind = phase.kind,
                     completionComment = phase.completionComment,
                     completionArtifactUrl = phase.completionArtifactUrl,
+                    deadline = phase.deadline?.toString(),
                     tasks = phase.tasks.map { task ->
                         TaskView(
                             id = task.id,
@@ -553,5 +585,78 @@ class IssueService(
                 )
             },
         )
+    }
+
+    private fun ensurePhaseDeadlineWithinIssue(issue: IssueEntity, deadline: LocalDate?) {
+        val issueDeadline = issue.deadline ?: return
+        if (deadline != null && deadline.isAfter(issueDeadline)) {
+            throw IllegalStateException("Phase deadline exceeds issue deadline")
+        }
+    }
+
+    private fun applyIssueDeadlineConstraints(issue: IssueEntity) {
+        val issueDeadline = issue.deadline ?: return
+        issue.phases.forEach { phase ->
+            if (phase.deadline != null && phase.deadline!!.isAfter(issueDeadline)) {
+                phase.deadline = issueDeadline
+            }
+            clampTaskDeadlines(issue, phase)
+        }
+    }
+
+    private fun clampTaskDeadlines(issue: IssueEntity, phase: PhaseEntity) {
+        val limit = listOfNotNull(issue.deadline, phase.deadline).minOrNull() ?: return
+        phase.tasks.forEach { task ->
+            if (task.dueDate != null && task.dueDate!!.isAfter(limit)) {
+                task.dueDate = limit
+            }
+            if (task.startDate != null && task.dueDate != null && task.startDate!!.isAfter(task.dueDate)) {
+                task.startDate = task.dueDate
+            }
+        }
+    }
+
+    private fun validateTaskDates(
+        issue: IssueEntity,
+        phase: PhaseEntity,
+        startDate: LocalDate?,
+        dueDate: LocalDate?,
+        dependencies: List<TaskDependencyView>,
+    ) {
+        if (startDate != null && dueDate != null && startDate.isAfter(dueDate)) {
+            throw IllegalStateException("Task start date must be before due date")
+        }
+        val maxDeadline = listOfNotNull(issue.deadline, phase.deadline).minOrNull()
+        if (dueDate != null && maxDeadline != null && dueDate.isAfter(maxDeadline)) {
+            throw IllegalStateException("Task due date exceeds deadline")
+        }
+        if (startDate != null) {
+            dependencies.forEach { dependency ->
+                val finishDate = resolveDependencyFinishDate(issue, dependency)
+                if (finishDate != null && startDate.isBefore(finishDate)) {
+                    throw IllegalStateException("Task start date precedes dependency completion")
+                }
+            }
+        }
+    }
+
+    private fun resolveDependencyFinishDate(issue: IssueEntity, dependency: TaskDependencyView): LocalDate? {
+        val targetId = dependency.targetId
+        val type = TaskDependencyType.valueOf(dependency.type)
+        return when (type) {
+            TaskDependencyType.TASK -> {
+                val task = issue.phases.asSequence()
+                    .flatMap { it.tasks.asSequence() }
+                    .firstOrNull { it.id == targetId }
+                    ?: throw NoSuchElementException("Task dependency $targetId not found")
+                task.dueDate ?: task.phase.deadline ?: issue.deadline
+            }
+            TaskDependencyType.PHASE -> {
+                val phase = issue.phases.firstOrNull { it.id == targetId }
+                    ?: throw NoSuchElementException("Phase dependency $targetId not found")
+                phase.deadline ?: issue.deadline
+            }
+            TaskDependencyType.ISSUE -> issue.deadline
+        }
     }
 }

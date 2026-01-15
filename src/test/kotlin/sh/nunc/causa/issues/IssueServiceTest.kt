@@ -4,8 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import java.time.LocalDate
 import java.util.Optional
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.context.ApplicationEventPublisher
 import sh.nunc.causa.reporting.IssueHistoryService
@@ -60,8 +62,14 @@ class IssueServiceTest {
                 description = "Issue description.",
                 ownerId = "owner-1",
                 projectId = "project-1",
+                deadline = null,
                 phases = listOf(
-                    CreatePhaseCommand(name = "Investigation", assigneeId = "user-2", kind = "INVESTIGATION"),
+                    CreatePhaseCommand(
+                        name = "Investigation",
+                        assigneeId = "user-2",
+                        kind = "INVESTIGATION",
+                        deadline = null,
+                    ),
                 ),
             ),
         )
@@ -152,6 +160,190 @@ class IssueServiceTest {
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
             service.closeIssue("issue-2")
+        }
+    }
+
+    @Test
+    fun `rejects phase deadline beyond issue deadline`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-3",
+            title = "Issue",
+            description = "Issue description.",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+            deadline = LocalDate.parse("2025-03-10"),
+        )
+        val phase = PhaseEntity(
+            id = "phase-1",
+            name = "Analysis",
+            assignee = owner,
+            status = PhaseStatus.NOT_STARTED.name,
+            kind = PhaseKind.INVESTIGATION.name,
+            deadline = LocalDate.parse("2025-03-08"),
+            issue = issue,
+        )
+        issue.phases.add(phase)
+        every { issueRepository.findById("issue-3") } returns Optional.of(issue)
+
+        assertThrows(IllegalStateException::class.java) {
+            service.updatePhase(
+                issueId = "issue-3",
+                phaseId = "phase-1",
+                name = null,
+                assigneeId = null,
+                status = null,
+                completionComment = null,
+                completionArtifactUrl = null,
+                kind = null,
+                deadline = LocalDate.parse("2025-03-15"),
+            )
+        }
+    }
+
+    @Test
+    fun `rejects task due date beyond phase deadline`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-4",
+            title = "Issue",
+            description = "Issue description.",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+            deadline = LocalDate.parse("2025-03-10"),
+        )
+        val phase = PhaseEntity(
+            id = "phase-1",
+            name = "Analysis",
+            assignee = owner,
+            status = PhaseStatus.NOT_STARTED.name,
+            kind = PhaseKind.INVESTIGATION.name,
+            deadline = LocalDate.parse("2025-03-08"),
+            issue = issue,
+        )
+        issue.phases.add(phase)
+        every { issueRepository.findById("issue-4") } returns Optional.of(issue)
+
+        assertThrows(IllegalStateException::class.java) {
+            service.addTask(
+                issueId = "issue-4",
+                phaseId = "phase-1",
+                title = "Prepare report",
+                assigneeId = null,
+                startDate = LocalDate.parse("2025-03-01"),
+                dueDate = LocalDate.parse("2025-03-12"),
+                dependencies = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `clamps phase and task deadlines when issue deadline is reduced`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-5",
+            title = "Issue",
+            description = "Issue description.",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+            deadline = LocalDate.parse("2025-03-20"),
+        )
+        val phase = PhaseEntity(
+            id = "phase-1",
+            name = "Analysis",
+            assignee = owner,
+            status = PhaseStatus.IN_PROGRESS.name,
+            kind = PhaseKind.INVESTIGATION.name,
+            deadline = LocalDate.parse("2025-03-18"),
+            issue = issue,
+        )
+        val task = TaskEntity(
+            id = "task-1",
+            title = "Prepare report",
+            assignee = owner,
+            status = TaskStatus.IN_PROGRESS.name,
+            startDate = LocalDate.parse("2025-03-15"),
+            dueDate = LocalDate.parse("2025-03-19"),
+            phase = phase,
+        )
+        phase.tasks.add(task)
+        issue.phases.add(phase)
+        every { issueRepository.findById("issue-5") } returns Optional.of(issue)
+        every { issueRepository.save(issue) } returns issue
+
+        val updated = service.updateIssue(
+            issueId = "issue-5",
+            title = null,
+            ownerId = null,
+            projectId = null,
+            description = null,
+            deadline = LocalDate.parse("2025-03-16"),
+        )
+
+        assertEquals(LocalDate.parse("2025-03-16"), updated.deadline)
+        assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().deadline)
+        assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().tasks.first().dueDate)
+        assertEquals(LocalDate.parse("2025-03-16"), updated.phases.first().tasks.first().startDate)
+    }
+
+    @Test
+    fun `rejects task start date before dependency completion`() {
+        val owner = UserEntity(id = "owner-1", displayName = "Owner")
+        val issue = IssueEntity(
+            id = "issue-6",
+            title = "Issue",
+            description = "Issue description.",
+            owner = owner,
+            projectId = "project-1",
+            status = IssueStatus.IN_ANALYSIS.name,
+        )
+        val phase = PhaseEntity(
+            id = "phase-1",
+            name = "Analysis",
+            assignee = owner,
+            status = PhaseStatus.IN_PROGRESS.name,
+            kind = PhaseKind.INVESTIGATION.name,
+            issue = issue,
+        )
+        val dependencyTask = TaskEntity(
+            id = "task-1",
+            title = "Collect data",
+            assignee = owner,
+            status = TaskStatus.IN_PROGRESS.name,
+            startDate = LocalDate.parse("2025-03-01"),
+            dueDate = LocalDate.parse("2025-03-10"),
+            phase = phase,
+        )
+        val task = TaskEntity(
+            id = "task-2",
+            title = "Analyze data",
+            assignee = owner,
+            status = TaskStatus.NOT_STARTED.name,
+            startDate = LocalDate.parse("2025-03-05"),
+            dueDate = LocalDate.parse("2025-03-12"),
+            phase = phase,
+        )
+        phase.tasks.addAll(listOf(dependencyTask, task))
+        issue.phases.add(phase)
+        every { issueRepository.findById("issue-6") } returns Optional.of(issue)
+
+        assertThrows(IllegalStateException::class.java) {
+            service.updateTask(
+                issueId = "issue-6",
+                phaseId = "phase-1",
+                taskId = "task-2",
+                title = null,
+                assigneeId = null,
+                status = null,
+                startDate = LocalDate.parse("2025-03-05"),
+                dueDate = LocalDate.parse("2025-03-12"),
+                dependencies = listOf(
+                    TaskDependencyView(type = TaskDependencyType.TASK.name, targetId = "task-1"),
+                ),
+            )
         }
     }
 }

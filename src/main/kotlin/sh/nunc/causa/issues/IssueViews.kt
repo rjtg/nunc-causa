@@ -30,6 +30,7 @@ data class IssueDetailView(
     val ownerId: String,
     val projectId: String?,
     val status: String,
+    val deadline: String?,
     val phases: List<PhaseView>,
 )
 
@@ -41,6 +42,7 @@ data class PhaseView(
     val kind: String?,
     val completionComment: String?,
     val completionArtifactUrl: String?,
+    val deadline: String?,
     val tasks: List<TaskView>,
 )
 

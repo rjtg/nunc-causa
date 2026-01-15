@@ -8,7 +8,6 @@ import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.issues.PhaseView
 import sh.nunc.causa.issues.TaskView
 import sh.nunc.causa.web.model.ActionDecision
-import sh.nunc.causa.users.UserEntity
 
 class IssueApiMapperTest {
     @Test
@@ -20,6 +19,7 @@ class IssueApiMapperTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -29,6 +29,7 @@ class IssueApiMapperTest {
                     kind = null,
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",

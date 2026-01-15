@@ -11,7 +11,8 @@ class IssueCommandsTest {
             description = "Issue description.",
             ownerId = "owner-1",
             projectId = "project-1",
-            phases = listOf(CreatePhaseCommand(name = "Investigate", assigneeId = "user-1", kind = null)),
+            deadline = null,
+            phases = listOf(CreatePhaseCommand(name = "Investigate", assigneeId = "user-1", kind = null, deadline = null)),
         )
 
         assertEquals("Issue", command.title)

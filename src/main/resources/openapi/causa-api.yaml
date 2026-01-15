@@ -665,6 +665,9 @@ components:
           type: string
         description:
           type: string
+        deadline:
+          type: string
+          format: date
         phases:
           type: array
           items:
@@ -680,6 +683,9 @@ components:
           type: string
         description:
           type: string
+        deadline:
+          type: string
+          format: date
     AssignOwnerRequest:
       type: object
       required:
@@ -706,6 +712,9 @@ components:
           type: string
         kind:
           $ref: '#/components/schemas/PhaseKind'
+        deadline:
+          type: string
+          format: date
     UpdatePhaseRequest:
       type: object
       properties:
@@ -722,6 +731,9 @@ components:
           format: uri
         kind:
           $ref: '#/components/schemas/PhaseKind'
+        deadline:
+          type: string
+          format: date
     AddTaskRequest:
       type: object
       required:
@@ -772,6 +784,9 @@ components:
           type: string
         kind:
           $ref: '#/components/schemas/PhaseKind'
+        deadline:
+          type: string
+          format: date
     IssueListItem:
       type: object
       required:
@@ -823,6 +838,9 @@ components:
             $ref: '#/components/schemas/PhaseResponse'
         status:
           $ref: '#/components/schemas/IssueStatus'
+        deadline:
+          type: string
+          format: date
         version:
           type: integer
           format: int64
@@ -894,6 +912,9 @@ components:
         completionArtifactUrl:
           type: string
           format: uri
+        deadline:
+          type: string
+          format: date
         tasks:
           type: array
           items:

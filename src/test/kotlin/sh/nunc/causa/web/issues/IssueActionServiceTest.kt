@@ -24,6 +24,7 @@ class IssueActionServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.DONE.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -33,6 +34,7 @@ class IssueActionServiceTest {
                     kind = "INVESTIGATION",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -43,6 +45,7 @@ class IssueActionServiceTest {
                     kind = "DEVELOPMENT",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -53,6 +56,7 @@ class IssueActionServiceTest {
                     kind = "ACCEPTANCE_TEST",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -63,6 +67,7 @@ class IssueActionServiceTest {
                     kind = "ROLLOUT",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -83,6 +88,7 @@ class IssueActionServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -92,6 +98,7 @@ class IssueActionServiceTest {
                     kind = "INVESTIGATION",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -112,6 +119,7 @@ class IssueActionServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_ANALYSIS.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -121,6 +129,7 @@ class IssueActionServiceTest {
                     kind = "INVESTIGATION",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -141,6 +150,7 @@ class IssueActionServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_DEVELOPMENT.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -150,6 +160,7 @@ class IssueActionServiceTest {
                     kind = "DEVELOPMENT",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",
@@ -180,6 +191,7 @@ class IssueActionServiceTest {
             ownerId = "owner-1",
             projectId = "project-1",
             status = IssueStatus.IN_DEVELOPMENT.name,
+            deadline = null,
             phases = listOf(
                 PhaseView(
                     id = "phase-1",
@@ -189,6 +201,7 @@ class IssueActionServiceTest {
                     kind = "DEVELOPMENT",
                     completionComment = null,
                     completionArtifactUrl = null,
+                    deadline = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",
