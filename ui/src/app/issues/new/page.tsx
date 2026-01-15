@@ -6,12 +6,18 @@ import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 
 type PhaseDraft = {
-  name: string;
+  enabled: boolean;
   assigneeId: string;
   kind: string;
 };
 
-const emptyPhase: PhaseDraft = { name: "", assigneeId: "", kind: "" };
+const defaultPhases: PhaseDraft[] = [
+  { enabled: true, assigneeId: "", kind: "INVESTIGATION" },
+  { enabled: true, assigneeId: "", kind: "PROPOSE_SOLUTION" },
+  { enabled: true, assigneeId: "", kind: "DEVELOPMENT" },
+  { enabled: true, assigneeId: "", kind: "ACCEPTANCE_TEST" },
+  { enabled: true, assigneeId: "", kind: "ROLLOUT" },
+];
 
 type SimilarIssue = {
   id: string;
@@ -29,6 +35,17 @@ type ProjectOption = {
   name: string;
 };
 
+const phaseLabel = (kind: string) =>
+  (
+    {
+      INVESTIGATION: "Investigation",
+      PROPOSE_SOLUTION: "Propose solution",
+      DEVELOPMENT: "Development",
+      ACCEPTANCE_TEST: "Acceptance test",
+      ROLLOUT: "Rollout",
+    } as Record<string, string>
+  )[kind] ?? "Phase";
+
 export default function NewIssuePage() {
   const router = useRouter();
   const api = useApi();
@@ -38,7 +55,7 @@ export default function NewIssuePage() {
   const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [projectId, setProjectId] = useState("");
-  const [phases, setPhases] = useState<PhaseDraft[]>([]);
+  const [phases, setPhases] = useState<PhaseDraft[]>(defaultPhases);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -53,25 +70,16 @@ export default function NewIssuePage() {
       return;
     }
     let active = true;
-    async function loadOptions() {
+    async function loadProjects() {
       setOptionsError(null);
-      const [usersResponse, projectsResponse] = await Promise.all([
-        api.GET("/users", { params: { query: {} } }),
-        api.GET("/projects", { params: { query: {} } }),
-      ]);
+      const projectsResponse = await api.GET("/projects", { params: { query: {} } });
       if (!active) {
         return;
       }
-      if (usersResponse.error || projectsResponse.error) {
+      if (projectsResponse.error) {
         setOptionsError("Unable to load options.");
         return;
       }
-      setUsers(
-        (usersResponse.data ?? []).map((user) => ({
-          id: user.id ?? "unknown",
-          displayName: user.displayName ?? "Unknown",
-        })),
-      );
       setProjects(
         (projectsResponse.data ?? []).map((project) => ({
           id: project.id ?? "unknown",
@@ -79,11 +87,47 @@ export default function NewIssuePage() {
         })),
       );
     }
-    loadOptions();
+    loadProjects();
     return () => {
       active = false;
     };
   }, [api, isAuthed]);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      return;
+    }
+    let active = true;
+    async function loadUsers() {
+      setOptionsError(null);
+      const usersResponse = await api.GET("/users", {
+        params: {
+          query: projectId ? { projectId } : {},
+        },
+      });
+      if (!active) {
+        return;
+      }
+      if (usersResponse.error) {
+        setOptionsError("Unable to load options.");
+        return;
+      }
+      const nextUsers = (usersResponse.data ?? []).map((user) => ({
+        id: user.id ?? "unknown",
+        displayName: user.displayName ?? "Unknown",
+      }));
+      setUsers(nextUsers);
+      setOwnerId((previousOwner) =>
+        previousOwner && !nextUsers.some((user) => user.id === previousOwner)
+          ? ""
+          : previousOwner,
+      );
+    }
+    loadUsers();
+    return () => {
+      active = false;
+    };
+  }, [api, isAuthed, projectId]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -169,11 +213,11 @@ export default function NewIssuePage() {
               ownerId,
               projectId,
               phases: phases
-                .filter((phase) => phase.name && phase.assigneeId)
+                .filter((phase) => phase.enabled && phase.assigneeId && phase.kind)
                 .map((phase) => ({
-                  name: phase.name,
+                  name: phaseLabel(phase.kind),
                   assigneeId: phase.assigneeId,
-                  kind: phase.kind || null,
+                  kind: phase.kind,
                 })),
             },
           });
@@ -250,44 +294,47 @@ export default function NewIssuePage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Phases</h2>
-            <button
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-700"
-              type="button"
-              onClick={() => setPhases((prev) => [...prev, { ...emptyPhase }])}
-            >
-              Add phase
-            </button>
           </div>
-          {phases.length === 0 && (
-            <p className="text-xs text-slate-500">
-              Add phases to assign work up front (optional).
-            </p>
-          )}
           {phases.map((phase, index) => (
             <div
               key={`phase-${index}`}
-              className="grid gap-2 rounded-2xl border border-slate-200/60 bg-white/90 p-4 md:grid-cols-3"
+              className="grid gap-2 rounded-2xl border border-slate-200/60 bg-white/90 p-4 md:grid-cols-2"
             >
-              <input
-                className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
-                placeholder="Phase name"
-                value={phase.name}
-                onChange={(event) =>
-                  setPhases((prev) =>
-                    prev.map((item, idx) =>
-                      idx === index
-                        ? { ...item, name: event.target.value }
-                        : item,
-                    ),
-                  )
-                }
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  className={`h-5 w-10 rounded-full border transition ${
+                    phase.enabled
+                      ? "border-emerald-400 bg-emerald-400"
+                      : "border-slate-200 bg-slate-200"
+                  }`}
+                  type="button"
+                  onClick={() =>
+                    setPhases((prev) =>
+                      prev.map((item, idx) =>
+                        idx === index
+                          ? { ...item, enabled: !item.enabled }
+                          : item,
+                      ),
+                    )
+                  }
+                >
+                  <span
+                    className={`block h-4 w-4 rounded-full bg-white transition ${
+                      phase.enabled ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+                <span className="text-xs font-semibold text-slate-700">
+                  {phaseLabel(phase.kind)}
+                </span>
+              </div>
               <div className="relative">
                 <input
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
                   placeholder="Assignee ID"
                   value={phase.assigneeId}
                   list="user-options"
+                  disabled={!phase.enabled}
                   onChange={(event) =>
                     setPhases((prev) =>
                       prev.map((item, idx) =>
@@ -301,37 +348,6 @@ export default function NewIssuePage() {
                 <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
                   ▾
                 </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
-                    placeholder="Kind (optional)"
-                    value={phase.kind}
-                    list="phase-kind-options"
-                    onChange={(event) =>
-                      setPhases((prev) =>
-                        prev.map((item, idx) =>
-                          idx === index
-                            ? { ...item, kind: event.target.value }
-                            : item,
-                        ),
-                      )
-                    }
-                  />
-                  <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
-                    ▾
-                  </span>
-                </div>
-                <button
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
-                  type="button"
-                  onClick={() =>
-                    setPhases((prev) => prev.filter((_, idx) => idx !== index))
-                  }
-                >
-                  Remove
-                </button>
               </div>
             </div>
           ))}
@@ -393,17 +409,6 @@ export default function NewIssuePage() {
             <option key={project.id} value={project.id}>
               {project.name}
             </option>
-          ))}
-        </datalist>
-        <datalist id="phase-kind-options">
-          {[
-            "INVESTIGATION",
-            "PROPOSE_SOLUTION",
-            "DEVELOPMENT",
-            "ACCEPTANCE_TEST",
-            "ROLLOUT",
-          ].map((kind) => (
-            <option key={kind} value={kind} />
           ))}
         </datalist>
       </form>

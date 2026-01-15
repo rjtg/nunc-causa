@@ -92,6 +92,10 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Priority 2 — Persistence and Observability
 
+[x] Track read comments per user/issue
+    - Store last read comment or timestamp per user + issue
+    - Expose unread count + latest unread pointer in API
+    - Add UI affordance for "jump to unread" in comments
 [x] Add Hibernate Search indexes for issues, phases, and tasks
     - Define index mappings
     - Add search queries for list view
@@ -122,6 +126,19 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Priority 4 — UX Enhancements (Later)
 
+[ ] Define completion artifact integrations per phase
+    - Brainstorm integration options (GitHub/GitLab PRs, docs, PDFs)
+    - Define dev-phase rule: link to PR(s) and require merge before completion
+    - Define generic artifact model (URL + type + optional validation)
+    - Add UI affordance for linking artifacts during phase completion
+[ ] Generate git summary for issues from linked repositories
+    - Link issue to repo(s) and define commit message tag format
+    - Collect commits referencing issue ID and summarize changes
+    - Surface summary on issue detail and in completion flow
+[ ] Surface linked document summaries (SharePoint, etc.)
+    - Store linked doc metadata + auth handshake requirements
+    - Fetch or precompute summaries for linked documents
+    - Display summaries in issue detail and completion panels
 [ ] Add comments/discussion threads
 [ ] Add phase detail view and phase checklist/config endpoints
 [ ] Add task-level granularity in dev phases

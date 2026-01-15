@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import AuthStatus from "@/components/auth-status";
+import { isHotkeyCandidate } from "@/lib/hotkeys";
 
 export default function TopBar() {
   const router = useRouter();
@@ -20,20 +21,11 @@ export default function TopBar() {
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
+      if (!isHotkeyCandidate(event)) {
         return;
       }
-      const isHotkey = (event.metaKey || event.ctrlKey) && event.key === "n";
-      if (isHotkey) {
-        event.preventDefault();
-        router.push("/issues/new");
-      }
+      event.preventDefault();
+      router.push("/issues/new");
     }
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
@@ -76,7 +68,7 @@ export default function TopBar() {
             className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
             href="/issues/new"
           >
-            New issue (⌘/Ctrl+N)
+            New issue (N)
           </Link>
           <AuthStatus />
         </div>

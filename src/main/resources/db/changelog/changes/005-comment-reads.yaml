@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-comment-reads
+      author: codex
+      changes:
+        - createTable:
+            tableName: issue_comment_reads
+            columns:
+              - column:
+                  name: read_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: issue_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_read_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_read_comment_id
+                  type: varchar(64)
+        - addUniqueConstraint:
+            tableName: issue_comment_reads
+            columnNames: issue_id, user_id
+            constraintName: uq_issue_comment_reads_issue_user
+        - createIndex:
+            tableName: issue_comment_reads
+            indexName: idx_issue_comment_reads_user
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            tableName: issue_comment_reads
+            indexName: idx_issue_comment_reads_issue
+            columns:
+              - column:
+                  name: issue_id

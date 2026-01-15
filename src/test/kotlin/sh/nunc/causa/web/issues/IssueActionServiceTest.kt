@@ -31,6 +31,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "DONE",
                     kind = "INVESTIGATION",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -39,6 +41,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "DONE",
                     kind = "DEVELOPMENT",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -47,6 +51,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "DONE",
                     kind = "ACCEPTANCE_TEST",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
                 PhaseView(
@@ -55,6 +61,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "DONE",
                     kind = "ROLLOUT",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -82,6 +90,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "IN_PROGRESS",
                     kind = "INVESTIGATION",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -109,6 +119,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "DONE",
                     kind = "INVESTIGATION",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = emptyList(),
                 ),
             ),
@@ -136,6 +148,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "IN_PROGRESS",
                     kind = "DEVELOPMENT",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",
@@ -170,6 +184,8 @@ class IssueActionServiceTest {
                     assigneeId = "assignee-1",
                     status = "IN_PROGRESS",
                     kind = "DEVELOPMENT",
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",

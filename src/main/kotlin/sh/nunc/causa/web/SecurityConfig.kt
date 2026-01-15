@@ -13,6 +13,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.http.HttpMethod
 
 @Configuration
 @EnableMethodSecurity
@@ -21,8 +22,10 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf -> csrf.disable() }
+            .cors(Customizer.withDefaults())
             .authorizeHttpRequests { auth ->
                 auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
                     .requestMatchers("/auth/methods").permitAll()
                     .anyRequest().authenticated()

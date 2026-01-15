@@ -262,6 +262,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/issues/{issueId}/comments/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark issue comments as read */
+        post: operations["markIssueCommentsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/work": {
         parameters: {
             query?: never;
@@ -379,6 +396,9 @@ export interface components {
             name?: string;
             assigneeId?: string;
             status?: components["schemas"]["PhaseStatus"];
+            completionComment?: string;
+            /** Format: uri */
+            completionArtifactUrl?: string;
             kind?: components["schemas"]["PhaseKind"];
         };
         AddTaskRequest: {
@@ -437,6 +457,9 @@ export interface components {
             assigneeId: string;
             status: components["schemas"]["PhaseStatus"];
             kind?: components["schemas"]["PhaseKind"];
+            completionComment?: string;
+            /** Format: uri */
+            completionArtifactUrl?: string;
             tasks: components["schemas"]["TaskResponse"][];
             allowedActions?: {
                 [key: string]: components["schemas"]["ActionDecision"];
@@ -488,6 +511,25 @@ export interface components {
             body: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        IssueCommentsResponse: {
+            comments: components["schemas"]["CommentResponse"][];
+            unreadCount: number;
+            /** Format: date-time */
+            lastReadAt?: string;
+            /** Format: date-time */
+            latestCommentAt?: string;
+            firstUnreadCommentId?: string;
+        };
+        CommentReadRequest: {
+            lastReadCommentId?: string;
+        };
+        CommentReadResponse: {
+            /** Format: date-time */
+            lastReadAt: string;
+            unreadCount: number;
+            /** Format: date-time */
+            latestCommentAt?: string;
         };
         MyWorkResponse: {
             ownedIssues: components["schemas"]["IssueListItem"][];
@@ -1045,13 +1087,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Comment list */
+            /** @description Comment thread */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CommentResponse"][];
+                    "application/json": components["schemas"]["IssueCommentsResponse"];
                 };
             };
         };
@@ -1078,6 +1120,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommentResponse"];
+                };
+            };
+        };
+    };
+    markIssueCommentsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CommentReadRequest"];
+            };
+        };
+        responses: {
+            /** @description Read state updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentReadResponse"];
                 };
             };
         };
@@ -1148,6 +1216,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
+                projectId?: string;
             };
             header?: never;
             path?: never;

@@ -27,6 +27,8 @@ class IssueApiMapperTest {
                     assigneeId = "assignee-1",
                     status = "NOT_STARTED",
                     kind = null,
+                    completionComment = null,
+                    completionArtifactUrl = null,
                     tasks = listOf(
                         TaskView(
                             id = "task-1",

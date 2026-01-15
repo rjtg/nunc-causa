@@ -201,11 +201,14 @@ class IssueService(
         name: String?,
         assigneeId: String?,
         status: PhaseStatus?,
+        completionComment: String?,
+        completionArtifactUrl: String?,
         kind: String?,
     ): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
+        val previousStatus = PhaseStatus.valueOf(phase.status)
         if (name != null) {
             phase.name = name
         }
@@ -216,7 +219,28 @@ class IssueService(
             if (status == PhaseStatus.DONE && phase.tasks.any { it.status != TaskStatus.DONE.name }) {
                 throw IllegalStateException("Phase $phaseId has unfinished tasks")
             }
+            if (status == PhaseStatus.DONE) {
+                if (completionComment.isNullOrBlank()) {
+                    throw IllegalStateException("Phase $phaseId completion comment required")
+                }
+                phase.completionComment = completionComment.trim()
+                phase.completionArtifactUrl = completionArtifactUrl?.trim()?.ifBlank { null }
+            } else {
+                phase.completionComment = null
+                phase.completionArtifactUrl = null
+            }
             phase.status = status.name
+        }
+        if (completionComment != null || completionArtifactUrl != null) {
+            val isDone = PhaseStatus.valueOf(phase.status) == PhaseStatus.DONE
+            if (!isDone) {
+                throw IllegalStateException("Phase $phaseId must be done to store completion details")
+            }
+            if (completionComment.isNullOrBlank()) {
+                throw IllegalStateException("Phase $phaseId completion comment required")
+            }
+            phase.completionComment = completionComment.trim()
+            phase.completionArtifactUrl = completionArtifactUrl?.trim()?.ifBlank { null }
         }
         if (kind != null) {
             phase.kind = kind
@@ -224,7 +248,12 @@ class IssueService(
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "PHASE_UPDATED", "Phase updated")
+        val nextStatus = PhaseStatus.valueOf(phase.status)
+        if (previousStatus != PhaseStatus.DONE && nextStatus == PhaseStatus.DONE) {
+            recordActivity(saved.id, "PHASE_COMPLETED", "Phase completed")
+        } else {
+            recordActivity(saved.id, "PHASE_UPDATED", "Phase updated")
+        }
         return saved
     }
 
@@ -461,6 +490,8 @@ class IssueService(
                     assigneeId = phase.assignee.id,
                     status = phase.status,
                     kind = phase.kind,
+                    completionComment = phase.completionComment,
+                    completionArtifactUrl = phase.completionArtifactUrl,
                     tasks = phase.tasks.map { task ->
                         TaskView(
                             id = task.id,

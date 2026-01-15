@@ -20,6 +20,7 @@ import sh.nunc.causa.web.model.PhaseResponse
 import sh.nunc.causa.web.model.PhaseStatus as ApiPhaseStatus
 import sh.nunc.causa.web.model.TaskResponse
 import sh.nunc.causa.web.model.TaskStatus as ApiTaskStatus
+import java.net.URI
 
 interface IssueActionProvider {
     fun issueActions(issue: IssueDetailView): Map<String, ActionDecision>
@@ -77,6 +78,8 @@ private fun PhaseView.toResponse(issue: IssueDetailView, actions: IssueActionPro
         assigneeId = assigneeId,
         status = status.toPhaseStatusEnum(),
         kind = kind?.let { PhaseKind.valueOf(it) },
+        completionComment = completionComment,
+        completionArtifactUrl = completionArtifactUrl?.let { URI.create(it) },
         tasks = tasks.map { it.toResponse(issue, id, actions) },
         allowedActions = actions.phaseActions(issue, id),
     )

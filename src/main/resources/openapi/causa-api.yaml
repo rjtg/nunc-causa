@@ -493,13 +493,11 @@ paths:
             type: string
       responses:
         '200':
-          description: Comment list
+          description: Comment thread
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CommentResponse'
+                $ref: '#/components/schemas/IssueCommentsResponse'
     post:
       tags:
         - Issues
@@ -524,6 +522,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommentResponse'
+  /issues/{issueId}/comments/read:
+    post:
+      tags:
+        - Issues
+      summary: Mark issue comments as read
+      operationId: markIssueCommentsRead
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentReadRequest'
+      responses:
+        '200':
+          description: Read state updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentReadResponse'
   /me/work:
     get:
       tags:
@@ -579,6 +602,11 @@ paths:
       operationId: listUsers
       parameters:
         - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: projectId
           in: query
           required: false
           schema:
@@ -687,6 +715,11 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PhaseStatus'
+        completionComment:
+          type: string
+        completionArtifactUrl:
+          type: string
+          format: uri
         kind:
           $ref: '#/components/schemas/PhaseKind'
     AddTaskRequest:
@@ -836,6 +869,11 @@ components:
           $ref: '#/components/schemas/PhaseStatus'
         kind:
           $ref: '#/components/schemas/PhaseKind'
+        completionComment:
+          type: string
+        completionArtifactUrl:
+          type: string
+          format: uri
         tasks:
           type: array
           items:
@@ -957,6 +995,45 @@ components:
         body:
           type: string
         createdAt:
+          type: string
+          format: date-time
+    IssueCommentsResponse:
+      type: object
+      required:
+        - comments
+        - unreadCount
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        unreadCount:
+          type: integer
+        lastReadAt:
+          type: string
+          format: date-time
+        latestCommentAt:
+          type: string
+          format: date-time
+        firstUnreadCommentId:
+          type: string
+    CommentReadRequest:
+      type: object
+      properties:
+        lastReadCommentId:
+          type: string
+    CommentReadResponse:
+      type: object
+      required:
+        - lastReadAt
+        - unreadCount
+      properties:
+        lastReadAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+        latestCommentAt:
           type: string
           format: date-time
     MyWorkResponse:

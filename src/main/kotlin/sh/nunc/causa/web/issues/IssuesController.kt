@@ -22,8 +22,11 @@ import sh.nunc.causa.web.model.AddPhaseRequest
 import sh.nunc.causa.web.model.AddTaskRequest
 import sh.nunc.causa.web.model.AssignAssigneeRequest
 import sh.nunc.causa.web.model.AssignOwnerRequest
+import sh.nunc.causa.web.model.CommentReadRequest
+import sh.nunc.causa.web.model.CommentReadResponse
 import sh.nunc.causa.web.model.CommentResponse
 import sh.nunc.causa.web.model.CreateIssueRequest
+import sh.nunc.causa.web.model.IssueCommentsResponse
 import sh.nunc.causa.web.model.IssueDetail
 import sh.nunc.causa.web.model.IssueFacetResponse
 import sh.nunc.causa.web.model.IssueHistoryResponse
@@ -217,6 +220,8 @@ class IssuesController(
                     updatePhaseRequest.name,
                     updatePhaseRequest.assigneeId,
                     updatePhaseRequest.status?.let { PhaseStatus.valueOf(it.name) },
+                    updatePhaseRequest.completionComment,
+                    updatePhaseRequest.completionArtifactUrl?.toString(),
                     updatePhaseRequest.kind?.name,
                 )
             }
@@ -275,9 +280,17 @@ class IssuesController(
     }
 
     @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
-    override fun listIssueComments(issueId: String): ResponseEntity<List<CommentResponse>> {
-        val comments = issueCommentService.listComments(issueId)
-        return ResponseEntity.ok(comments)
+    override fun listIssueComments(issueId: String): ResponseEntity<IssueCommentsResponse> {
+        val thread = issueCommentService.listComments(issueId)
+        return ResponseEntity.ok(
+            IssueCommentsResponse(
+                comments = thread.comments,
+                unreadCount = thread.unreadCount,
+                lastReadAt = thread.lastReadAt,
+                latestCommentAt = thread.latestCommentAt,
+                firstUnreadCommentId = thread.firstUnreadCommentId,
+            ),
+        )
     }
 
     @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
@@ -287,6 +300,21 @@ class IssuesController(
     ): ResponseEntity<CommentResponse> {
         val comment = issueCommentService.addComment(issueId, addCommentRequest)
         return ResponseEntity.status(HttpStatus.CREATED).body(comment)
+    }
+
+    @PreAuthorize("@accessPolicy.canViewIssue(#issueId)")
+    override fun markIssueCommentsRead(
+        issueId: String,
+        @Valid @RequestBody commentReadRequest: CommentReadRequest?,
+    ): ResponseEntity<CommentReadResponse> {
+        val read = issueCommentService.markRead(issueId, commentReadRequest?.lastReadCommentId)
+        return ResponseEntity.ok(
+            CommentReadResponse(
+                lastReadAt = read.lastReadAt,
+                unreadCount = read.unreadCount,
+                latestCommentAt = read.latestCommentAt,
+            ),
+        )
     }
 
     private fun loadIssue(issueId: String) = withNotFound {

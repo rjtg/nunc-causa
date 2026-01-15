@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-phase-completion
+      author: codex
+      changes:
+        - addColumn:
+            tableName: issue_phases
+            columns:
+              - column:
+                  name: completion_comment
+                  type: varchar(2000)
+              - column:
+                  name: completion_artifact_url
+                  type: varchar(1024)
+        - addColumn:
+            tableName: issue_phases_AUD
+            columns:
+              - column:
+                  name: completion_comment
+                  type: varchar(2000)
+              - column:
+                  name: completion_artifact_url
+                  type: varchar(1024)

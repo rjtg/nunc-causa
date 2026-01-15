@@ -5,3 +5,7 @@ databaseChangeLog:
       file: db/changelog/changes/002-issue-description.yaml
   - include:
       file: db/changelog/changes/003-project-key-issue-number.yaml
+  - include:
+      file: db/changelog/changes/004-phase-completion.yaml
+  - include:
+      file: db/changelog/changes/005-comment-reads.yaml

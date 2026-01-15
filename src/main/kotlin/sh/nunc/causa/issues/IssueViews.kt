@@ -39,6 +39,8 @@ data class PhaseView(
     val assigneeId: String,
     val status: String,
     val kind: String?,
+    val completionComment: String?,
+    val completionArtifactUrl: String?,
     val tasks: List<TaskView>,
 )
 

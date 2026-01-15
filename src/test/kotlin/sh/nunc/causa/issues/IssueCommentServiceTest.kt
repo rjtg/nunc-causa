@@ -11,7 +11,8 @@ import java.time.OffsetDateTime
 class IssueCommentServiceTest {
     private val repository = mockk<IssueCommentRepository>()
     private val currentUserService = mockk<CurrentUserService>()
-    private val service = IssueCommentService(repository, currentUserService)
+    private val readRepository = mockk<IssueCommentReadRepository>()
+    private val service = IssueCommentService(repository, currentUserService, readRepository)
 
     @Test
     fun `adds comment with current user`() {
@@ -35,10 +36,12 @@ class IssueCommentServiceTest {
             createdAt = OffsetDateTime.now(),
         )
         every { repository.findAllByIssueIdOrderByCreatedAtAsc("issue-1") } returns listOf(first)
+        every { repository.findTopByIssueIdOrderByCreatedAtDesc("issue-1") } returns first
+        every { currentUserService.currentUserId() } returns null
 
         val result = service.listComments("issue-1")
 
-        assertEquals(1, result.size)
-        assertEquals("comment-1", result.first().id)
+        assertEquals(1, result.comments.size)
+        assertEquals("comment-1", result.comments.first().id)
     }
 }

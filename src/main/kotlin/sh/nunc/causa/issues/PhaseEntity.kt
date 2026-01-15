@@ -39,6 +39,12 @@ class PhaseEntity(
     @Column(name = "status", nullable = false)
     var status: String,
 
+    @Column(name = "completion_comment")
+    var completionComment: String? = null,
+
+    @Column(name = "completion_artifact_url")
+    var completionArtifactUrl: String? = null,
+
     @KeywordField(aggregable = Aggregable.YES)
     @Column(name = "kind")
     var kind: String?,

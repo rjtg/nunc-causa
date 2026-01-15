@@ -1,13 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 
 type WorkResponse = {
   ownedIssues: { id?: string; title?: string }[];
-  assignedPhases: { issueId?: string; phaseName?: string; status?: string }[];
-  assignedTasks: { issueId?: string; taskTitle?: string; status?: string }[];
+  assignedPhases: {
+    issueId?: string;
+    phaseId?: string;
+    phaseName?: string;
+    status?: string;
+  }[];
+  assignedTasks: {
+    issueId?: string;
+    phaseId?: string;
+    taskId?: string;
+    taskTitle?: string;
+    status?: string;
+  }[];
 };
 
 export default function WorkPage() {
@@ -75,27 +87,28 @@ export default function WorkPage() {
           {[
             {
               label: "Owned issues",
-              items: work.ownedIssues.map(
-                (issue) => `${issue.id ?? "—"} ${issue.title ?? ""}`,
-              ),
+              items: work.ownedIssues.map((issue) => ({
+                id: issue.id ?? "—",
+                label: `${issue.id ?? "—"} ${issue.title ?? ""}`,
+              })),
             },
             {
               label: "Assigned phases",
-              items: work.assignedPhases.map(
-                (phase) =>
-                  `${phase.issueId ?? "—"} ${phase.phaseName ?? ""} (${
-                    phase.status ?? "—"
-                  })`,
-              ),
+              items: work.assignedPhases.map((phase) => ({
+                id: phase.issueId ?? "—",
+                label: `${phase.issueId ?? "—"} ${phase.phaseName ?? ""} (${
+                  phase.status ?? "—"
+                })`,
+              })),
             },
             {
               label: "Assigned tasks",
-              items: work.assignedTasks.map(
-                (task) =>
-                  `${task.issueId ?? "—"} ${task.taskTitle ?? ""} (${
-                    task.status ?? "—"
-                  })`,
-              ),
+              items: work.assignedTasks.map((task) => ({
+                id: task.issueId ?? "—",
+                label: `${task.issueId ?? "—"} ${task.taskTitle ?? ""} (${
+                  task.status ?? "—"
+                })`,
+              })),
             },
           ].map((lane) => (
             <div
@@ -113,10 +126,16 @@ export default function WorkPage() {
                 )}
                 {lane.items.map((item) => (
                   <li
-                    key={item}
+                    key={`${lane.label}-${item.label}`}
                     className="rounded-lg border border-slate-100 bg-white px-3 py-2"
                   >
-                    {item}
+                    {item.id !== "—" ? (
+                      <Link className="hover:underline" href={`/issues/${item.id}`}>
+                        {item.label}
+                      </Link>
+                    ) : (
+                      item.label
+                    )}
                   </li>
                 ))}
               </ul>

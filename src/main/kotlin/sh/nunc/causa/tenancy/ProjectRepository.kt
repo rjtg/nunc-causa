@@ -2,4 +2,6 @@ package sh.nunc.causa.tenancy
 
 import org.springframework.data.jpa.repository.JpaRepository
 
-interface ProjectRepository : JpaRepository<ProjectEntity, String>
+interface ProjectRepository : JpaRepository<ProjectEntity, String> {
+    fun findAllByOrgIdIn(orgIds: Collection<String>): List<ProjectEntity>
+}
