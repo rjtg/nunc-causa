@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
+import { Typeahead } from "@/components/typeahead";
 import { useHealth } from "@/lib/health/context";
+import { IssueSummaryCard } from "@/components/issue-summary-card";
 
 type IssueSummary = {
   id: string;
@@ -33,6 +34,9 @@ type FacetResponse = {
 type UserOption = {
   id: string;
   displayName: string;
+  openIssueCount?: number | null;
+  openPhaseCount?: number | null;
+  openTaskCount?: number | null;
 };
 
 type ProjectOption = {
@@ -71,6 +75,43 @@ const emptyFilters: Filters = {
   phaseKind: "",
 };
 
+const workloadLabel = (user: UserOption) => {
+  const openIssues = user.openIssueCount ?? 0;
+  const openPhases = user.openPhaseCount ?? 0;
+  const openTasks = user.openTaskCount ?? 0;
+  return `${openIssues} / ${openPhases} / ${openTasks}`;
+};
+
+const issueStatusLabel = (value: string) => {
+  if (value === "NOT_ACTIVE") {
+    return "Not active";
+  }
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const issueStatusBadgeStyle = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "border-emerald-200 bg-emerald-100 text-emerald-800";
+    case "FAILED":
+      return "border-rose-200 bg-rose-100 text-rose-800";
+    case "IN_ANALYSIS":
+      return "border-amber-200 bg-amber-100 text-amber-800";
+    case "IN_DEVELOPMENT":
+      return "border-sky-200 bg-sky-100 text-sky-800";
+    case "IN_TEST":
+      return "border-violet-200 bg-violet-100 text-violet-800";
+    case "IN_ROLLOUT":
+      return "border-emerald-200 bg-emerald-100 text-emerald-800";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+};
+
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
     case "sync":
@@ -100,6 +141,21 @@ export default function IssuesPage() {
   const [facets, setFacets] = useState<FacetResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const facetCounts = useMemo(() => {
+    const counts = (options: FacetOption[]) =>
+      options.reduce<Record<string, number>>((acc, option) => {
+        if (option.id) {
+          acc[option.id] = option.count ?? 0;
+        }
+        return acc;
+      }, {});
+    return {
+      owners: counts(facets?.owners ?? []),
+      assignees: counts(facets?.assignees ?? []),
+      projects: counts(facets?.projects ?? []),
+    };
+  }, [facets]);
 
   const loadIssues = useCallback(
     async (nextFilters: Filters) => {
@@ -231,6 +287,9 @@ export default function IssuesPage() {
         (usersResponse.data ?? []).map((user) => ({
           id: user.id ?? "unknown",
           displayName: user.displayName ?? "Unknown",
+          openIssueCount: user.openIssueCount ?? 0,
+          openPhaseCount: user.openPhaseCount ?? 0,
+          openTaskCount: user.openTaskCount ?? 0,
         })),
       );
       setProjects(
@@ -317,133 +376,172 @@ export default function IssuesPage() {
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Project
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Project"
-                value={filterState.filters.projectId}
-                list="project-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { projectId: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.projectId}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { projectId: value } })
+              }
+              options={projects
+                .filter((project) => {
+                  if (!facets) {
+                    return true;
+                  }
+                  const validIds = new Set(
+                    facets.projects
+                      .map((option) => option.id)
+                      .filter(Boolean) as string[],
+                  );
+                  return validIds.size === 0 || validIds.has(project.id);
+                })
+                .map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                  meta:
+                    facetCounts.projects[project.id] !== undefined
+                      ? `${facetCounts.projects[project.id]} open`
+                      : undefined,
+                }))}
+              placeholder="Project"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Owner
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Owner"
-                value={filterState.filters.ownerId}
-                list="owner-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { ownerId: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.ownerId}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { ownerId: value } })
+              }
+              options={users
+                .filter((user) => {
+                  if (!facets) {
+                    return true;
+                  }
+                  const validIds = new Set(
+                    facets.owners
+                      .map((option) => option.id)
+                      .filter(Boolean) as string[],
+                  );
+                  return validIds.size === 0 || validIds.has(user.id);
+                })
+                .map((user) => ({
+                  value: user.id,
+                  label: user.displayName,
+                  meta: workloadLabel(user),
+                }))}
+              placeholder="Owner"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Assignee
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Assignee"
-                value={filterState.filters.assigneeId}
-                list="assignee-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { assigneeId: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.assigneeId}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { assigneeId: value } })
+              }
+              options={users
+                .filter((user) => {
+                  if (!facets) {
+                    return true;
+                  }
+                  const validIds = new Set(
+                    facets.assignees
+                      .map((option) => option.id)
+                      .filter(Boolean) as string[],
+                  );
+                  return validIds.size === 0 || validIds.has(user.id);
+                })
+                .map((user) => ({
+                  value: user.id,
+                  label: user.displayName,
+                  meta: workloadLabel(user),
+                }))}
+              placeholder="Assignee"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Member
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Member"
-                value={filterState.filters.memberId}
-                list="member-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { memberId: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.memberId}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { memberId: value } })
+              }
+              options={users
+                .filter((user) => {
+                  if (!facets) {
+                    return true;
+                  }
+                  const validIds = new Set(
+                    [...facets.owners, ...facets.assignees]
+                      .map((option) => option.id)
+                      .filter(Boolean) as string[],
+                  );
+                  return validIds.size === 0 || validIds.has(user.id);
+                })
+                .map((user) => ({
+                  value: user.id,
+                  label: user.displayName,
+                  meta: workloadLabel(user),
+                }))}
+              placeholder="Member"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Phase kind
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Phase kind"
-                value={filterState.filters.phaseKind}
-                list="phase-kind-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { phaseKind: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.phaseKind}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { phaseKind: value } })
+              }
+              options={(facets?.phaseKinds ?? [
+                { id: "INVESTIGATION" },
+                { id: "PROPOSE_SOLUTION" },
+                { id: "DEVELOPMENT" },
+                { id: "ACCEPTANCE_TEST" },
+                { id: "ROLLOUT" },
+              ])
+                .map((option) => option.id)
+                .filter(Boolean)
+                .map((kind) => ({
+                  value: kind as string,
+                }))}
+              placeholder="Phase kind"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               Status
             </label>
-            <div className="relative">
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                placeholder="Status"
-                value={filterState.filters.status}
-                list="issue-status-options"
-                onChange={(event) =>
-                  dispatch({
-                    type: "update",
-                    payload: { status: event.target.value },
-                  })
-                }
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-xs text-slate-400">
-                ▾
-              </span>
-            </div>
+            <Typeahead
+              value={filterState.filters.status}
+              onChange={(value) =>
+                dispatch({ type: "update", payload: { status: value } })
+              }
+              options={(facets?.statuses ?? [
+                { id: "CREATED" },
+                { id: "NOT_ACTIVE" },
+                { id: "IN_ANALYSIS" },
+                { id: "IN_DEVELOPMENT" },
+                { id: "IN_TEST" },
+                { id: "IN_ROLLOUT" },
+                { id: "DONE" },
+                { id: "FAILED" },
+              ])
+                .map((option) => option.id)
+                .filter(Boolean)
+                .map((status) => ({
+                  value: status as string,
+                  label: issueStatusLabel(status as string),
+                }))}
+              placeholder="Status"
+            />
           </div>
           <button
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
@@ -452,115 +550,6 @@ export default function IssuesPage() {
             <Icon name="filter" size={12} />
             Apply filters
           </button>
-          <datalist id="owner-options">
-            {users
-              .filter((user) => {
-                if (!facets) {
-                  return true;
-                }
-                const validIds = new Set(
-                  facets.owners
-                    .map((option) => option.id)
-                    .filter(Boolean) as string[],
-                );
-                return validIds.size === 0 || validIds.has(user.id);
-              })
-              .map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.displayName}
-                </option>
-              ))}
-          </datalist>
-          <datalist id="assignee-options">
-            {users
-              .filter((user) => {
-                if (!facets) {
-                  return true;
-                }
-                const validIds = new Set(
-                  facets.assignees
-                    .map((option) => option.id)
-                    .filter(Boolean) as string[],
-                );
-                return validIds.size === 0 || validIds.has(user.id);
-              })
-              .map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.displayName}
-                </option>
-              ))}
-          </datalist>
-          <datalist id="member-options">
-            {users
-              .filter((user) => {
-                if (!facets) {
-                  return true;
-                }
-                const validIds = new Set(
-                  [
-                    ...facets.owners,
-                    ...facets.assignees,
-                  ]
-                    .map((option) => option.id)
-                    .filter(Boolean) as string[],
-                );
-                return validIds.size === 0 || validIds.has(user.id);
-              })
-              .map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.displayName}
-                </option>
-              ))}
-          </datalist>
-          <datalist id="project-options">
-            {projects
-              .filter((project) => {
-                if (!facets) {
-                  return true;
-                }
-                const validIds = new Set(
-                  facets.projects
-                    .map((option) => option.id)
-                    .filter(Boolean) as string[],
-                );
-                return validIds.size === 0 || validIds.has(project.id);
-              })
-              .map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-          </datalist>
-          <datalist id="phase-kind-options">
-            {(facets?.phaseKinds ?? [
-              { id: "INVESTIGATION" },
-              { id: "PROPOSE_SOLUTION" },
-              { id: "DEVELOPMENT" },
-              { id: "ACCEPTANCE_TEST" },
-              { id: "ROLLOUT" },
-            ])
-              .map((option) => option.id)
-              .filter(Boolean)
-              .map((kind) => (
-                <option key={kind} value={kind} />
-              ))}
-          </datalist>
-          <datalist id="issue-status-options">
-            {(facets?.statuses ?? [
-              { id: "CREATED" },
-              { id: "IN_ANALYSIS" },
-              { id: "IN_DEVELOPMENT" },
-              { id: "IN_TEST" },
-              { id: "IN_ROLLOUT" },
-              { id: "DONE" },
-              { id: "FAILED" },
-            ])
-              .map((option) => option.id)
-              .filter(Boolean)
-              .map((status) => (
-                <option key={status} value={status} />
-              ))}
-          </datalist>
         </form>
 
         <div className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
@@ -572,32 +561,36 @@ export default function IssuesPage() {
           <p className="text-sm text-slate-500">No issues found.</p>
         )}
         {issues.map((issue) => (
-          <Link
+          <IssueSummaryCard
             key={issue.id}
+            id={issue.id}
+            title={issue.title ?? issue.id}
             href={`/issues/${issue.id}`}
-            className="space-y-2 rounded-xl border border-slate-100 bg-white px-4 py-3 hover:border-slate-200"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500">{issue.id}</p>
-                <p className="text-sm font-semibold text-slate-900">
-                  {issue.title}
-                </p>
-              </div>
-              <div className="flex items-center gap-6 text-xs text-slate-600">
-                <span>{issue.ownerId}</span>
-                <span>{issue.status}</span>
-                <span>{issue.phaseCount} phases</span>
-              </div>
-            </div>
-            {issue.description && (
-              <p className="text-xs text-slate-500">
-                {issue.description.length > 160
+            description={
+              issue.description
+                ? issue.description.length > 160
                   ? `${issue.description.slice(0, 160)}…`
-                  : issue.description}
-              </p>
-            )}
-          </Link>
+                  : issue.description
+                : undefined
+            }
+            right={
+              <>
+                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+                  {issue.ownerId}
+                </span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${issueStatusBadgeStyle(
+                    issue.status,
+                  )}`}
+                >
+                  {issueStatusLabel(issue.status)}
+                </span>
+                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+                  {issue.phaseCount} phases
+                </span>
+              </>
+            }
+          />
         ))}
         </div>
       </div>

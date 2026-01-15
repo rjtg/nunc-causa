@@ -78,3 +78,13 @@ describe("UI read-tracking wiring", () => {
     expect(source).toContain("readByCount");
   });
 });
+
+describe("UI hover affordances", () => {
+  it("defines hover styles for buttons and button-like links", () => {
+    const globals = path.join(uiRoot, "app", "globals.css");
+    const source = fs.readFileSync(globals, "utf8");
+    expect(source).toMatch(/button:not\\(:disabled\\):hover/);
+    expect(source).toMatch(/a\\.rounded-full:hover/);
+    expect(source).toMatch(/filter:\\s*brightness\\(/);
+  });
+});

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Tooltip } from "@/components/tooltip";
+import { Typeahead } from "@/components/typeahead";
+import { IssueSummaryCard } from "@/components/issue-summary-card";
 import Link from "next/link";
 import type { IssueDetail, Phase, Task, UserOption } from "../types";
 import type { ReactNode } from "react";
@@ -50,6 +52,7 @@ type PhaseBoardProps = {
   users: UserOption[];
   onIssueUpdate: (issue: IssueDetail) => void;
   onDeadlineImpact?: (before: IssueDetail, after: IssueDetail) => void;
+  onRequestUsers?: () => void;
 };
 
 const phaseOrder = [
@@ -61,6 +64,18 @@ const phaseOrder = [
 ];
 
 const phaseStatuses = ["NOT_STARTED", "IN_PROGRESS", "DONE", "FAILED"];
+const phaseOptionColor = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "bg-emerald-500";
+    case "IN_PROGRESS":
+      return "bg-sky-500";
+    case "FAILED":
+      return "bg-rose-500";
+    default:
+      return "bg-slate-400";
+  }
+};
 const taskStatuses = [
   "NOT_STARTED",
   "IN_PROGRESS",
@@ -191,12 +206,16 @@ const phaseProgress = (tasks: Task[]) => {
   return { total, counts };
 };
 
-const statusLabel = (value: string) =>
-  value
+const statusLabel = (value: string) => {
+  if (value === "NOT_ACTIVE") {
+    return "Not active";
+  }
+  return value
     .toLowerCase()
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
 
 const phaseLabel = (phase: Phase) => {
   if (phase.kind) {
@@ -434,38 +453,26 @@ const DependencyPicker = ({
       {state.loading && <p className="text-xs text-slate-400">Searching…</p>}
       {state.error && <p className="text-xs text-rose-600">{state.error}</p>}
       <div className="space-y-2">
-          {issuesToShow.map((summary, index) => {
-            const isCurrent = summary.id === issue.id;
-            const detail = isCurrent ? issue : dependencyIssues[summary.id];
-            return (
-            <div
+        {issuesToShow.map((summary, index) => {
+          const isCurrent = summary.id === issue.id;
+          const detail = isCurrent ? issue : dependencyIssues[summary.id];
+          return (
+            <IssueSummaryCard
               key={summary.id}
-              className={`rounded-lg border px-3 py-2 ${
+              id={summary.id}
+              title={summary.title ?? summary.id}
+              description={summary.description}
+              note={
                 isCurrent
-                  ? "border-slate-200 bg-slate-50"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              {isCurrent && (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Current issue
-                </p>
-              )}
-              {!isCurrent && index === 0 && state.query.trim().length > 0 && (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Search results
-                </p>
-              )}
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <Tooltip content={issueTooltip(detail ?? null, summary)}>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-700">
-                      {summary.title}
-                    </p>
-                    <p className="text-[11px] text-slate-500">{summary.id}</p>
-                  </div>
-                </Tooltip>
-                <div className="flex items-center gap-2">
+                  ? "Current issue"
+                  : index === 0 && state.query.trim().length > 0
+                    ? "Search results"
+                    : undefined
+              }
+              tone={isCurrent ? "muted" : "default"}
+              tooltip={issueTooltip(detail ?? null, summary)}
+              right={
+                <>
                   <button
                     className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600"
                     type="button"
@@ -480,20 +487,23 @@ const DependencyPicker = ({
                     onClick={() => void toggleIssue(summary.id)}
                   >
                     <Icon
-                      name={isIssueExpanded(summary.id) ? "chevron-up" : "chevron-down"}
+                      name={
+                        isIssueExpanded(summary.id) ? "chevron-up" : "chevron-down"
+                      }
                       size={12}
                     />
                     {isIssueExpanded(summary.id) ? "Hide" : "Expand"}
                   </button>
-                </div>
-              </div>
+                </>
+              }
+            >
               {isIssueExpanded(summary.id) && detail && renderIssueDetail(detail)}
               {isIssueExpanded(summary.id) && !detail && (
                 <p className="mt-2 text-[11px] text-slate-400">
                   Loading issue details…
                 </p>
               )}
-            </div>
+            </IssueSummaryCard>
           );
         })}
         {issuesToShow.length === 1 && state.query.trim().length > 0 && (
@@ -511,11 +521,13 @@ export function PhaseBoard({
   users,
   onIssueUpdate,
   onDeadlineImpact,
+  onRequestUsers,
 }: PhaseBoardProps) {
   const [taskDrafts, setTaskDrafts] = useState<Record<string, TaskDraft>>({});
   const [openTaskDatePopover, setOpenTaskDatePopover] = useState<string | null>(null);
   const [openTaskDependencyPopover, setOpenTaskDependencyPopover] = useState<string | null>(null);
   const [openTaskAssigneePopover, setOpenTaskAssigneePopover] = useState<string | null>(null);
+  const [openPhaseAssigneePopover, setOpenPhaseAssigneePopover] = useState<string | null>(null);
   const [taskMetaDrafts, setTaskMetaDrafts] = useState<
     Record<
       string,
@@ -533,6 +545,8 @@ export function PhaseBoard({
   const [statusError, setStatusError] = useState<string | null>(null);
   const [openPhaseDeadlinePopover, setOpenPhaseDeadlinePopover] = useState<string | null>(null);
   const [phaseDeadlineDrafts, setPhaseDeadlineDrafts] = useState<Record<string, string>>({});
+  const [phaseAssigneeDrafts, setPhaseAssigneeDrafts] = useState<Record<string, string>>({});
+  const [phaseAssigneeSaving, setPhaseAssigneeSaving] = useState<Record<string, boolean>>({});
   const [dependencySearch, setDependencySearch] = useState<Record<string, DependencySearchState>>({});
   const [dependencyIssues, setDependencyIssues] = useState<Record<string, IssueDetail>>({});
 
@@ -566,6 +580,20 @@ export function PhaseBoard({
       return "Unassigned";
     }
     return users.find((user) => user.id === userId)?.displayName ?? userId;
+  };
+
+  const userWorkload = (userId?: string | null) => {
+    if (!userId) {
+      return null;
+    }
+    const user = users.find((option) => option.id === userId);
+    if (!user) {
+      return null;
+    }
+    const openIssues = user.openIssueCount ?? 0;
+    const openPhases = user.openPhaseCount ?? 0;
+    const openTasks = user.openTaskCount ?? 0;
+    return `${openIssues} / ${openPhases} / ${openTasks}`;
   };
 
   const getTaskDraft = (phaseId: string): TaskDraft =>
@@ -654,6 +682,16 @@ export function PhaseBoard({
     }));
   };
 
+  const getPhaseAssigneeDraft = (phase: Phase) =>
+    phaseAssigneeDrafts[phase.id] ?? phase.assigneeId ?? "";
+
+  const updatePhaseAssigneeDraft = (phaseId: string, assigneeId: string) => {
+    setPhaseAssigneeDrafts((prev) => ({
+      ...prev,
+      [phaseId]: assigneeId,
+    }));
+  };
+
   const getDependencyState = (key: string) =>
     dependencySearch[key] ?? createDependencyState();
 
@@ -737,6 +775,64 @@ export function PhaseBoard({
     updateTaskDraft(phaseId, {
       dependencies: [...draft.dependencies, dep],
     });
+  };
+
+  const submitTaskDraft = async (phase: Phase) => {
+    const draft = getTaskDraft(phase.id);
+    if (!draft.title.trim()) {
+      updateTaskDraft(phase.id, {
+        error: "Task title is required.",
+      });
+      return;
+    }
+    if (!isDateRangeValid(draft.startDate, draft.dueDate)) {
+      updateTaskDraft(phase.id, {
+        error: "Due date must be after the start date.",
+      });
+      return;
+    }
+    const phaseDeadlineLimit = minIsoDate(issue.deadline, phase.deadline);
+    if (!isOnOrBefore(draft.dueDate, phaseDeadlineLimit)) {
+      updateTaskDraft(phase.id, {
+        error: "Due date must be on or before the phase deadline.",
+      });
+      return;
+    }
+    updateTaskDraft(phase.id, { saving: true, error: null });
+    const { data, error: apiError } = await api.POST(
+      "/issues/{issueId}/phases/{phaseId}/tasks",
+      {
+        params: {
+          path: { issueId, phaseId: phase.id },
+        },
+        body: {
+          title: draft.title,
+          assigneeId: draft.assigneeId || undefined,
+          startDate: draft.startDate || undefined,
+          dueDate: draft.dueDate || undefined,
+          dependencies: draft.dependencies,
+        },
+      },
+    );
+    if (apiError || !data) {
+      updateTaskDraft(phase.id, {
+        saving: false,
+        error: "Unable to add task.",
+      });
+      return;
+    }
+    onIssueUpdate(data as IssueDetail);
+    updateTaskDraft(phase.id, {
+      title: "",
+      assigneeId: "",
+      startDate: "",
+      dueDate: "",
+      dependencies: [],
+      saving: false,
+      error: null,
+    });
+    setOpenTaskDatePopover(null);
+    setOpenTaskDependencyPopover(null);
   };
 
   useEffect(() => {
@@ -915,15 +1011,10 @@ export function PhaseBoard({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span>Status</span>
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${phaseStatusStyle(
-                        phase.status,
-                      )}`}
-                    >
-                      {statusLabel(phase.status)}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <p className="text-lg font-semibold text-slate-900">
+                      {phaseLabel(phase)}
+                    </p>
                     <button
                       className={`inline-flex items-center gap-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${
                         phase.deadline
@@ -941,7 +1032,9 @@ export function PhaseBoard({
                       {phase.deadline ?? "Deadline"}
                     </button>
                     <select
-                      className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
+                      className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${phaseStatusStyle(
+                        phase.status,
+                      )}`}
                       value={phase.status}
                       disabled={phaseStatusSaving[phase.id]}
                       onChange={async (event) => {
@@ -991,18 +1084,45 @@ export function PhaseBoard({
                       }}
                     >
                       {phaseStatuses.map((status) => (
-                        <option key={status} value={status}>
+                        <option
+                          key={status}
+                          value={status}
+                          style={{ color: phaseOptionColor(status) }}
+                        >
                           {statusLabel(status)}
                         </option>
                       ))}
                     </select>
+                    <Tooltip
+                      content={
+                        phase.assigneeId
+                          ? `${userLabel(phase.assigneeId)} · ${userWorkload(phase.assigneeId) ?? "0 open"}`
+                          : "Unassigned"
+                      }
+                    >
+                      <button
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${
+                          phase.assigneeId
+                            ? "border-violet-200 bg-violet-100 text-violet-700"
+                            : "border-slate-200 bg-white text-slate-500"
+                        }`}
+                        type="button"
+                        onClick={() =>
+                          setOpenPhaseAssigneePopover((current) => {
+                            const next = current === phase.id ? null : phase.id;
+                            if (next) {
+                              updatePhaseAssigneeDraft(phase.id, phase.assigneeId ?? "");
+                              onRequestUsers?.();
+                            }
+                            return next;
+                          })
+                        }
+                      >
+                        <Icon name="user" size={12} />
+                        {userLabel(phase.assigneeId)}
+                      </button>
+                    </Tooltip>
                   </div>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {phaseLabel(phase)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Assignee: {phase.assigneeId}
-                  </p>
                   {phase.status === "DONE" && phase.completionComment && (
                     <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                       <p className="font-semibold text-emerald-800">
@@ -1088,6 +1208,76 @@ export function PhaseBoard({
                   </div>
                 </div>
               )}
+              {openPhaseAssigneePopover === phase.id && (
+                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Assignee
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-end gap-3">
+                    <label className="min-w-[200px] text-[11px] text-slate-500">
+                      User
+                      <div className="mt-1">
+                        <Typeahead
+                          value={getPhaseAssigneeDraft(phase)}
+                          onChange={(value) =>
+                            updatePhaseAssigneeDraft(phase.id, value)
+                          }
+                          options={users.map((user) => ({
+                            value: user.id,
+                            label: user.displayName,
+                            meta: userWorkload(user.id) ?? undefined,
+                          }))}
+                          placeholder="Select user"
+                          inputClassName="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                        />
+                      </div>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                        type="button"
+                        onClick={() => updatePhaseAssigneeDraft(phase.id, "")}
+                      >
+                        <Icon name="x" size={12} />
+                        Clear
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                        type="button"
+                        disabled={phaseAssigneeSaving[phase.id]}
+                        onClick={async () => {
+                          setPhaseAssigneeSaving((prev) => ({
+                            ...prev,
+                            [phase.id]: true,
+                          }));
+                          const { data, error: apiError } = await api.PATCH(
+                            "/issues/{issueId}/phases/{phaseId}/assignee",
+                            {
+                              params: {
+                                path: { issueId, phaseId: phase.id },
+                              },
+                              body: {
+                                assigneeId: getPhaseAssigneeDraft(phase) || undefined,
+                              },
+                            },
+                          );
+                          if (!apiError && data) {
+                            onIssueUpdate(data as IssueDetail);
+                            setOpenPhaseAssigneePopover(null);
+                          }
+                          setPhaseAssigneeSaving((prev) => ({
+                            ...prev,
+                            [phase.id]: false,
+                          }));
+                        }}
+                      >
+                        <Icon name="check" size={12} />
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {phase.tasks.length > 0 && (() => {
                 const progress = phaseProgress(phase.tasks);
                 const segments = [
@@ -1142,6 +1332,54 @@ export function PhaseBoard({
                             comment: event.target.value,
                           })
                         }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && event.ctrlKey) {
+                            event.preventDefault();
+                            if (getCompletionDraft(phase).saving) {
+                              return;
+                            }
+                            const draft = getCompletionDraft(phase);
+                            if (!draft.comment.trim()) {
+                              updateCompletionDraft(phase.id, {
+                                error: "Completion note is required.",
+                              });
+                              return;
+                            }
+                            updateCompletionDraft(phase.id, {
+                              saving: true,
+                              error: null,
+                            });
+                            void api
+                              .PATCH("/issues/{issueId}/phases/{phaseId}", {
+                                params: {
+                                  path: { issueId, phaseId: phase.id },
+                                },
+                                body: {
+                                  status: "DONE",
+                                  completionComment: draft.comment,
+                                  completionArtifactUrl:
+                                    draft.artifactUrl.trim() || undefined,
+                                },
+                              })
+                              .then(({ data, error: apiError }) => {
+                                if (apiError || !data) {
+                                  updateCompletionDraft(phase.id, {
+                                    saving: false,
+                                    error: "Unable to complete phase.",
+                                  });
+                                  return;
+                                }
+                                onIssueUpdate(data as IssueDetail);
+                                updateCompletionDraft(phase.id, {
+                                  comment: "",
+                                  artifactUrl: "",
+                                  saving: false,
+                                  error: null,
+                                  pendingStatus: null,
+                                });
+                              });
+                          }
+                        }}
                       />
                       <input
                         className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs"
@@ -1265,7 +1503,13 @@ export function PhaseBoard({
                               : "Dates"}
                           </button>
                         </Tooltip>
-                        <Tooltip content={`Assignee: ${userLabel(task.assigneeId)}`}>
+                        <Tooltip
+                          content={
+                            task.assigneeId
+                              ? `${userLabel(task.assigneeId)} · ${userWorkload(task.assigneeId) ?? "0 open"}`
+                              : "Unassigned"
+                          }
+                        >
                           <button
                             className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
                               task.assigneeId
@@ -1273,10 +1517,15 @@ export function PhaseBoard({
                                 : "border-slate-200 bg-white text-slate-500"
                             }`}
                             type="button"
+                            aria-label="Change assignee"
                             onClick={() =>
-                              setOpenTaskAssigneePopover((current) =>
-                                current === task.id ? null : task.id,
-                              )
+                              setOpenTaskAssigneePopover((current) => {
+                                const next = current === task.id ? null : task.id;
+                                if (next) {
+                                  onRequestUsers?.();
+                                }
+                                return next;
+                              })
                             }
                           >
                             <Icon name="user" size={12} />
@@ -1567,17 +1816,21 @@ export function PhaseBoard({
                         <div className="mt-2 flex flex-wrap items-end gap-3">
                           <label className="min-w-[200px] text-[11px] text-slate-500">
                             User
-                            <input
-                              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                              placeholder="Select user"
-                              list={`task-assignee-options-${task.id}`}
-                              value={getTaskMetaDraft(task).assigneeId}
-                              onChange={(event) =>
-                                updateTaskMetaDraft(task, {
-                                  assigneeId: event.target.value,
-                                })
-                              }
-                            />
+                            <div className="mt-1">
+                              <Typeahead
+                                value={getTaskMetaDraft(task).assigneeId}
+                                onChange={(value) =>
+                                  updateTaskMetaDraft(task, { assigneeId: value })
+                                }
+                                options={users.map((user) => ({
+                                  value: user.id,
+                                  label: user.displayName,
+                                  meta: userWorkload(user.id) ?? undefined,
+                                }))}
+                                placeholder="Select user"
+                                inputClassName="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                              />
+                            </div>
                           </label>
                           <div className="flex gap-2">
                             <button
@@ -1621,13 +1874,6 @@ export function PhaseBoard({
                             </button>
                           </div>
                         </div>
-                        <datalist id={`task-assignee-options-${task.id}`}>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.displayName}
-                            </option>
-                          ))}
-                        </datalist>
                       </div>
                     )}
                   </div>
@@ -1649,6 +1895,12 @@ export function PhaseBoard({
                       onChange={(event) =>
                         updateTaskDraft(phase.id, { title: event.target.value })
                       }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && event.ctrlKey) {
+                          event.preventDefault();
+                          void submitTaskDraft(phase);
+                        }
+                      }}
                     />
                     <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
                       <Tooltip
@@ -1735,82 +1987,26 @@ export function PhaseBoard({
                       </Tooltip>
                     </div>
                   </div>
-                  <div className="relative min-w-[180px]">
-                    <input
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                      placeholder="Assignee ID"
+                  <div className="min-w-[180px]">
+                    <Typeahead
                       value={getTaskDraft(phase.id).assigneeId}
-                      list={`task-assignee-options-${phase.id}`}
-                      onChange={(event) =>
-                        updateTaskDraft(phase.id, {
-                          assigneeId: event.target.value,
-                        })
+                      onChange={(value) =>
+                        updateTaskDraft(phase.id, { assigneeId: value })
                       }
+                      options={users.map((user) => ({
+                        value: user.id,
+                        label: user.displayName,
+                        meta: userWorkload(user.id) ?? undefined,
+                      }))}
+                      placeholder="Assignee"
+                      inputClassName="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
                     />
-                    <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
-                      ▾
-                    </span>
                   </div>
                   <button
                     className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                     type="button"
                     disabled={getTaskDraft(phase.id).saving}
-                    onClick={async () => {
-                      const draft = getTaskDraft(phase.id);
-                      if (!draft.title.trim()) {
-                        updateTaskDraft(phase.id, {
-                          error: "Task title is required.",
-                        });
-                        return;
-                      }
-                      if (!isDateRangeValid(draft.startDate, draft.dueDate)) {
-                        updateTaskDraft(phase.id, {
-                          error: "Due date must be after the start date.",
-                        });
-                        return;
-                      }
-                      if (!isOnOrBefore(draft.dueDate, phaseDeadlineLimit)) {
-                        updateTaskDraft(phase.id, {
-                          error: "Due date must be on or before the phase deadline.",
-                        });
-                        return;
-                      }
-                      updateTaskDraft(phase.id, { saving: true, error: null });
-                      const { data, error: apiError } = await api.POST(
-                        "/issues/{issueId}/phases/{phaseId}/tasks",
-                        {
-                          params: {
-                            path: { issueId, phaseId: phase.id },
-                          },
-                          body: {
-                            title: draft.title,
-                            assigneeId: draft.assigneeId || undefined,
-                            startDate: draft.startDate || undefined,
-                            dueDate: draft.dueDate || undefined,
-                            dependencies: draft.dependencies,
-                          },
-                        },
-                      );
-                      if (apiError || !data) {
-                        updateTaskDraft(phase.id, {
-                          saving: false,
-                          error: "Unable to add task.",
-                        });
-                        return;
-                      }
-                      onIssueUpdate(data as IssueDetail);
-                      updateTaskDraft(phase.id, {
-                        title: "",
-                        assigneeId: "",
-                        startDate: "",
-                        dueDate: "",
-                        dependencies: [],
-                        saving: false,
-                        error: null,
-                      });
-                      setOpenTaskDatePopover(null);
-                      setOpenTaskDependencyPopover(null);
-                    }}
+                    onClick={() => void submitTaskDraft(phase)}
                   >
                     <Icon name="plus" size={12} />
                     {getTaskDraft(phase.id).saving ? "Adding…" : "Add"}
@@ -1913,13 +2109,6 @@ export function PhaseBoard({
                   </p>
                 )}
               </div>
-              <datalist id={`task-assignee-options-${phase.id}`}>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.displayName}
-                  </option>
-                ))}
-              </datalist>
             </div>
           );
         })}

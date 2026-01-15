@@ -785,32 +785,85 @@ export default function IssueDetailPage() {
         </div>
       )}
 
-      <div className="flex gap-2 text-xs font-semibold text-slate-600">
-        {[
-          { id: "overview", label: "Overview", icon: "comment" as const },
-          { id: "activity", label: `Activity (${historyCount})`, icon: "reset" as const },
-          { id: "comments", label: `Comments (${comments.length})`, icon: "comment" as const },
-        ].map((item) => (
-          <button
-            key={item.id}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${
-              tab === item.id
-                ? "bg-slate-900 text-white"
-                : "border border-slate-200 bg-white"
-            }`}
-            type="button"
-            onClick={() =>
-              setTab(item.id as "overview" | "activity" | "comments")
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-600">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "overview", label: "Overview", icon: "comment" as const },
+            {
+              id: "activity",
+              label: `Activity (${historyCount})`,
+              icon: "reset" as const,
+            },
+            {
+              id: "comments",
+              label: `Comments (${comments.length})`,
+              icon: "comment" as const,
+            },
+          ].map((item) => (
+            <button
+              key={item.id}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${
+                tab === item.id
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white"
+              }`}
+              type="button"
+              onClick={() =>
+                setTab(item.id as "overview" | "activity" | "comments")
+              }
+            >
+              <Icon name={item.icon} size={12} />
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tooltip
+            content={
+              issue.allowedActions?.CLOSE_ISSUE?.allowed
+                ? "Close issue"
+                : issue.allowedActions?.CLOSE_ISSUE?.reason ?? "Not allowed"
             }
           >
-            <Icon name={item.icon} size={12} />
-            {item.label}
-          </button>
-        ))}
+            <button
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              type="button"
+              disabled={
+                !issue.allowedActions?.CLOSE_ISSUE?.allowed ||
+                issue.status === "DONE" ||
+                statusSaving
+              }
+              onClick={runCloseIssue}
+            >
+              <Icon name="check" size={12} />
+              Close issue
+            </button>
+          </Tooltip>
+          <Tooltip
+            content={
+              issue.allowedActions?.ABANDON_ISSUE?.allowed
+                ? "Abandon issue"
+                : issue.allowedActions?.ABANDON_ISSUE?.reason ?? "Not allowed"
+            }
+          >
+            <button
+              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:bg-rose-50/50 disabled:text-rose-300"
+              type="button"
+              disabled={
+                !issue.allowedActions?.ABANDON_ISSUE?.allowed || statusSaving
+              }
+              onClick={runAbandonIssue}
+            >
+              <Icon name="x" size={12} />
+              Abandon issue
+            </button>
+          </Tooltip>
+          {statusError && <span className="text-rose-600">{statusError}</span>}
+        </div>
       </div>
 
       {tab === "overview" && (
-        <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <section>
           <PhaseBoard
             issueId={issueId}
             issue={issue}
@@ -822,58 +875,10 @@ export default function IssueDetailPage() {
             }
             onRequestUsers={loadUsers}
           />
-          <aside className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
-            <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
-            <div className="space-y-3 text-xs text-slate-600">
-              <Tooltip
-                content={
-                  issue.allowedActions?.CLOSE_ISSUE?.allowed
-                    ? "Close issue"
-                    : issue.allowedActions?.CLOSE_ISSUE?.reason ?? "Not allowed"
-                }
-              >
-                <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  type="button"
-                  disabled={
-                    !issue.allowedActions?.CLOSE_ISSUE?.allowed ||
-                    issue.status === "DONE" ||
-                    statusSaving
-                  }
-                  onClick={runCloseIssue}
-                >
-                  <Icon name="check" size={12} />
-                  Close issue
-                </button>
-              </Tooltip>
-              <Tooltip
-                content={
-                  issue.allowedActions?.ABANDON_ISSUE?.allowed
-                    ? "Abandon issue"
-                    : issue.allowedActions?.ABANDON_ISSUE?.reason ?? "Not allowed"
-                }
-              >
-                <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:bg-rose-50/50 disabled:text-rose-300"
-                  type="button"
-                  disabled={
-                    !issue.allowedActions?.ABANDON_ISSUE?.allowed || statusSaving
-                  }
-                  onClick={runAbandonIssue}
-                >
-                  <Icon name="x" size={12} />
-                  Abandon issue
-                </button>
-              </Tooltip>
-              {statusError && (
-                <p className="text-rose-600">{statusError}</p>
-              )}
-            </div>
-          </aside>
         </section>
       )}
 
-{tab === "activity" && (
+      {tab === "activity" && (
         <section className="space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
           {history?.activity?.length ? (
             history.activity.map((entry) => (
