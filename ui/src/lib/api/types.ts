@@ -373,6 +373,8 @@ export interface components {
             ownerId: string;
             projectId: string;
             description: string;
+            /** Format: date */
+            deadline?: string;
             phases: components["schemas"]["CreatePhaseRequest"][];
         };
         UpdateIssueRequest: {
@@ -380,6 +382,8 @@ export interface components {
             ownerId?: string;
             projectId?: string;
             description?: string;
+            /** Format: date */
+            deadline?: string;
         };
         AssignOwnerRequest: {
             ownerId: string;
@@ -391,6 +395,8 @@ export interface components {
             name: string;
             assigneeId: string;
             kind?: components["schemas"]["PhaseKind"];
+            /** Format: date */
+            deadline?: string;
         };
         UpdatePhaseRequest: {
             name?: string;
@@ -400,20 +406,34 @@ export interface components {
             /** Format: uri */
             completionArtifactUrl?: string;
             kind?: components["schemas"]["PhaseKind"];
+            /** Format: date */
+            deadline?: string;
         };
         AddTaskRequest: {
             title: string;
             assigneeId?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            dueDate?: string;
+            dependencies?: components["schemas"]["TaskDependency"][];
         };
         UpdateTaskRequest: {
             title?: string;
             assigneeId?: string;
             status?: components["schemas"]["TaskStatus"];
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            dueDate?: string;
+            dependencies?: components["schemas"]["TaskDependency"][];
         };
         CreatePhaseRequest: {
             name: string;
             assigneeId: string;
             kind?: components["schemas"]["PhaseKind"];
+            /** Format: date */
+            deadline?: string;
         };
         IssueListItem: {
             id: string;
@@ -433,6 +453,8 @@ export interface components {
             projectId?: string;
             phases: components["schemas"]["PhaseResponse"][];
             status: components["schemas"]["IssueStatus"];
+            /** Format: date */
+            deadline?: string;
             /** Format: int64 */
             version: number;
             allowedActions?: {
@@ -460,6 +482,8 @@ export interface components {
             completionComment?: string;
             /** Format: uri */
             completionArtifactUrl?: string;
+            /** Format: date */
+            deadline?: string;
             tasks: components["schemas"]["TaskResponse"][];
             allowedActions?: {
                 [key: string]: components["schemas"]["ActionDecision"];
@@ -470,6 +494,11 @@ export interface components {
             title: string;
             assigneeId?: string;
             status: components["schemas"]["TaskStatus"];
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            dueDate?: string;
+            dependencies?: components["schemas"]["TaskDependency"][];
             allowedActions?: {
                 [key: string]: components["schemas"]["ActionDecision"];
             };
@@ -583,6 +612,11 @@ export interface components {
         PhaseStatus: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "FAILED";
         /** @enum {string} */
         TaskStatus: "NOT_STARTED" | "IN_PROGRESS" | "PAUSED" | "ABANDONED" | "DONE";
+        TaskDependency: {
+            /** @enum {string} */
+            type: "TASK" | "PHASE" | "ISSUE";
+            targetId: string;
+        };
         /** @enum {string} */
         PhaseKind: "INVESTIGATION" | "PROPOSE_SOLUTION" | "DEVELOPMENT" | "ACCEPTANCE_TEST" | "ROLLOUT";
     };

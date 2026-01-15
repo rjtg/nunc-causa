@@ -4,20 +4,22 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { useHealth } from "@/lib/health/context";
 import { Icon } from "@/components/icons";
 
 type PhaseDraft = {
   enabled: boolean;
   assigneeId: string;
   kind: string;
+  deadline: string;
 };
 
 const defaultPhases: PhaseDraft[] = [
-  { enabled: true, assigneeId: "", kind: "INVESTIGATION" },
-  { enabled: true, assigneeId: "", kind: "PROPOSE_SOLUTION" },
-  { enabled: true, assigneeId: "", kind: "DEVELOPMENT" },
-  { enabled: true, assigneeId: "", kind: "ACCEPTANCE_TEST" },
-  { enabled: true, assigneeId: "", kind: "ROLLOUT" },
+  { enabled: true, assigneeId: "", kind: "INVESTIGATION", deadline: "" },
+  { enabled: true, assigneeId: "", kind: "PROPOSE_SOLUTION", deadline: "" },
+  { enabled: true, assigneeId: "", kind: "DEVELOPMENT", deadline: "" },
+  { enabled: true, assigneeId: "", kind: "ACCEPTANCE_TEST", deadline: "" },
+  { enabled: true, assigneeId: "", kind: "ROLLOUT", deadline: "" },
 ];
 
 type SimilarIssue = {
@@ -47,13 +49,27 @@ const phaseLabel = (kind: string) =>
     } as Record<string, string>
   )[kind] ?? "Phase";
 
+const isOnOrBefore = (value?: string, limit?: string) => {
+  if (!value || !limit) {
+    return true;
+  }
+  const valueDate = new Date(value);
+  const limitDate = new Date(limit);
+  if (Number.isNaN(valueDate.getTime()) || Number.isNaN(limitDate.getTime())) {
+    return true;
+  }
+  return valueDate.getTime() <= limitDate.getTime();
+};
+
 export default function NewIssuePage() {
   const router = useRouter();
   const api = useApi();
   const { token, username } = useAuth();
+  const { recoveries } = useHealth();
   const isAuthed = Boolean(token || username);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [issueDeadline, setIssueDeadline] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [phases, setPhases] = useState<PhaseDraft[]>(defaultPhases);
@@ -92,7 +108,7 @@ export default function NewIssuePage() {
     return () => {
       active = false;
     };
-  }, [api, isAuthed]);
+  }, [api, isAuthed, recoveries]);
 
   useEffect(() => {
     if (!isAuthed) {
@@ -128,7 +144,7 @@ export default function NewIssuePage() {
     return () => {
       active = false;
     };
-  }, [api, isAuthed, projectId]);
+  }, [api, isAuthed, projectId, recoveries]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -170,7 +186,7 @@ export default function NewIssuePage() {
       active = false;
       clearTimeout(handle);
     };
-  }, [api, description, isAuthed, title]);
+  }, [api, description, isAuthed, title, recoveries]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!isAuthed) {
@@ -206,6 +222,17 @@ export default function NewIssuePage() {
             setError("Title, description, owner, and project are required.");
             return;
           }
+          if (
+            phases.some(
+              (phase) =>
+                phase.enabled &&
+                phase.deadline &&
+                !isOnOrBefore(phase.deadline, issueDeadline),
+            )
+          ) {
+            setError("Phase deadlines must be on or before the issue deadline.");
+            return;
+          }
           setSaving(true);
           const { data, error: apiError } = await api.POST("/issues", {
             body: {
@@ -213,12 +240,14 @@ export default function NewIssuePage() {
               description,
               ownerId,
               projectId,
+              deadline: issueDeadline || undefined,
               phases: phases
                 .filter((phase) => phase.enabled && phase.assigneeId && phase.kind)
                 .map((phase) => ({
                   name: phaseLabel(phase.kind),
                   assigneeId: phase.assigneeId,
                   kind: phase.kind,
+                  deadline: phase.deadline || undefined,
                 })),
             },
           });
@@ -272,6 +301,17 @@ export default function NewIssuePage() {
                 ▾
               </span>
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Issue deadline
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
+              type="date"
+              value={issueDeadline}
+              onChange={(event) => setIssueDeadline(event.target.value)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -354,6 +394,32 @@ export default function NewIssuePage() {
                 <span className="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">
                   ▾
                 </span>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Deadline
+                </label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
+                  type="date"
+                  max={issueDeadline || undefined}
+                  value={phase.deadline}
+                  disabled={!phase.enabled}
+                  onChange={(event) =>
+                    setPhases((prev) =>
+                      prev.map((item, idx) =>
+                        idx === index
+                          ? { ...item, deadline: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+                {!isOnOrBefore(phase.deadline, issueDeadline) && (
+                  <p className="mt-2 text-xs text-rose-600">
+                    Phase deadline must be on or before the issue deadline.
+                  </p>
+                )}
               </div>
             </div>
           ))}
