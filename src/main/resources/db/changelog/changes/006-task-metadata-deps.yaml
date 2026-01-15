@@ -1,0 +1,89 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-task-metadata-deps
+      author: codex
+      changes:
+        - addColumn:
+            tableName: issue_tasks
+            columns:
+              - column:
+                  name: start_date
+                  type: date
+              - column:
+                  name: due_date
+                  type: date
+        - addColumn:
+            tableName: issue_tasks_AUD
+            columns:
+              - column:
+                  name: start_date
+                  type: date
+              - column:
+                  name: due_date
+                  type: date
+        - createTable:
+            tableName: issue_task_dependencies
+            columns:
+              - column:
+                  name: dependency_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: task_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dependency_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dependency_target_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: issue_task_dependencies
+            baseColumnNames: task_id
+            referencedTableName: issue_tasks
+            referencedColumnNames: task_id
+            constraintName: fk_issue_task_dependencies_task
+            onDelete: CASCADE
+        - createIndex:
+            tableName: issue_task_dependencies
+            indexName: idx_issue_task_dependencies_task
+            columns:
+              - column:
+                  name: task_id
+        - createTable:
+            tableName: issue_task_dependencies_AUD
+            columns:
+              - column:
+                  name: dependency_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: REV
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: REVTYPE
+                  type: tinyint
+              - column:
+                  name: task_id
+                  type: varchar(64)
+              - column:
+                  name: dependency_type
+                  type: varchar(32)
+              - column:
+                  name: dependency_target_id
+                  type: varchar(64)
+        - addPrimaryKey:
+            tableName: issue_task_dependencies_AUD
+            columnNames: dependency_id, REV
+            constraintName: pk_issue_task_dependencies_aud

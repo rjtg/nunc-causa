@@ -135,6 +135,9 @@ class DevDataSeeder(
                         phaseId = issue.phases.first { it.name == phase.name }.id,
                         title = sampleTitle(faker, 3),
                         assigneeId = phase.assigneeId,
+                        startDate = null,
+                        dueDate = null,
+                        dependencies = emptyList(),
                     )
                 }
             }

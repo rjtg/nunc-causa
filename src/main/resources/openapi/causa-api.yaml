@@ -731,6 +731,16 @@ components:
           type: string
         assigneeId:
           type: string
+        startDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskDependency'
     UpdateTaskRequest:
       type: object
       properties:
@@ -740,6 +750,16 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/TaskStatus'
+        startDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskDependency'
     CreatePhaseRequest:
       type: object
       required:
@@ -897,6 +917,16 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/TaskStatus'
+        startDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskDependency'
         allowedActions:
           type: object
           additionalProperties:
@@ -997,6 +1027,18 @@ components:
         createdAt:
           type: string
           format: date-time
+        readByCount:
+          type: integer
+        unreadByCount:
+          type: integer
+        readByUsers:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+        unreadByUsers:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
     IssueCommentsResponse:
       type: object
       required:
@@ -1173,7 +1215,23 @@ components:
       enum:
         - NOT_STARTED
         - IN_PROGRESS
+        - PAUSED
+        - ABANDONED
         - DONE
+    TaskDependency:
+      type: object
+      required:
+        - type
+        - targetId
+      properties:
+        type:
+          type: string
+          enum:
+            - TASK
+            - PHASE
+            - ISSUE
+        targetId:
+          type: string
     PhaseKind:
       type: string
       enum:

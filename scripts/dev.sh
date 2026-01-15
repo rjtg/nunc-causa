@@ -8,8 +8,8 @@ if [ ! -d "${ROOT_DIR}/ui/node_modules" ]; then
   (cd "${ROOT_DIR}/ui" && npm install)
 fi
 
-echo "Starting backend (dev profile)..."
-(cd "${ROOT_DIR}" && SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --args="--spring.profiles.active=dev") &
+echo "Starting backend (dev profile, hot reload)..."
+(cd "${ROOT_DIR}" && SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --continuous --args="--spring.profiles.active=dev") &
 BACKEND_PID=$!
 
 echo "Starting UI dev server..."

@@ -200,6 +200,14 @@ class IssuesController(
                 phaseId,
                 addTaskRequest.title,
                 addTaskRequest.assigneeId,
+                addTaskRequest.startDate,
+                addTaskRequest.dueDate,
+                addTaskRequest.dependencies?.map {
+                    sh.nunc.causa.issues.TaskDependencyView(
+                        type = it.type.name,
+                        targetId = it.targetId,
+                    )
+                },
             )
         }
         val detail = issueService.getIssueDetail(issue.id)
@@ -246,6 +254,14 @@ class IssuesController(
                     updateTaskRequest.title,
                     updateTaskRequest.assigneeId,
                     updateTaskRequest.status?.let { TaskStatus.valueOf(it.name) },
+                    updateTaskRequest.startDate,
+                    updateTaskRequest.dueDate,
+                    updateTaskRequest.dependencies?.map {
+                        sh.nunc.causa.issues.TaskDependencyView(
+                            type = it.type.name,
+                            targetId = it.targetId,
+                        )
+                    },
                 )
             }
         }

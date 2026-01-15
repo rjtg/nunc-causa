@@ -4,4 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface IssueCommentReadRepository : JpaRepository<IssueCommentReadEntity, String> {
     fun findByIssueIdAndUserId(issueId: String, userId: String): IssueCommentReadEntity?
+    fun findAllByIssueIdAndUserIdIn(issueId: String, userIds: Collection<String>): List<IssueCommentReadEntity>
 }

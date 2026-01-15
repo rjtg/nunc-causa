@@ -5,24 +5,44 @@ import java.util.UUID
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import sh.nunc.causa.users.CurrentUserService
+import sh.nunc.causa.users.UserRepository
 import sh.nunc.causa.web.model.AddCommentRequest
 import sh.nunc.causa.web.model.CommentResponse
+import sh.nunc.causa.web.model.UserSummary
 
 @Service
 class IssueCommentService(
     private val commentRepository: IssueCommentRepository,
     private val currentUserService: CurrentUserService,
     private val commentReadRepository: IssueCommentReadRepository,
+    private val issueService: IssueService,
+    private val userRepository: UserRepository,
 ) {
     @Transactional(readOnly = true)
     fun listComments(issueId: String): IssueCommentsView {
         val comments = commentRepository.findAllByIssueIdOrderByCreatedAtAsc(issueId)
-            .map { it.toResponse() }
+            .toList()
         val latest = commentRepository.findTopByIssueIdOrderByCreatedAtDesc(issueId)
+        val relevantUsers = resolveRelevantUsers(issueId)
+        val readMap = loadReadMap(issueId, relevantUsers.keys)
+        val commentResponses = comments.map { comment ->
+            val readBy = relevantUsers
+                .filter { (userId) ->
+                    val readAt = readMap[userId]
+                    readAt != null && !readAt.isBefore(comment.createdAt)
+                }
+                .values
+                .sortedBy { it.displayName }
+            val unreadBy = relevantUsers
+                .filterKeys { userId -> readBy.none { it.id == userId } }
+                .values
+                .sortedBy { it.displayName }
+            comment.toResponse(readBy = readBy, unreadBy = unreadBy)
+        }
         val userId = currentUserService.currentUserId()
         if (userId == null) {
             return IssueCommentsView(
-                comments = comments,
+                comments = commentResponses,
                 unreadCount = comments.size,
                 lastReadAt = null,
                 latestCommentAt = latest?.createdAt,
@@ -42,7 +62,7 @@ class IssueCommentService(
             commentRepository.findFirstByIssueIdAndCreatedAtAfterOrderByCreatedAtAsc(issueId, lastReadAt)?.id
         }
         return IssueCommentsView(
-            comments = comments,
+            comments = commentResponses,
             unreadCount = unreadCount,
             lastReadAt = lastReadAt,
             latestCommentAt = latest?.createdAt,
@@ -60,7 +80,21 @@ class IssueCommentService(
             body = request.body,
             createdAt = OffsetDateTime.now(),
         )
-        return commentRepository.save(entity).toResponse()
+        val saved = commentRepository.save(entity)
+        val relevantUsers = resolveRelevantUsers(issueId)
+        val readMap = loadReadMap(issueId, relevantUsers.keys)
+        val readBy = relevantUsers
+            .filter { (userId) ->
+                val readAt = readMap[userId]
+                readAt != null && !readAt.isBefore(saved.createdAt)
+            }
+            .values
+            .sortedBy { it.displayName }
+        val unreadBy = relevantUsers
+            .filterKeys { userId -> readBy.none { it.id == userId } }
+            .values
+            .sortedBy { it.displayName }
+        return saved.toResponse(readBy = readBy, unreadBy = unreadBy)
     }
 
     @Transactional
@@ -90,13 +124,45 @@ class IssueCommentService(
         )
     }
 
-    private fun IssueCommentEntity.toResponse(): CommentResponse {
+    private fun IssueCommentEntity.toResponse(
+        readBy: List<UserSummary>,
+        unreadBy: List<UserSummary>,
+    ): CommentResponse {
         return CommentResponse(
             id = id,
             issueId = issueId,
             authorId = authorId,
             body = body,
             createdAt = createdAt,
+            readByCount = readBy.size,
+            unreadByCount = unreadBy.size,
+            readByUsers = readBy,
+            unreadByUsers = unreadBy,
         )
+    }
+
+    private fun resolveRelevantUsers(issueId: String): Map<String, UserSummary> {
+        val issue = issueService.getIssueDetail(issueId)
+        val userIds = mutableSetOf(issue.ownerId)
+        issue.phases.forEach { phase ->
+            userIds.add(phase.assigneeId)
+            phase.tasks.mapNotNullTo(userIds) { it.assigneeId }
+        }
+        val users = userRepository.findAllById(userIds)
+        return users.associate { user ->
+            user.id to UserSummary(
+                id = user.id,
+                displayName = user.displayName,
+                email = user.email,
+            )
+        }
+    }
+
+    private fun loadReadMap(issueId: String, userIds: Collection<String>): Map<String, OffsetDateTime> {
+        if (userIds.isEmpty()) {
+            return emptyMap()
+        }
+        return commentReadRepository.findAllByIssueIdAndUserIdIn(issueId, userIds)
+            .associate { it.userId to it.lastReadAt }
     }
 }

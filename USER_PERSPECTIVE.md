@@ -171,6 +171,16 @@ Keep them separate in UI and storage.
 - Distributed responsibility across roles
 - No invisible responsibility zones
 
+### 2.6 UI Interaction Patterns (Compact + Contextual)
+- Prefer **compact, inline controls**: icon buttons embedded in inputs, with popovers for details.
+- Use **status badges + progress bars** to summarize phase/task state without extra text.
+- Comments behave like a messenger:
+  - Sticky one-line composer that expands with typing
+  - Ctrl+Enter sends
+  - Jump to latest/unread controls
+  - Read receipts for relevant participants (owner + assignees)
+- Buttons should include **decorative icons** for scanability.
+
 ---
 
 ## 3. Key UI Surfaces

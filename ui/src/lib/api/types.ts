@@ -511,6 +511,10 @@ export interface components {
             body: string;
             /** Format: date-time */
             createdAt: string;
+            readByCount?: number;
+            unreadByCount?: number;
+            readByUsers?: components["schemas"]["UserSummary"][];
+            unreadByUsers?: components["schemas"]["UserSummary"][];
         };
         IssueCommentsResponse: {
             comments: components["schemas"]["CommentResponse"][];
@@ -578,7 +582,7 @@ export interface components {
         /** @enum {string} */
         PhaseStatus: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "FAILED";
         /** @enum {string} */
-        TaskStatus: "NOT_STARTED" | "IN_PROGRESS" | "DONE";
+        TaskStatus: "NOT_STARTED" | "IN_PROGRESS" | "PAUSED" | "ABANDONED" | "DONE";
         /** @enum {string} */
         PhaseKind: "INVESTIGATION" | "PROPOSE_SOLUTION" | "DEVELOPMENT" | "ACCEPTANCE_TEST" | "ROLLOUT";
     };

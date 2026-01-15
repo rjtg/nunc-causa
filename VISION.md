@@ -221,6 +221,12 @@ Read models should also include **allowed actions** (capability keys) so the UI
 can render only valid transitions. These should be computed per user from
 permissions + resource state, and include a reason when an action is disabled.
 
+UI interaction guidance:
+- Keep inputs compact; use inline icon controls with popovers for extended metadata.
+- Show phase/task status visually (badges, small progress bars) alongside actions.
+- Comments behave like a messenger (sticky composer, jump to unread/latest, read receipts).
+- Buttons should include decorative icons for quick scanning.
+
 ### 5.2 Live update via SSE (optional)
 
 Default to polling (ETags or short polling) and add SSE only where it clearly

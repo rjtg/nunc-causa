@@ -270,7 +270,15 @@ class IssueService(
     }
 
     @Transactional
-    fun addTask(issueId: String, phaseId: String, title: String, assigneeId: String?): IssueEntity {
+    fun addTask(
+        issueId: String,
+        phaseId: String,
+        title: String,
+        assigneeId: String?,
+        startDate: java.time.LocalDate?,
+        dueDate: java.time.LocalDate?,
+        dependencies: List<TaskDependencyView>?,
+    ): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
@@ -280,8 +288,20 @@ class IssueService(
             title = title,
             assignee = assigneeEntity,
             status = TaskStatus.NOT_STARTED.name,
+            startDate = startDate,
+            dueDate = dueDate,
             phase = phase,
         )
+        dependencies?.forEach { dependency ->
+            task.dependencies.add(
+                TaskDependencyEntity(
+                    id = UUID.randomUUID().toString(),
+                    task = task,
+                    type = dependency.type,
+                    targetId = dependency.targetId,
+                ),
+            )
+        }
         phase.tasks.add(task)
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
@@ -298,6 +318,9 @@ class IssueService(
         title: String?,
         assigneeId: String?,
         status: TaskStatus?,
+        startDate: java.time.LocalDate?,
+        dueDate: java.time.LocalDate?,
+        dependencies: List<TaskDependencyView>?,
     ): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
@@ -312,6 +335,25 @@ class IssueService(
         }
         if (status != null) {
             task.status = status.name
+        }
+        if (startDate != null) {
+            task.startDate = startDate
+        }
+        if (dueDate != null) {
+            task.dueDate = dueDate
+        }
+        if (dependencies != null) {
+            task.dependencies.clear()
+            dependencies.forEach { dependency ->
+                task.dependencies.add(
+                    TaskDependencyEntity(
+                        id = UUID.randomUUID().toString(),
+                        task = task,
+                        type = dependency.type,
+                        targetId = dependency.targetId,
+                    ),
+                )
+            }
         }
         issue.status = deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
@@ -498,6 +540,14 @@ class IssueService(
                             title = task.title,
                             assigneeId = task.assignee?.id,
                             status = task.status,
+                            startDate = task.startDate?.toString(),
+                            dueDate = task.dueDate?.toString(),
+                            dependencies = task.dependencies.map {
+                                TaskDependencyView(
+                                    type = it.type,
+                                    targetId = it.targetId,
+                                )
+                            },
                         )
                     },
                 )

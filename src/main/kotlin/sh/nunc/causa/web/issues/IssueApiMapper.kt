@@ -20,6 +20,7 @@ import sh.nunc.causa.web.model.PhaseResponse
 import sh.nunc.causa.web.model.PhaseStatus as ApiPhaseStatus
 import sh.nunc.causa.web.model.TaskResponse
 import sh.nunc.causa.web.model.TaskStatus as ApiTaskStatus
+import sh.nunc.causa.web.model.TaskDependency as ApiTaskDependency
 import java.net.URI
 
 interface IssueActionProvider {
@@ -95,6 +96,14 @@ private fun TaskView.toResponse(
         title = title,
         assigneeId = assigneeId,
         status = status.toTaskStatusEnum(),
+        startDate = startDate?.let { java.time.LocalDate.parse(it) },
+        dueDate = dueDate?.let { java.time.LocalDate.parse(it) },
+        dependencies = dependencies.map {
+            ApiTaskDependency(
+                type = ApiTaskDependency.Type.valueOf(it.type),
+                targetId = it.targetId,
+            )
+        },
         allowedActions = actions.taskActions(issue, phaseId, id),
     )
 }
@@ -112,6 +121,8 @@ private fun String.toTaskStatusEnum(): ApiTaskStatus {
     return when (TaskStatus.valueOf(this)) {
         TaskStatus.NOT_STARTED -> ApiTaskStatus.NOT_STARTED
         TaskStatus.IN_PROGRESS -> ApiTaskStatus.IN_PROGRESS
+        TaskStatus.PAUSED -> ApiTaskStatus.PAUSED
+        TaskStatus.ABANDONED -> ApiTaskStatus.ABANDONED
         TaskStatus.DONE -> ApiTaskStatus.DONE
     }
 }

@@ -49,4 +49,12 @@ data class TaskView(
     val title: String,
     val assigneeId: String?,
     val status: String,
+    val startDate: String?,
+    val dueDate: String?,
+    val dependencies: List<TaskDependencyView>,
+)
+
+data class TaskDependencyView(
+    val type: String,
+    val targetId: String,
 )

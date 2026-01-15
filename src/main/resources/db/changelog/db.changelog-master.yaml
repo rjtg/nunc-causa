@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changes/004-phase-completion.yaml
   - include:
       file: db/changelog/changes/005-comment-reads.yaml
+  - include:
+      file: db/changelog/changes/006-task-metadata-deps.yaml

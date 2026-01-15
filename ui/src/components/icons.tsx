@@ -4,10 +4,12 @@ export type IconName =
   | "arrow-down"
   | "arrow-left"
   | "arrow-right"
+  | "calendar"
   | "check"
   | "chevron-down"
   | "comment"
   | "filter"
+  | "link"
   | "plus"
   | "reset"
   | "send"
@@ -51,6 +53,12 @@ export function Icon({ name, size = 14, className, ...rest }: IconProps) {
           <path d="M5 12h13M13 6l5 6-5 6" />
         </svg>
       );
+    case "calendar":
+      return (
+        <svg {...common} {...rest}>
+          <path d="M8 3v4M16 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+        </svg>
+      );
     case "arrow-left":
       return (
         <svg {...common} {...rest}>
@@ -79,6 +87,13 @@ export function Icon({ name, size = 14, className, ...rest }: IconProps) {
       return (
         <svg {...common} {...rest}>
           <path d="M3 5h18l-7 8v6l-4 2v-8L3 5z" />
+        </svg>
+      );
+    case "link":
+      return (
+        <svg {...common} {...rest}>
+          <path d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
+          <path d="M14 11a5 5 0 0 1 0 7L12.5 19.5a5 5 0 0 1-7-7L7 12" />
         </svg>
       );
     case "reset":

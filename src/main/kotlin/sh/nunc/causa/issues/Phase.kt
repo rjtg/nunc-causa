@@ -10,7 +10,15 @@ enum class PhaseStatus {
 enum class TaskStatus {
     NOT_STARTED,
     IN_PROGRESS,
+    PAUSED,
+    ABANDONED,
     DONE,
+}
+
+enum class TaskDependencyType {
+    TASK,
+    PHASE,
+    ISSUE,
 }
 
 enum class IssueStatus {

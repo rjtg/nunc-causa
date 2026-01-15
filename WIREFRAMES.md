@@ -3,6 +3,12 @@
 These wireframes outline the core web UI screens and navigation. They are intentionally
 skeletal so layout and data needs can be validated before visual design.
 
+## Interaction Notes (Applied to All Screens)
+- Compact inputs with inline icon controls and popovers for extra fields.
+- Status badges + small progress bars instead of verbose text.
+- Messenger-like comments: sticky composer, jump to unread/latest, read receipts.
+- Buttons carry decorative icons for fast scanning.
+
 ## Global Layout
 - Top bar: app name, project switcher, user menu.
 - Left nav: My Work, Issues, Projects, Admin.
