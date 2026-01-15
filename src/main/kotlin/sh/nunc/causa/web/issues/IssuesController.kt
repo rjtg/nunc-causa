@@ -84,13 +84,11 @@ class IssuesController(
         status: sh.nunc.causa.web.model.IssueStatus?,
         phaseKind: sh.nunc.causa.web.model.PhaseKind?,
     ): ResponseEntity<List<IssueListItem>> {
-        val currentUserId = accessPolicy.currentUserId()
-        val effectiveMemberId = memberId ?: currentUserId
         val issues = issueService.listIssues(
             query,
             ownerId,
             assigneeId,
-            effectiveMemberId,
+            memberId,
             projectId,
             status?.let { IssueStatus.valueOf(it.name) },
             phaseKind?.name,
@@ -114,13 +112,11 @@ class IssuesController(
         status: sh.nunc.causa.web.model.IssueStatus?,
         phaseKind: sh.nunc.causa.web.model.PhaseKind?,
     ): ResponseEntity<IssueFacetResponse> {
-        val currentUserId = accessPolicy.currentUserId()
-        val effectiveMemberId = memberId ?: currentUserId
         val facets = issueService.getIssueFacets(
             query,
             ownerId,
             assigneeId,
-            effectiveMemberId,
+            memberId,
             projectId,
             status?.let { IssueStatus.valueOf(it.name) },
             phaseKind?.name,
