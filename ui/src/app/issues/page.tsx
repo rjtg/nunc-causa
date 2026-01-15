@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { Icon } from "@/components/icons";
 
 type IssueSummary = {
   id: string;
@@ -284,10 +285,11 @@ export default function IssuesPage() {
               Filters
             </h2>
             <button
-              className="text-xs text-slate-500 underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-2 text-xs text-slate-500 underline-offset-2 hover:underline"
               type="button"
               onClick={() => dispatch({ type: "reset" })}
             >
+              <Icon name="reset" size={12} />
               Reset
             </button>
           </div>
@@ -442,9 +444,10 @@ export default function IssuesPage() {
             </div>
           </div>
           <button
-            className="w-full rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
             type="submit"
           >
+            <Icon name="filter" size={12} />
             Apply filters
           </button>
           <datalist id="owner-options">

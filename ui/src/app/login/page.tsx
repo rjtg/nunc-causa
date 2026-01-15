@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth/context";
+import { Icon } from "@/components/icons";
 
 type AuthMethod = {
   type: string;
@@ -197,7 +198,8 @@ export default function LoginPage() {
             </p>
           </div>
         </details>
-        <button className="rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white">
+        <button className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white">
+          <Icon name="check" size={12} />
           Save connection
         </button>
       </form>

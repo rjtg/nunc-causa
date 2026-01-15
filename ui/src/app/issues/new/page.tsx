@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { Icon } from "@/components/icons";
 
 type PhaseDraft = {
   enabled: boolean;
@@ -302,11 +303,7 @@ export default function NewIssuePage() {
             >
               <div className="flex items-center gap-2">
                 <button
-                  className={`h-5 w-10 rounded-full border transition ${
-                    phase.enabled
-                      ? "border-emerald-400 bg-emerald-400"
-                      : "border-slate-200 bg-slate-200"
-                  }`}
+                  className="inline-flex items-center gap-2"
                   type="button"
                   onClick={() =>
                     setPhases((prev) =>
@@ -318,11 +315,20 @@ export default function NewIssuePage() {
                     )
                   }
                 >
+                  <Icon name={phase.enabled ? "check" : "x"} size={12} />
                   <span
-                    className={`block h-4 w-4 rounded-full bg-white transition ${
-                      phase.enabled ? "translate-x-5" : "translate-x-1"
+                    className={`relative block h-5 w-10 rounded-full border transition ${
+                      phase.enabled
+                        ? "border-emerald-400 bg-emerald-400"
+                        : "border-slate-200 bg-slate-200"
                     }`}
-                  />
+                  >
+                    <span
+                      className={`absolute top-0.5 block h-4 w-4 rounded-full bg-white transition ${
+                        phase.enabled ? "translate-x-5" : "translate-x-1"
+                      }`}
+                    />
+                  </span>
                 </button>
                 <span className="text-xs font-semibold text-slate-700">
                   {phaseLabel(phase.kind)}
@@ -389,10 +395,11 @@ export default function NewIssuePage() {
 
         <div className="flex items-center gap-3">
           <button
-            className="rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white"
+            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white"
             type="submit"
             disabled={saving}
           >
+            <Icon name="plus" size={12} />
             {saving ? "Saving…" : "Create issue"}
           </button>
           {error && <span className="text-xs text-rose-600">{error}</span>}

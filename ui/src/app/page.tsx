@@ -1,3 +1,5 @@
+import { Icon } from "@/components/icons";
+
 export default function Home() {
   return (
     <div className="space-y-6">
@@ -13,10 +15,12 @@ export default function Home() {
           and makes the next allowed actions visible to everyone involved.
         </p>
         <div className="mt-4 flex flex-wrap gap-3 text-xs">
-          <button className="rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+          <button className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+            <Icon name="plus" size={12} />
             New issue
           </button>
-          <button className="rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-700">
+          <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-700">
+            <Icon name="comment" size={12} />
             View my work
           </button>
         </div>

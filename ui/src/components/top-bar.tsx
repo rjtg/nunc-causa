@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import AuthStatus from "@/components/auth-status";
+import { Icon } from "@/components/icons";
 import { isHotkeyCandidate } from "@/lib/hotkeys";
 
 export default function TopBar() {
@@ -40,7 +41,10 @@ export default function TopBar() {
             className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm"
             type="button"
           >
-            Project: Alpha
+            <span className="inline-flex items-center gap-2">
+              Project: Alpha
+              <Icon name="chevron-down" size={12} />
+            </span>
           </button>
         </div>
         <div className="flex flex-1 items-center justify-end gap-3">
@@ -65,9 +69,10 @@ export default function TopBar() {
             />
           </form>
           <Link
-            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
             href="/issues/new"
           >
+            <Icon name="plus" size={12} />
             New issue (N)
           </Link>
           <AuthStatus />

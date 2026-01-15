@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
+import { Icon } from "@/components/icons";
 
 type Phase = {
   id: string;
@@ -369,13 +370,13 @@ export default function IssueDetailPage() {
 
       <div className="flex gap-2 text-xs font-semibold text-slate-600">
         {[
-          { id: "overview", label: "Overview" },
-          { id: "activity", label: `Activity (${historyCount})` },
-          { id: "comments", label: `Comments (${comments.length})` },
+          { id: "overview", label: "Overview", icon: "comment" as const },
+          { id: "activity", label: `Activity (${historyCount})`, icon: "reset" as const },
+          { id: "comments", label: `Comments (${comments.length})`, icon: "comment" as const },
         ].map((item) => (
           <button
             key={item.id}
-            className={`rounded-full px-4 py-2 ${
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${
               tab === item.id
                 ? "bg-slate-900 text-white"
                 : "border border-slate-200 bg-white"
@@ -385,6 +386,7 @@ export default function IssueDetailPage() {
               setTab(item.id as "overview" | "activity" | "comments")
             }
           >
+            <Icon name={item.icon} size={12} />
             {item.label}
           </button>
         ))}
@@ -531,7 +533,7 @@ export default function IssueDetailPage() {
                       />
                       <div className="flex flex-wrap items-center gap-2">
                         <button
-                          className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
+                          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
                           type="button"
                           disabled={getCompletionDraft(phase).saving}
                           onClick={async () => {
@@ -577,12 +579,13 @@ export default function IssueDetailPage() {
                             });
                           }}
                         >
+                          <Icon name="check" size={12} />
                           {getCompletionDraft(phase).saving
                             ? "Finishing…"
                             : "Finish phase"}
                         </button>
                         <button
-                          className="rounded-full border border-emerald-200 px-4 py-2 text-xs font-semibold text-emerald-700"
+                          className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-4 py-2 text-xs font-semibold text-emerald-700"
                           type="button"
                           onClick={() =>
                             updateCompletionDraft(phase.id, {
@@ -591,6 +594,7 @@ export default function IssueDetailPage() {
                             })
                           }
                         >
+                          <Icon name="x" size={12} />
                           Cancel
                         </button>
                       </div>
@@ -694,7 +698,7 @@ export default function IssueDetailPage() {
                         </span>
                       </div>
                       <button
-                        className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                         type="button"
                         disabled={getTaskDraft(phase.id).saving}
                         onClick={async () => {
@@ -734,6 +738,7 @@ export default function IssueDetailPage() {
                           });
                         }}
                       >
+                        <Icon name="plus" size={12} />
                         {getTaskDraft(phase.id).saving ? "Adding…" : "Add"}
                       </button>
                     </div>
@@ -809,7 +814,7 @@ export default function IssueDetailPage() {
 
       {tab === "comments" && (
         <section className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
-          <div className="space-y-3">
+          <div className="space-y-3 pb-32">
             {comments.length === 0 && (
               <p className="text-sm text-slate-500">No comments yet.</p>
             )}
@@ -830,6 +835,27 @@ export default function IssueDetailPage() {
           </div>
 
           <div className="sticky bottom-4 z-10 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg">
+            {commentThread.unreadCount > 0 &&
+              commentThread.firstUnreadCommentId && (
+                <div className="mb-2 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  <span>{commentThread.unreadCount} unread comments</span>
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-semibold text-amber-700"
+                    type="button"
+                    onClick={() => {
+                      const target = document.getElementById(
+                        `comment-${commentThread.firstUnreadCommentId}`,
+                      );
+                      if (target) {
+                        target.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                  >
+                    <Icon name="comment" size={12} />
+                    Jump to unread
+                  </button>
+                </div>
+              )}
             <form
               className="space-y-3"
               onSubmit={async (event) => {
@@ -862,38 +888,38 @@ export default function IssueDetailPage() {
                 markCommentsRead(nextComment.id);
               }}
             >
-              <textarea
-                className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                placeholder="Add a comment…"
-                value={commentBody}
-                onChange={(event) => setCommentBody(event.target.value)}
-              />
-              <div className="flex flex-wrap items-center gap-3">
-                <button className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">
-                  Post comment
+              <div className="relative">
+                <textarea
+                  className="max-h-40 min-h-[40px] w-full resize-none rounded-xl border border-slate-200 px-4 py-2 pr-12 text-sm"
+                  placeholder="Add a comment…"
+                  rows={1}
+                  value={commentBody}
+                  onChange={(event) => {
+                    setCommentBody(event.target.value);
+                    event.currentTarget.style.height = "auto";
+                    event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
+                  }}
+                />
+                <button
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  type="submit"
+                  disabled={!commentBody.trim()}
+                  aria-label="Send comment"
+                  title="Send comment"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Icon name="send" size={12} />
+                    Send
+                  </span>
                 </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
                 {commentError && (
                   <span className="text-xs text-rose-600">{commentError}</span>
                 )}
-                {commentThread.unreadCount > 0 && commentThread.firstUnreadCommentId && (
-                  <button
-                    className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700"
-                    type="button"
-                    onClick={() => {
-                      const target = document.getElementById(
-                        `comment-${commentThread.firstUnreadCommentId}`,
-                      );
-                      if (target) {
-                        target.scrollIntoView({ behavior: "smooth" });
-                      }
-                    }}
-                  >
-                    Jump to unread ({commentThread.unreadCount})
-                  </button>
-                )}
                 {showJumpToLatest && (
                   <button
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600"
                     type="button"
                     onClick={() =>
                       commentsEndRef.current?.scrollIntoView({
@@ -901,6 +927,7 @@ export default function IssueDetailPage() {
                       })
                     }
                   >
+                    <Icon name="arrow-down" size={12} />
                     Jump to latest
                   </button>
                 )}
