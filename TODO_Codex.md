@@ -130,6 +130,10 @@ Use src/main/kotlin and src/test/kotlin.
 
 ## Priority 4 — UX Enhancements (Later)
 
+[x] Add hierarchical progress bars for issue list + issue detail
+    - Weight each phase equally, subdivide by task status
+    - Show phase badges (assignee/task count/deadline) on hover
+    - Click a segment to jump to the phase section
 [ ] Define completion artifact integrations per phase
     - Brainstorm integration options (GitHub/GitLab PRs, docs, PDFs)
     - Define dev-phase rule: link to PR(s) and require merge before completion

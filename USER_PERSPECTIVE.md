@@ -174,6 +174,8 @@ Keep them separate in UI and storage.
 ### 2.6 UI Interaction Patterns (Compact + Contextual)
 - Prefer **compact, inline controls**: icon buttons embedded in inputs, with popovers for details.
 - Use **status badges + progress bars** to summarize phase/task state without extra text.
+- Progress bars should be **hierarchical** (each phase weighs equally, then subdivided by task status).
+- Progress segments should be **interactive**: hover shows phase badges (assignee/task count/deadline), click jumps to the phase.
 - Comments behave like a messenger:
   - Sticky one-line composer that expands with typing
   - Ctrl+Enter sends
@@ -203,7 +205,7 @@ Access is scoped by project membership (and team inheritance) to avoid leaks.
 For owners and coordinators:
 - Filter by status (Analysis, Dev, Test, Rollout, Done)
 - Red flags if blockers/regressions
-- Live attributes (phase count, completion %)
+- Live attributes (phase/task progress via hierarchical bar, owner display name)
 
 Useful for triage.
 
@@ -224,6 +226,7 @@ Visual cues show:
 - What’s active
 - What’s waiting
 - What’s blocked
+- Progress bar segments are clickable to jump to the phase section.
 
 ### 3.4 Phase View
 Single-phase deep dive:
