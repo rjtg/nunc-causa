@@ -246,6 +246,27 @@ paths:
                 $ref: '#/components/schemas/IssueDetail'
         '409':
           description: Issue not ready to close
+  /issues/{issueId}/actions/abandon:
+    post:
+      tags:
+        - Issues
+      summary: Abandon an issue
+      operationId: abandonIssue
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issue abandoned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+        '404':
+          description: Issue not found
   /issues/{issueId}/phases:
     post:
       tags:
@@ -646,6 +667,133 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IssueListItem'
+  /stream/updates:
+    get:
+      tags:
+        - Updates
+      summary: Stream live updates via SSE
+      operationId: streamUpdates
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /admin/orgs:
+    post:
+      tags:
+        - Admin
+      summary: Create an organization
+      operationId: createOrg
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrgRequest'
+      responses:
+        '201':
+          description: Org created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgSummary'
+  /admin/teams:
+    post:
+      tags:
+        - Admin
+      summary: Create a team
+      operationId: createTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+      responses:
+        '201':
+          description: Team created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamSummary'
+  /admin/projects:
+    post:
+      tags:
+        - Admin
+      summary: Create a project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSummary'
+  /admin/memberships/org:
+    post:
+      tags:
+        - Admin
+      summary: Add org membership
+      operationId: addOrgMembership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrgMembershipRequest'
+      responses:
+        '201':
+          description: Org membership created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgMembershipSummary'
+  /admin/memberships/team:
+    post:
+      tags:
+        - Admin
+      summary: Add team membership
+      operationId: addTeamMembership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamMembershipRequest'
+      responses:
+        '201':
+          description: Team membership created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMembershipSummary'
+  /admin/memberships/project:
+    post:
+      tags:
+        - Admin
+      summary: Add project membership
+      operationId: addProjectMembership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectMembershipRequest'
+      responses:
+        '201':
+          description: Project membership created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMembershipSummary'
 components:
   schemas:
     CreateIssueRequest:
@@ -1170,6 +1318,146 @@ components:
           type: string
         email:
           type: string
+        openIssueCount:
+          type: integer
+          format: int64
+        openPhaseCount:
+          type: integer
+          format: int64
+        openTaskCount:
+          type: integer
+          format: int64
+    OrgSummary:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    TeamSummary:
+      type: object
+      required:
+        - id
+        - orgId
+        - name
+      properties:
+        id:
+          type: string
+        orgId:
+          type: string
+        parentTeamId:
+          type: string
+          nullable: true
+        name:
+          type: string
+    OrgMembershipSummary:
+      type: object
+      required:
+        - id
+        - orgId
+        - userId
+      properties:
+        id:
+          type: string
+        orgId:
+          type: string
+        userId:
+          type: string
+    TeamMembershipSummary:
+      type: object
+      required:
+        - id
+        - teamId
+        - userId
+      properties:
+        id:
+          type: string
+        teamId:
+          type: string
+        userId:
+          type: string
+    ProjectMembershipSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - userId
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        userId:
+          type: string
+    CreateOrgRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    CreateTeamRequest:
+      type: object
+      required:
+        - orgId
+        - name
+      properties:
+        orgId:
+          type: string
+        parentTeamId:
+          type: string
+          nullable: true
+        name:
+          type: string
+    CreateProjectRequest:
+      type: object
+      required:
+        - key
+        - orgId
+        - teamId
+        - name
+      properties:
+        key:
+          type: string
+        orgId:
+          type: string
+        teamId:
+          type: string
+        name:
+          type: string
+    CreateOrgMembershipRequest:
+      type: object
+      required:
+        - orgId
+        - userId
+      properties:
+        orgId:
+          type: string
+        userId:
+          type: string
+    CreateTeamMembershipRequest:
+      type: object
+      required:
+        - teamId
+        - userId
+      properties:
+        teamId:
+          type: string
+        userId:
+          type: string
+    CreateProjectMembershipRequest:
+      type: object
+      required:
+        - projectId
+        - userId
+      properties:
+        projectId:
+          type: string
+        userId:
+          type: string
     PhaseWorkItem:
       type: object
       required:
@@ -1218,6 +1506,7 @@ components:
       type: string
       enum:
         - CREATED
+        - NOT_ACTIVE
         - IN_ANALYSIS
         - IN_DEVELOPMENT
         - IN_TEST

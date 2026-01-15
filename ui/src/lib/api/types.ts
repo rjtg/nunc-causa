@@ -108,6 +108,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/issues/{issueId}/actions/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abandon an issue */
+        post: operations["abandonIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/issues/{issueId}/phases": {
         parameters: {
             query?: never;
@@ -364,6 +381,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stream/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream live updates via SSE */
+        get: operations["streamUpdates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orgs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an organization */
+        post: operations["createOrg"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a team */
+        post: operations["createTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a project */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/memberships/org": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add org membership */
+        post: operations["addOrgMembership"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/memberships/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add team membership */
+        post: operations["addTeamMembership"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/memberships/project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add project membership */
+        post: operations["addProjectMembership"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -588,6 +724,63 @@ export interface components {
             id: string;
             displayName: string;
             email?: string;
+            /** Format: int64 */
+            openIssueCount?: number;
+            /** Format: int64 */
+            openPhaseCount?: number;
+            /** Format: int64 */
+            openTaskCount?: number;
+        };
+        OrgSummary: {
+            id: string;
+            name: string;
+        };
+        TeamSummary: {
+            id: string;
+            orgId: string;
+            parentTeamId?: string | null;
+            name: string;
+        };
+        OrgMembershipSummary: {
+            id: string;
+            orgId: string;
+            userId: string;
+        };
+        TeamMembershipSummary: {
+            id: string;
+            teamId: string;
+            userId: string;
+        };
+        ProjectMembershipSummary: {
+            id: string;
+            projectId: string;
+            userId: string;
+        };
+        CreateOrgRequest: {
+            name: string;
+        };
+        CreateTeamRequest: {
+            orgId: string;
+            parentTeamId?: string | null;
+            name: string;
+        };
+        CreateProjectRequest: {
+            key: string;
+            orgId: string;
+            teamId: string;
+            name: string;
+        };
+        CreateOrgMembershipRequest: {
+            orgId: string;
+            userId: string;
+        };
+        CreateTeamMembershipRequest: {
+            teamId: string;
+            userId: string;
+        };
+        CreateProjectMembershipRequest: {
+            projectId: string;
+            userId: string;
         };
         PhaseWorkItem: {
             issueId: string;
@@ -607,7 +800,7 @@ export interface components {
             reason?: string;
         };
         /** @enum {string} */
-        IssueStatus: "CREATED" | "IN_ANALYSIS" | "IN_DEVELOPMENT" | "IN_TEST" | "IN_ROLLOUT" | "DONE" | "FAILED";
+        IssueStatus: "CREATED" | "NOT_ACTIVE" | "IN_ANALYSIS" | "IN_DEVELOPMENT" | "IN_TEST" | "IN_ROLLOUT" | "DONE" | "FAILED";
         /** @enum {string} */
         PhaseStatus: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "FAILED";
         /** @enum {string} */
@@ -848,6 +1041,35 @@ export interface operations {
             };
             /** @description Issue not ready to close */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    abandonIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issue abandoned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueDetail"];
+                };
+            };
+            /** @description Issue not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1292,6 +1514,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IssueListItem"][];
+                };
+            };
+        };
+    };
+    streamUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    createOrg: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrgRequest"];
+            };
+        };
+        responses: {
+            /** @description Org created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSummary"];
+                };
+            };
+        };
+    };
+    createTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description Team created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSummary"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Project created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSummary"];
+                };
+            };
+        };
+    };
+    addOrgMembership: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrgMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Org membership created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMembershipSummary"];
+                };
+            };
+        };
+    };
+    addTeamMembership: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeamMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Team membership created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMembershipSummary"];
+                };
+            };
+        };
+    };
+    addProjectMembership: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Project membership created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMembershipSummary"];
                 };
             };
         };

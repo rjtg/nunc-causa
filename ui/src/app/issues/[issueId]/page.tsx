@@ -6,9 +6,61 @@ import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
 import { Tooltip } from "@/components/tooltip";
+import { Typeahead } from "@/components/typeahead";
 import { useHealth } from "@/lib/health/context";
 import type { CommentThread, HistoryResponse, IssueDetail, UserOption } from "./types";
 import { PhaseBoard } from "./components/PhaseBoard";
+
+const issueStatusLabel = (value: string) => {
+  if (value === "NOT_ACTIVE") {
+    return "Not active";
+  }
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const issueStatusBadgeStyle = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "border-emerald-200 bg-emerald-100 text-emerald-800";
+    case "FAILED":
+      return "border-rose-200 bg-rose-100 text-rose-800";
+    case "IN_ANALYSIS":
+      return "border-amber-200 bg-amber-100 text-amber-800";
+    case "IN_DEVELOPMENT":
+      return "border-sky-200 bg-sky-100 text-sky-800";
+    case "IN_TEST":
+      return "border-violet-200 bg-violet-100 text-violet-800";
+    case "IN_ROLLOUT":
+      return "border-emerald-200 bg-emerald-100 text-emerald-800";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+};
+
+const userLabel = (users: UserOption[], userId?: string | null) => {
+  if (!userId) {
+    return "Unassigned";
+  }
+  return users.find((user) => user.id === userId)?.displayName ?? userId;
+};
+
+const userWorkload = (users: UserOption[], userId?: string | null) => {
+  if (!userId) {
+    return null;
+  }
+  const user = users.find((option) => option.id === userId);
+  if (!user) {
+    return null;
+  }
+  const openIssues = user.openIssueCount ?? 0;
+  const openPhases = user.openPhaseCount ?? 0;
+  const openTasks = user.openTaskCount ?? 0;
+  return `${openIssues} / ${openPhases} / ${openTasks}`;
+};
 
 export default function IssueDetailPage() {
   const params = useParams();
@@ -21,6 +73,19 @@ export default function IssueDetailPage() {
   const [issueDeadlineDraft, setIssueDeadlineDraft] = useState("");
   const [issueDeadlineDirty, setIssueDeadlineDirty] = useState(false);
   const [issueDeadlineOpen, setIssueDeadlineOpen] = useState(false);
+  const [issueTitleDraft, setIssueTitleDraft] = useState("");
+  const [issueDescriptionDraft, setIssueDescriptionDraft] = useState("");
+  const [issueEditDirty, setIssueEditDirty] = useState(false);
+  const [issueEditSaving, setIssueEditSaving] = useState(false);
+  const [issueEditError, setIssueEditError] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [ownerEditOpen, setOwnerEditOpen] = useState(false);
+  const [ownerDraft, setOwnerDraft] = useState("");
+  const [ownerSaving, setOwnerSaving] = useState(false);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [commentThread, setCommentThread] = useState<CommentThread>({
@@ -66,7 +131,15 @@ export default function IssueDetailPage() {
         setLoading(false);
         return;
       }
-      setIssue(issueResponse.data as IssueDetail);
+      const nextIssue = issueResponse.data as IssueDetail;
+      setIssue(nextIssue);
+      if (!issueEditDirty) {
+        setIssueTitleDraft(nextIssue.title ?? "");
+        setIssueDescriptionDraft(nextIssue.description ?? "");
+      }
+      if (!ownerEditOpen) {
+        setOwnerDraft(nextIssue.ownerId ?? "");
+      }
       if (historyResponse.data?.activity) {
         setHistoryCount(historyResponse.data.activity.length);
         setHistory(historyResponse.data as HistoryResponse);
@@ -89,36 +162,47 @@ export default function IssueDetailPage() {
     };
   }, [api, issueId, isAuthed, ready, recoveries]);
 
-  useEffect(() => {
+  const loadUsers = useCallback(async () => {
     if (!ready || !isAuthed || !issue) {
       return;
     }
+    const { data, error: apiError } = await api.GET("/users", {
+      params: {
+        query: issue.projectId ? { projectId: issue.projectId } : {},
+      },
+    });
+    if (apiError) {
+      setUsers([]);
+      return;
+    }
+    setUsers(
+      (data ?? []).map((user) => ({
+        id: user.id ?? "unknown",
+        displayName: user.displayName ?? "Unknown",
+        openIssueCount: user.openIssueCount ?? 0,
+        openPhaseCount: user.openPhaseCount ?? 0,
+        openTaskCount: user.openTaskCount ?? 0,
+      })),
+    );
+  }, [api, isAuthed, issue, ready]);
+
+  useEffect(() => {
     let active = true;
-    async function loadUsers() {
-      const { data, error: apiError } = await api.GET("/users", {
-        params: {
-          query: issue.projectId ? { projectId: issue.projectId } : {},
-        },
-      });
+    if (!ready || !isAuthed || !issue) {
+      return () => {
+        active = false;
+      };
+    }
+    void (async () => {
       if (!active) {
         return;
       }
-      if (apiError) {
-        setUsers([]);
-        return;
-      }
-      setUsers(
-        (data ?? []).map((user) => ({
-          id: user.id ?? "unknown",
-          displayName: user.displayName ?? "Unknown",
-        })),
-      );
-    }
-    loadUsers();
+      await loadUsers();
+    })();
     return () => {
       active = false;
     };
-  }, [api, isAuthed, issue, ready, recoveries]);
+  }, [isAuthed, issue, loadUsers, ready, recoveries]);
 
   const comments = commentThread.comments;
 
@@ -226,6 +310,20 @@ export default function IssueDetailPage() {
     return parts.join(". ");
   };
 
+  const progressBarTone = () => {
+    const statuses = issue?.phases.map((phase) => phase.status) ?? [];
+    if (statuses.includes("FAILED")) {
+      return "bg-rose-500";
+    }
+    if (statuses.includes("IN_PROGRESS")) {
+      return "bg-sky-500";
+    }
+    if (statuses.length > 0 && statuses.every((status) => status === "DONE")) {
+      return "bg-emerald-500";
+    }
+    return "bg-slate-400";
+  };
+
   if (!ready) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
@@ -250,29 +348,375 @@ export default function IssueDetailPage() {
     return <p className="text-sm text-rose-600">{error ?? "Not found."}</p>;
   }
 
+  const hasIssueEdits =
+    issueTitleDraft.trim() !== (issue.title ?? "") ||
+    issueDescriptionDraft.trim() !== (issue.description ?? "");
+
+  const saveIssueEdits = async () => {
+    setIssueEditSaving(true);
+    setIssueEditError(null);
+    const { data, error: apiError } = await api.PATCH(
+      "/issues/{issueId}",
+      {
+        params: { path: { issueId } },
+        body: {
+          title: issueTitleDraft.trim(),
+          description: issueDescriptionDraft.trim(),
+        },
+      },
+    );
+    if (apiError || !data) {
+      setIssueEditError("Unable to update issue.");
+      setIssueEditSaving(false);
+      return;
+    }
+    setIssue(data as IssueDetail);
+    setIssueEditDirty(false);
+    setEditingTitle(false);
+    setEditingDescription(false);
+    setIssueEditSaving(false);
+  };
+
+  const saveOwnerEdit = async () => {
+    if (!ownerDraft.trim()) {
+      setOwnerError("Owner is required.");
+      return;
+    }
+    setOwnerSaving(true);
+    setOwnerError(null);
+    const { data, error: apiError } = await api.PATCH("/issues/{issueId}", {
+      params: { path: { issueId } },
+      body: {
+        ownerId: ownerDraft.trim(),
+      },
+    });
+    if (apiError || !data) {
+      setOwnerError("Unable to update owner.");
+      setOwnerSaving(false);
+      return;
+    }
+    setIssue(data as IssueDetail);
+    setOwnerEditOpen(false);
+    setOwnerSaving(false);
+  };
+
+  const runCloseIssue = async () => {
+    setStatusSaving(true);
+    setStatusError(null);
+    const { data, error: apiError } = await api.POST("/issues/{issueId}/actions/close", {
+      params: { path: { issueId } },
+    });
+    if (apiError || !data) {
+      setStatusError(
+        issue?.allowedActions?.CLOSE_ISSUE?.reason ?? "Unable to close issue.",
+      );
+      setStatusSaving(false);
+      return;
+    }
+    setIssue(data as IssueDetail);
+    setStatusSaving(false);
+  };
+
+  const runAbandonIssue = async () => {
+    setStatusSaving(true);
+    setStatusError(null);
+    const { data, error: apiError } = await api.POST("/issues/{issueId}/actions/abandon", {
+      params: { path: { issueId } },
+    });
+    if (apiError || !data) {
+      setStatusError(
+        issue?.allowedActions?.ABANDON_ISSUE?.reason ?? "Unable to abandon issue.",
+      );
+      setStatusSaving(false);
+      return;
+    }
+    setIssue(data as IssueDetail);
+    setStatusSaving(false);
+  };
+
   return (
     <div className="space-y-6">
       <header className="rounded-2xl border border-slate-200/60 bg-white/90 p-6">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
           Issue {issue.id}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {issue.title}
-        </h1>
-        <p className="mt-3 text-sm text-slate-600">{issue.description}</p>
+        <div className="mt-2 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            {editingTitle ? (
+              <div className="flex-1 space-y-2">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Title
+                </label>
+                <div className="relative">
+                  <input
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 pr-24 text-sm text-slate-700"
+                    value={issueTitleDraft}
+                    onChange={(event) => {
+                      setIssueTitleDraft(event.target.value);
+                      setIssueEditDirty(true);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && event.ctrlKey) {
+                        event.preventDefault();
+                        if (hasIssueEdits && !issueEditSaving) {
+                          void saveIssueEdits();
+                        }
+                      }
+                    }}
+                  />
+                  <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                    <button
+                      className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                      type="button"
+                      disabled={!hasIssueEdits || issueEditSaving}
+                      onClick={saveIssueEdits}
+                    >
+                      <Icon name="check" size={12} />
+                    </button>
+                    <button
+                      className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                      type="button"
+                      onClick={() => {
+                        setIssueTitleDraft(issue.title ?? "");
+                        setIssueEditDirty(false);
+                        setEditingTitle(false);
+                      }}
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-semibold text-slate-900">
+                    {issue.title}
+                  </h1>
+                  <Tooltip content="Edit title">
+                    <button
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                      type="button"
+                      onClick={() => {
+                        setIssueTitleDraft(issue.title ?? "");
+                        setEditingTitle(true);
+                      }}
+                    >
+                      <Icon name="edit" size={14} />
+                    </button>
+                  </Tooltip>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Tooltip
+                      content={
+                        issue.ownerId
+                          ? `${userLabel(users, issue.ownerId)} · ${userWorkload(users, issue.ownerId) ?? "0 / 0 / 0"}`
+                          : "Unassigned"
+                      }
+                    >
+                      <button
+                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                          issue.ownerId
+                            ? "border-violet-200 bg-violet-100 text-violet-700"
+                            : "border-slate-200 bg-white text-slate-500"
+                        }`}
+                        type="button"
+                        onClick={() => setOwnerEditOpen((open) => !open)}
+                      >
+                        <Icon name="user" size={12} />
+                        {userLabel(users, issue.ownerId)}
+                      </button>
+                    </Tooltip>
+                    {ownerEditOpen && (
+                      <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          Owner
+                        </p>
+                        <form
+                          className="mt-2 flex flex-wrap items-center gap-2"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void saveOwnerEdit();
+                          }}
+                        >
+                          <div className="min-w-[180px]">
+                            <Typeahead
+                              value={ownerDraft}
+                              onChange={setOwnerDraft}
+                              options={users.map((user) => ({
+                                value: user.id,
+                                label: user.displayName,
+                                meta: `${user.openIssueCount ?? 0} / ${user.openPhaseCount ?? 0} / ${user.openTaskCount ?? 0}`,
+                              }))}
+                              placeholder="Owner"
+                              inputClassName="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
+                            />
+                          </div>
+                          <button
+                            className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                            type="submit"
+                            disabled={ownerSaving}
+                          >
+                            <Icon name="check" size={12} />
+                          </button>
+                          <button
+                            className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                            type="button"
+                            onClick={() => {
+                              setOwnerDraft(issue.ownerId ?? "");
+                              setOwnerEditOpen(false);
+                            }}
+                          >
+                            <Icon name="x" size={12} />
+                          </button>
+                          {ownerError && (
+                            <span className="text-rose-600">{ownerError}</span>
+                          )}
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${issueStatusBadgeStyle(
+                        issue.status,
+                      )}`}
+                    >
+                      {issueStatusLabel(issue.status)}
+                    </span>
+                  </div>
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                    type="button"
+                    onClick={() => setIssueDeadlineOpen((open) => !open)}
+                  >
+                    <Icon name="calendar" size={12} />
+                    Deadline: {issue.deadline ?? "—"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            {editingDescription ? (
+              <div className="flex-1 space-y-2">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Description
+                </label>
+                <div className="relative">
+                  <textarea
+                    className="min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-4 py-2 pr-24 text-sm text-slate-700"
+                    value={issueDescriptionDraft}
+                    onChange={(event) => {
+                      setIssueDescriptionDraft(event.target.value);
+                      setIssueEditDirty(true);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && event.ctrlKey) {
+                        event.preventDefault();
+                        if (hasIssueEdits && !issueEditSaving) {
+                          void saveIssueEdits();
+                        }
+                      }
+                    }}
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-2">
+                    <button
+                      className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                      type="button"
+                      disabled={!hasIssueEdits || issueEditSaving}
+                      onClick={saveIssueEdits}
+                    >
+                      <Icon name="check" size={12} />
+                    </button>
+                    <button
+                      className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                      type="button"
+                      onClick={() => {
+                        setIssueDescriptionDraft(issue.description ?? "");
+                        setIssueEditDirty(false);
+                        setEditingDescription(false);
+                      }}
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1">
+                <p className="text-sm text-slate-600">{issue.description}</p>
+              </div>
+            )}
+            {!editingDescription && (
+              <Tooltip content="Edit description">
+                <button
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                  type="button"
+                  onClick={() => {
+                    setIssueDescriptionDraft(issue.description ?? "");
+                    setEditingDescription(true);
+                  }}
+                >
+                  <Icon name="edit" size={14} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+          {issueEditError && (
+            <p className="text-xs text-rose-600">{issueEditError}</p>
+          )}
+        </div>
         <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-600">
-          <span>Owner: {issue.ownerId}</span>
-          <span>Status: {issue.status}</span>
-          <span>Project: {issue.projectId ?? "—"}</span>
-          <span>Activity entries: {historyCount}</span>
-          <button
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
-            type="button"
-            onClick={() => setIssueDeadlineOpen((open) => !open)}
-          >
-            <Icon name="calendar" size={12} />
-            Deadline: {issue.deadline ?? "—"}
-          </button>
+          {issue.phases.length > 0 && (() => {
+            const counts = issue.phases.reduce(
+              (acc, phase) => {
+                acc.total += 1;
+                acc[phase.status] = (acc[phase.status] ?? 0) + 1;
+                return acc;
+              },
+              {
+                total: 0,
+                NOT_STARTED: 0,
+                IN_PROGRESS: 0,
+                FAILED: 0,
+                DONE: 0,
+              } as Record<string, number>,
+            );
+            const segments = [
+              { key: "NOT_STARTED", color: "bg-slate-300" },
+              { key: "IN_PROGRESS", color: "bg-sky-400" },
+              { key: "FAILED", color: "bg-rose-400" },
+              { key: "DONE", color: "bg-emerald-500" },
+            ];
+            return (
+              <div className="w-full">
+                <div className="flex h-2 overflow-hidden rounded-full bg-slate-100">
+                  {segments.map((segment) => {
+                    const count = counts[segment.key] ?? 0;
+                    const width = counts.total > 0 ? (count / counts.total) * 100 : 0;
+                    if (width <= 0) {
+                      return null;
+                    }
+                    return (
+                      <span
+                        key={segment.key}
+                        className={segment.color}
+                        style={{ width: `${width}%` }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  <span>{counts.DONE} done</span>
+                  <span>{counts.IN_PROGRESS} active</span>
+                  <span>{counts.FAILED} failed</span>
+                  <span>{counts.NOT_STARTED} not started</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         {issueDeadlineOpen && (
           <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
@@ -376,26 +820,53 @@ export default function IssueDetailPage() {
             onDeadlineImpact={(before, after) =>
               setDeadlineWarning(summarizeDeadlineImpact(before, after))
             }
+            onRequestUsers={loadUsers}
           />
           <aside className="space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4">
-            <h2 className="text-sm font-semibold text-slate-900">
-              Allowed actions
-            </h2>
-            <div className="space-y-2 text-xs text-slate-600">
-              {issue.allowedActions &&
-                Object.entries(issue.allowedActions).map(([key, action]) => (
-                  <div
-                    key={key}
-                    className="rounded-lg border border-slate-100 bg-white px-3 py-2"
-                  >
-                    <p className="font-semibold text-slate-800">{key}</p>
-                    <p>
-                      {action.allowed ? "Allowed" : action.reason ?? "Blocked"}
-                    </p>
-                  </div>
-                ))}
-              {!issue.allowedActions && (
-                <p className="text-slate-500">No actions available.</p>
+            <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
+            <div className="space-y-3 text-xs text-slate-600">
+              <Tooltip
+                content={
+                  issue.allowedActions?.CLOSE_ISSUE?.allowed
+                    ? "Close issue"
+                    : issue.allowedActions?.CLOSE_ISSUE?.reason ?? "Not allowed"
+                }
+              >
+                <button
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  type="button"
+                  disabled={
+                    !issue.allowedActions?.CLOSE_ISSUE?.allowed ||
+                    issue.status === "DONE" ||
+                    statusSaving
+                  }
+                  onClick={runCloseIssue}
+                >
+                  <Icon name="check" size={12} />
+                  Close issue
+                </button>
+              </Tooltip>
+              <Tooltip
+                content={
+                  issue.allowedActions?.ABANDON_ISSUE?.allowed
+                    ? "Abandon issue"
+                    : issue.allowedActions?.ABANDON_ISSUE?.reason ?? "Not allowed"
+                }
+              >
+                <button
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:bg-rose-50/50 disabled:text-rose-300"
+                  type="button"
+                  disabled={
+                    !issue.allowedActions?.ABANDON_ISSUE?.allowed || statusSaving
+                  }
+                  onClick={runAbandonIssue}
+                >
+                  <Icon name="x" size={12} />
+                  Abandon issue
+                </button>
+              </Tooltip>
+              {statusError && (
+                <p className="text-rose-600">{statusError}</p>
               )}
             </div>
           </aside>

@@ -282,6 +282,13 @@ class IssuesController(
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
+    override fun abandonIssue(issueId: String): ResponseEntity<IssueDetail> {
+        val issue = withNotFound { issueService.abandonIssue(issueId) }
+        val detail = issueService.getIssueDetail(issue.id)
+        return ResponseEntity.ok(detail.toDetail(issueActionService))
+    }
+
+    @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun failPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
         val issue = withNotFound { issueService.failPhase(issueId, phaseId) }
         val detail = issueService.getIssueDetail(issue.id)

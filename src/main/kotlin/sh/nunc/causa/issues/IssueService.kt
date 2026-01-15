@@ -410,6 +410,25 @@ class IssueService(
     }
 
     @Transactional
+    fun abandonIssue(issueId: String): IssueEntity {
+        val issue = getIssue(issueId)
+        if (issue.phases.isEmpty()) {
+            issue.status = IssueStatus.FAILED.name
+        } else {
+            issue.phases.forEach { phase ->
+                if (phase.status != PhaseStatus.DONE.name) {
+                    phase.status = PhaseStatus.FAILED.name
+                }
+            }
+            issue.status = deriveIssueStatus(issue).name
+        }
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        recordActivity(saved.id, "ISSUE_ABANDONED", "Issue abandoned")
+        return saved
+    }
+
+    @Transactional
     fun failPhase(issueId: String, phaseId: String): IssueEntity {
         val issue = getIssue(issueId)
         val phase = issue.phases.firstOrNull { it.id == phaseId }
@@ -522,6 +541,18 @@ class IssueService(
         val requiredKindsPresent = PhaseKind.requiredKinds().all { required ->
             phaseKinds.contains(required)
         }
+        val nextPendingKind = listOf(
+            PhaseKind.INVESTIGATION,
+            PhaseKind.PROPOSE_SOLUTION,
+            PhaseKind.DEVELOPMENT,
+            PhaseKind.ACCEPTANCE_TEST,
+            PhaseKind.ROLLOUT,
+        ).firstOrNull { kind ->
+            issue.phases.any { phase ->
+                PhaseKind.from(phase.kind) == kind &&
+                    PhaseStatus.valueOf(phase.status) != PhaseStatus.DONE
+            }
+        }
         return when {
             phaseStatuses.any { it == PhaseStatus.FAILED } -> IssueStatus.FAILED
             phaseStatuses.all { it == PhaseStatus.DONE } && requiredKindsPresent -> IssueStatus.DONE
@@ -529,7 +560,8 @@ class IssueService(
             inProgressKinds.contains(PhaseKind.ACCEPTANCE_TEST) -> IssueStatus.IN_TEST
             inProgressKinds.contains(PhaseKind.DEVELOPMENT) -> IssueStatus.IN_DEVELOPMENT
             inProgressKinds.any { it.isAnalysis() } -> IssueStatus.IN_ANALYSIS
-            else -> IssueStatus.IN_ANALYSIS
+            nextPendingKind != null -> IssueStatus.NOT_ACTIVE
+            else -> IssueStatus.NOT_ACTIVE
         }
     }
 
