@@ -132,6 +132,7 @@ private fun String.toTaskStatusEnum(): ApiTaskStatus {
 private fun String.toIssueStatusEnum(): ApiIssueStatus {
     return when (IssueStatus.valueOf(this)) {
         IssueStatus.CREATED -> ApiIssueStatus.CREATED
+        IssueStatus.NOT_ACTIVE -> ApiIssueStatus.NOT_ACTIVE
         IssueStatus.IN_ANALYSIS -> ApiIssueStatus.IN_ANALYSIS
         IssueStatus.IN_DEVELOPMENT -> ApiIssueStatus.IN_DEVELOPMENT
         IssueStatus.IN_TEST -> ApiIssueStatus.IN_TEST
