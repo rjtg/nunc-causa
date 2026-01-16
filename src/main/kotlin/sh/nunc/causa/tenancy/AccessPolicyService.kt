@@ -46,6 +46,15 @@ open class AccessPolicyService(
         return canListIssues(projectId)
     }
 
+    open fun canModifyProject(projectId: String): Boolean {
+        val userId = currentUserService.currentUserId() ?: return false
+        return canAccessProject(userId, projectId)
+    }
+
+    open fun canManageSearchIndex(): Boolean {
+        return isAuthenticated()
+    }
+
     open fun canAccessWork(): Boolean {
         val userId = currentUserService.currentUserId() ?: return false
         return hasAnyMembership(userId)

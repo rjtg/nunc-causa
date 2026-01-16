@@ -21,6 +21,9 @@ class ProjectEntity(
     @Column(name = "team_id", nullable = false)
     var teamId: String,
 
+    @Column(name = "project_owner_id")
+    var ownerId: String?,
+
     @Column(name = "name", nullable = false)
     var name: String,
 )

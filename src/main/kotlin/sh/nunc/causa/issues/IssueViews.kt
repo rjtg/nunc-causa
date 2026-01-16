@@ -10,6 +10,7 @@ data class IssueListView(
     val phaseStatusCounts: Map<String, Long>,
     val phaseProgress: List<PhaseProgressView>,
     val status: String,
+    val deadline: String?,
 ) {
     constructor(
         id: String,
@@ -19,6 +20,7 @@ data class IssueListView(
         projectId: String?,
         phaseCount: Long,
         status: String,
+        deadline: String?,
     ) : this(
         id = id,
         title = title,
@@ -29,6 +31,7 @@ data class IssueListView(
         phaseStatusCounts = emptyMap(),
         phaseProgress = emptyList(),
         status = status,
+        deadline = deadline,
     )
 }
 

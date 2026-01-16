@@ -5,7 +5,7 @@ import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import sh.nunc.causa.issues.IssueListView
-import sh.nunc.causa.issues.IssueService
+import sh.nunc.causa.issues.IssueQueryService
 import sh.nunc.causa.issues.IssueStatus
 import sh.nunc.causa.tenancy.AccessPolicyService
 
@@ -20,8 +20,9 @@ class SearchControllerTest {
             projectId = "project-1",
             phaseCount = 0,
             status = IssueStatus.CREATED.name,
+            deadline = null,
         )
-        val service = mockk<IssueService>()
+        val service = mockk<IssueQueryService>()
         val accessPolicy = mockk<AccessPolicyService>()
         every { accessPolicy.currentUserId() } returns "user-1"
         every { service.searchIssues("term", "project-1") } returns listOf(issue)

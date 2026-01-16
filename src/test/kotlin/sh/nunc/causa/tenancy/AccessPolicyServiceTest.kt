@@ -54,6 +54,7 @@ class AccessPolicyServiceTest {
             key = "PROJ",
             orgId = "org-1",
             teamId = "team-1",
+            ownerId = null,
             name = "Project",
         )
         every { currentUserService.currentUserId() } returns "user-1"
@@ -71,6 +72,7 @@ class AccessPolicyServiceTest {
             key = "PROJ",
             orgId = "org-1",
             teamId = "team-2",
+            ownerId = null,
             name = "Project",
         )
         val childTeam = TeamEntity(id = "team-2", orgId = "org-1", parentTeamId = "team-1", name = "Child")
@@ -107,6 +109,7 @@ class AccessPolicyServiceTest {
                 key = "PROJ",
                 orgId = "org-1",
                 teamId = "team-1",
+                ownerId = null,
                 name = "Project",
             ),
         )

@@ -5,8 +5,8 @@ import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import sh.nunc.causa.issues.IssueListView
+import sh.nunc.causa.issues.IssueQueryService
 import sh.nunc.causa.issues.IssueStatus
-import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.MyWorkView
 import sh.nunc.causa.issues.PhaseWorkView
 import sh.nunc.causa.issues.TaskWorkView
@@ -25,6 +25,7 @@ class WorkControllerTest {
             projectId = null,
             phaseCount = 0,
             status = IssueStatus.CREATED.name,
+            deadline = null,
         )
         val work = MyWorkView(
             ownedIssues = listOf(issue),
@@ -46,7 +47,7 @@ class WorkControllerTest {
                 ),
             ),
         )
-        val service = mockk<IssueService>()
+        val service = mockk<IssueQueryService>()
         every { service.buildMyWork("system") } returns work
         val currentUserService = mockk<CurrentUserService>()
         every { currentUserService.currentUserId() } returns "system"

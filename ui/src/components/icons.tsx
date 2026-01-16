@@ -7,6 +7,7 @@ export type IconName =
   | "calendar"
   | "check"
   | "chevron-down"
+  | "chevron-right"
   | "comment"
   | "edit"
   | "filter"
@@ -46,6 +47,12 @@ export function Icon({ name, size = 14, className, ...rest }: IconProps) {
       return (
         <svg {...common} {...rest}>
           <path d="M6 9l6 6 6-6" />
+        </svg>
+      );
+    case "chevron-right":
+      return (
+        <svg {...common} {...rest}>
+          <path d="M9 6l6 6-6 6" />
         </svg>
       );
     case "arrow-right":

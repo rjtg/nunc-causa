@@ -11,8 +11,10 @@ import jakarta.validation.Valid
 import sh.nunc.causa.issues.CreateIssueCommand
 import sh.nunc.causa.issues.CreatePhaseCommand
 import sh.nunc.causa.issues.IssueCommentService
+import sh.nunc.causa.issues.IssueQueryService
 import sh.nunc.causa.issues.IssueService
 import sh.nunc.causa.issues.IssueStatus
+import sh.nunc.causa.issues.IssueWorkflowService
 import sh.nunc.causa.issues.PhaseStatus
 import sh.nunc.causa.issues.TaskStatus
 import sh.nunc.causa.reporting.IssueHistoryService
@@ -39,10 +41,12 @@ import sh.nunc.causa.web.model.UpdateTaskRequest
 @RestController
 class IssuesController(
     private val issueService: IssueService,
+    private val issueQueryService: IssueQueryService,
     private val accessPolicy: AccessPolicyService,
     private val issueCommentService: IssueCommentService,
     private val issueHistoryService: IssueHistoryService,
     private val issueActionService: IssueActionService,
+    private val issueWorkflowService: IssueWorkflowService,
 ) : IssuesApi {
 
     @PreAuthorize("@accessPolicy.canCreateIssue(#createIssueRequest.projectId)")
@@ -86,7 +90,7 @@ class IssuesController(
         status: sh.nunc.causa.web.model.IssueStatus?,
         phaseKind: sh.nunc.causa.web.model.PhaseKind?,
     ): ResponseEntity<List<IssueListItem>> {
-        val issues = issueService.listIssues(
+        val issues = issueQueryService.listIssues(
             query,
             ownerId,
             assigneeId,
@@ -100,7 +104,7 @@ class IssuesController(
 
     @PreAuthorize("@accessPolicy.canListIssues(null)")
     override fun findSimilarIssues(query: String, limit: Int?): ResponseEntity<List<IssueListItem>> {
-        val results = issueService.findSimilarIssues(query, limit)
+        val results = issueQueryService.findSimilarIssues(query, limit)
         return ResponseEntity.ok(results.map { it.toListItem() })
     }
 
@@ -115,7 +119,7 @@ class IssuesController(
         status: sh.nunc.causa.web.model.IssueStatus?,
         phaseKind: sh.nunc.causa.web.model.PhaseKind?,
     ): ResponseEntity<IssueFacetResponse> {
-        val facets = issueService.getIssueFacets(
+        val facets = issueQueryService.getIssueFacets(
             query,
             ownerId,
             assigneeId,
@@ -275,28 +279,28 @@ class IssuesController(
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun closeIssue(issueId: String): ResponseEntity<IssueDetail> {
-        val issue = withConflict { withNotFound { issueService.closeIssue(issueId) } }
+        val issue = withConflict { withNotFound { issueWorkflowService.closeIssue(issueId) } }
         val detail = issueService.getIssueDetail(issue.id)
         return ResponseEntity.ok(detail.toDetail(issueActionService))
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun abandonIssue(issueId: String): ResponseEntity<IssueDetail> {
-        val issue = withNotFound { issueService.abandonIssue(issueId) }
+        val issue = withNotFound { issueWorkflowService.abandonIssue(issueId) }
         val detail = issueService.getIssueDetail(issue.id)
         return ResponseEntity.ok(detail.toDetail(issueActionService))
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun failPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
-        val issue = withNotFound { issueService.failPhase(issueId, phaseId) }
+        val issue = withNotFound { issueWorkflowService.failPhase(issueId, phaseId) }
         val detail = issueService.getIssueDetail(issue.id)
         return ResponseEntity.ok(detail.toDetail(issueActionService))
     }
 
     @PreAuthorize("@accessPolicy.canModifyIssue(#issueId)")
     override fun reopenPhase(issueId: String, phaseId: String): ResponseEntity<IssueDetail> {
-        val issue = withNotFound { issueService.reopenPhase(issueId, phaseId) }
+        val issue = withNotFound { issueWorkflowService.reopenPhase(issueId, phaseId) }
         val detail = issueService.getIssueDetail(issue.id)
         return ResponseEntity.ok(detail.toDetail(issueActionService))
     }

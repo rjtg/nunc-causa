@@ -3,11 +3,8 @@ package sh.nunc.causa.issues
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import sh.nunc.causa.reporting.IssueHistoryService
-import sh.nunc.causa.users.CurrentUserService
 import sh.nunc.causa.users.UserEntity
 import sh.nunc.causa.users.UserRepository
-import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -15,11 +12,11 @@ class IssueService(
     private val issueRepository: IssueRepository,
     private val issueCounterRepository: IssueCounterRepository,
     private val projectRepository: sh.nunc.causa.tenancy.ProjectRepository,
-    private val eventPublisher: ApplicationEventPublisher,
     private val userRepository: UserRepository,
-    private val historyService: IssueHistoryService,
-    private val currentUserService: CurrentUserService,
-    private val searchService: IssueSearchService,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val activityRecorder: IssueActivityRecorder,
+    private val deadlineService: IssueDeadlineService,
+    private val workflowService: IssueWorkflowService,
 ) {
     @Transactional
     fun createIssue(command: CreateIssueCommand): IssueEntity {
@@ -46,26 +43,30 @@ class IssueService(
             deadline = command.deadline,
         )
 
-        command.phases.forEach { phaseCommand ->
-            ensurePhaseDeadlineWithinIssue(issue, phaseCommand.deadline)
-            val assignee = requireUser(phaseCommand.assigneeId)
-            val phase = PhaseEntity(
-                id = UUID.randomUUID().toString(),
-                name = phaseCommand.name,
-                assignee = assignee,
-                status = PhaseStatus.NOT_STARTED.name,
-                kind = phaseCommand.kind,
-                deadline = phaseCommand.deadline,
-                issue = issue,
-            )
-            issue.phases.add(phase)
+        if (command.phases.isEmpty()) {
+            issue.phases.add(defaultDevelopmentPhase(issue, owner))
+        } else {
+            command.phases.forEach { phaseCommand ->
+                deadlineService.ensurePhaseDeadlineWithinIssue(issue, phaseCommand.deadline)
+                val assignee = requireUser(phaseCommand.assigneeId)
+                val phase = PhaseEntity(
+                    id = UUID.randomUUID().toString(),
+                    name = phaseCommand.name,
+                    assignee = assignee,
+                    status = PhaseStatus.NOT_STARTED.name,
+                    kind = phaseCommand.kind,
+                    deadline = phaseCommand.deadline,
+                    issue = issue,
+                )
+                issue.phases.add(phase)
+            }
         }
 
-        applyIssueDeadlineConstraints(issue)
-        issue.status = deriveIssueStatus(issue).name
+        deadlineService.applyIssueDeadlineConstraints(issue)
+        issue.status = workflowService.deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "ISSUE_CREATED", "Issue created")
+        activityRecorder.record(saved.id, "ISSUE_CREATED", "Issue created")
         return saved
     }
 
@@ -80,85 +81,6 @@ class IssueService(
         val issue = issueRepository.findDetailById(issueId)
             ?: throw NoSuchElementException("Issue $issueId not found")
         return issue.toDetailView()
-    }
-
-    @Transactional(readOnly = true)
-    fun listIssues(
-        query: String?,
-        ownerId: String?,
-        assigneeId: String?,
-        memberId: String?,
-        projectId: String?,
-        status: IssueStatus?,
-        phaseKind: String?,
-    ): List<IssueListView> {
-        val results = searchService.searchIssues(
-            IssueSearchFilters(
-                query = query,
-                ownerId = ownerId,
-                assigneeId = assigneeId,
-                memberId = memberId,
-                projectId = projectId,
-                status = status?.name,
-                phaseKind = phaseKind,
-            ),
-        )
-        return results.map { issue ->
-            val statusCounts = issue.phases
-                .groupingBy { it.status }
-                .eachCount()
-                .mapValues { it.value.toLong() }
-            val phaseProgress = issue.phases.map { phase ->
-                val taskStatusCounts = phase.tasks
-                    .groupingBy { it.status }
-                    .eachCount()
-                    .mapValues { it.value.toLong() }
-                PhaseProgressView(
-                    phaseId = phase.id,
-                    phaseName = phase.name,
-                    assigneeId = phase.assignee.id,
-                    phaseKind = phase.kind,
-                    deadline = phase.deadline?.toString(),
-                    status = phase.status,
-                    taskStatusCounts = taskStatusCounts,
-                    taskTotal = phase.tasks.size.toLong(),
-                )
-            }
-            IssueListView(
-                id = issue.id,
-                title = issue.title,
-                description = issue.description,
-                ownerId = issue.owner.id,
-                projectId = issue.projectId,
-                phaseCount = issue.phases.size.toLong(),
-                phaseStatusCounts = statusCounts,
-                phaseProgress = phaseProgress,
-                status = issue.status,
-            )
-        }
-    }
-
-    @Transactional(readOnly = true)
-    fun getIssueFacets(
-        query: String?,
-        ownerId: String?,
-        assigneeId: String?,
-        memberId: String?,
-        projectId: String?,
-        status: IssueStatus?,
-        phaseKind: String?,
-    ): IssueFacetBundle {
-        return searchService.facetIssues(
-            IssueSearchFilters(
-                query = query,
-                ownerId = ownerId,
-                assigneeId = assigneeId,
-                memberId = memberId,
-                projectId = projectId,
-                status = status?.name,
-                phaseKind = phaseKind,
-            ),
-        )
     }
 
     @Transactional
@@ -190,11 +112,11 @@ class IssueService(
             issue.deadline = deadline
         }
         if (deadline != null) {
-            applyIssueDeadlineConstraints(issue)
+            deadlineService.applyIssueDeadlineConstraints(issue)
         }
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "ISSUE_UPDATED", "Issue updated")
+        activityRecorder.record(saved.id, "ISSUE_UPDATED", "Issue updated")
         return saved
     }
 
@@ -204,14 +126,27 @@ class IssueService(
         issue.owner = requireUser(ownerId)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "OWNER_ASSIGNED", "Issue owner assigned")
+        activityRecorder.record(saved.id, "OWNER_ASSIGNED", "Issue owner assigned")
         return saved
+    }
+
+    @Transactional
+    fun backfillMissingPhases() {
+        val issues = issueRepository.findWithoutPhases()
+        if (issues.isEmpty()) {
+            return
+        }
+        issues.forEach { issue ->
+            issue.phases.add(defaultDevelopmentPhase(issue, issue.owner))
+            issue.status = workflowService.deriveIssueStatus(issue).name
+            issueRepository.save(issue)
+        }
     }
 
     @Transactional
     fun addPhase(issueId: String, name: String, assigneeId: String, kind: String?, deadline: java.time.LocalDate?): IssueEntity {
         val issue = getIssue(issueId)
-        ensurePhaseDeadlineWithinIssue(issue, deadline)
+        deadlineService.ensurePhaseDeadlineWithinIssue(issue, deadline)
         val assigneeEntity = requireUser(assigneeId)
         val phase = PhaseEntity(
             id = UUID.randomUUID().toString(),
@@ -223,10 +158,10 @@ class IssueService(
             issue = issue,
         )
         issue.phases.add(phase)
-        issue.status = deriveIssueStatus(issue).name
+        issue.status = workflowService.deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "PHASE_ADDED", "Phase added")
+        activityRecorder.record(saved.id, "PHASE_ADDED", "Phase added")
         return saved
     }
 
@@ -283,20 +218,20 @@ class IssueService(
             phase.kind = kind
         }
         if (deadline != null) {
-            ensurePhaseDeadlineWithinIssue(issue, deadline)
+            deadlineService.ensurePhaseDeadlineWithinIssue(issue, deadline)
             phase.deadline = deadline
         }
         if (deadline != null) {
-            clampTaskDeadlines(issue, phase)
+            deadlineService.clampTaskDeadlines(issue, phase)
         }
-        issue.status = deriveIssueStatus(issue).name
+        issue.status = workflowService.deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
         val nextStatus = PhaseStatus.valueOf(phase.status)
         if (previousStatus != PhaseStatus.DONE && nextStatus == PhaseStatus.DONE) {
-            recordActivity(saved.id, "PHASE_COMPLETED", "Phase completed")
+            activityRecorder.record(saved.id, "PHASE_COMPLETED", "Phase completed")
         } else {
-            recordActivity(saved.id, "PHASE_UPDATED", "Phase updated")
+            activityRecorder.record(saved.id, "PHASE_UPDATED", "Phase updated")
         }
         return saved
     }
@@ -309,7 +244,7 @@ class IssueService(
         phase.assignee = requireUser(assigneeId)
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "PHASE_ASSIGNEE_CHANGED", "Phase assignee updated")
+        activityRecorder.record(saved.id, "PHASE_ASSIGNEE_CHANGED", "Phase assignee updated")
         return saved
     }
 
@@ -327,7 +262,7 @@ class IssueService(
         val phase = issue.phases.firstOrNull { it.id == phaseId }
             ?: throw NoSuchElementException("Phase $phaseId not found")
         val dependencyViews = dependencies.orEmpty()
-        validateTaskDates(issue, phase, startDate, dueDate, dependencyViews)
+        deadlineService.validateTaskDates(issue, phase, startDate, dueDate, dependencyViews)
         val assigneeEntity = assigneeId?.let { requireUser(it) }
         val task = TaskEntity(
             id = UUID.randomUUID().toString(),
@@ -349,10 +284,16 @@ class IssueService(
             )
         }
         phase.tasks.add(task)
-        issue.status = deriveIssueStatus(issue).name
+        issue.status = workflowService.deriveIssueStatus(issue).name
         val saved = issueRepository.save(issue)
         eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "TASK_ADDED", "Task added")
+        activityRecorder.record(saved.id, "TASK_ADDED", "Task added")
+        recordDependencyChanges(
+            sourceIssue = saved,
+            task = task,
+            added = dependencyViews,
+            removed = emptyList(),
+        )
         return saved
     }
 
@@ -378,7 +319,7 @@ class IssueService(
         }
         val effectiveStartDate = startDate ?: task.startDate
         val effectiveDueDate = dueDate ?: task.dueDate
-        validateTaskDates(issue, phase, effectiveStartDate, effectiveDueDate, effectiveDependencies)
+        deadlineService.validateTaskDates(issue, phase, effectiveStartDate, effectiveDueDate, effectiveDependencies)
         if (title != null) {
             task.title = title
         }
@@ -395,6 +336,9 @@ class IssueService(
             task.dueDate = dueDate
         }
         if (dependencies != null) {
+            val previousDependencies = task.dependencies.map {
+                TaskDependencyView(type = it.type, targetId = it.targetId)
+            }
             task.dependencies.clear()
             dependencies.forEach { dependency ->
                 task.dependencies.add(
@@ -406,188 +350,19 @@ class IssueService(
                     ),
                 )
             }
-        }
-        issue.status = deriveIssueStatus(issue).name
-        val saved = issueRepository.save(issue)
-        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "TASK_UPDATED", "Task updated")
-        return saved
-    }
-
-    @Transactional
-    fun closeIssue(issueId: String): IssueEntity {
-        val issue = getIssue(issueId)
-        val hasIncompletePhase = issue.phases.any { it.status != PhaseStatus.DONE.name }
-        if (hasIncompletePhase) {
-            throw IllegalStateException("Issue $issueId has incomplete phases")
-        }
-        if (!requiredKindsPresent(issue)) {
-            throw IllegalStateException("Issue $issueId is missing required phases")
-        }
-        issue.status = deriveIssueStatus(issue).name
-        val saved = issueRepository.save(issue)
-        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "ISSUE_CLOSED", "Issue closed")
-        return saved
-    }
-
-    @Transactional
-    fun abandonIssue(issueId: String): IssueEntity {
-        val issue = getIssue(issueId)
-        if (issue.phases.isEmpty()) {
-            issue.status = IssueStatus.FAILED.name
-        } else {
-            issue.phases.forEach { phase ->
-                if (phase.status != PhaseStatus.DONE.name) {
-                    phase.status = PhaseStatus.FAILED.name
-                }
-            }
-            issue.status = deriveIssueStatus(issue).name
-        }
-        val saved = issueRepository.save(issue)
-        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "ISSUE_ABANDONED", "Issue abandoned")
-        return saved
-    }
-
-    @Transactional
-    fun failPhase(issueId: String, phaseId: String): IssueEntity {
-        val issue = getIssue(issueId)
-        val phase = issue.phases.firstOrNull { it.id == phaseId }
-            ?: throw NoSuchElementException("Phase $phaseId not found")
-        phase.status = PhaseStatus.FAILED.name
-        issue.status = deriveIssueStatus(issue).name
-        val saved = issueRepository.save(issue)
-        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "PHASE_FAILED", "Phase failed")
-        return saved
-    }
-
-    @Transactional
-    fun reopenPhase(issueId: String, phaseId: String): IssueEntity {
-        val issue = getIssue(issueId)
-        val phase = issue.phases.firstOrNull { it.id == phaseId }
-            ?: throw NoSuchElementException("Phase $phaseId not found")
-        phase.status = PhaseStatus.IN_PROGRESS.name
-        issue.status = deriveIssueStatus(issue).name
-        val saved = issueRepository.save(issue)
-        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
-        recordActivity(saved.id, "PHASE_REOPENED", "Phase reopened")
-        return saved
-    }
-
-    @Transactional(readOnly = true)
-    fun searchIssues(query: String, projectId: String?): List<IssueListView> {
-        val results = searchService.searchIssues(
-            IssueSearchFilters(query = query, projectId = projectId),
-        )
-        return results.map { issue ->
-            val statusCounts = issue.phases
-                .groupingBy { it.status }
-                .eachCount()
-                .mapValues { it.value.toLong() }
-            val phaseProgress = issue.phases.map { phase ->
-                val taskStatusCounts = phase.tasks
-                    .groupingBy { it.status }
-                    .eachCount()
-                    .mapValues { it.value.toLong() }
-                PhaseProgressView(
-                    phaseId = phase.id,
-                    phaseName = phase.name,
-                    assigneeId = phase.assignee.id,
-                    phaseKind = phase.kind,
-                    deadline = phase.deadline?.toString(),
-                    status = phase.status,
-                    taskStatusCounts = taskStatusCounts,
-                    taskTotal = phase.tasks.size.toLong(),
-                )
-            }
-            IssueListView(
-                id = issue.id,
-                title = issue.title,
-                description = issue.description,
-                ownerId = issue.owner.id,
-                projectId = issue.projectId,
-                phaseCount = issue.phases.size.toLong(),
-                phaseStatusCounts = statusCounts,
-                phaseProgress = phaseProgress,
-                status = issue.status,
+            val changes = resolveDependencyChanges(previousDependencies, dependencies)
+            recordDependencyChanges(
+                sourceIssue = issue,
+                task = task,
+                added = changes.added,
+                removed = changes.removed,
             )
         }
-    }
-
-    @Transactional(readOnly = true)
-    fun findSimilarIssues(query: String, limit: Int?): List<IssueListView> {
-        return emptyList()
-    }
-
-    @Transactional(readOnly = true)
-    fun buildMyWork(userId: String): MyWorkView {
-        val issues = issueRepository.findFiltered(
-            projectId = null,
-            ownerId = userId,
-            assigneeId = userId,
-            memberId = userId,
-            status = null,
-            phaseKind = null,
-        )
-        val owned = issues.filter { it.owner.id == userId }.map { issue ->
-            val statusCounts = issue.phases
-                .groupingBy { it.status }
-                .eachCount()
-                .mapValues { it.value.toLong() }
-            val phaseProgress = issue.phases.map { phase ->
-                val taskStatusCounts = phase.tasks
-                    .groupingBy { it.status }
-                    .eachCount()
-                    .mapValues { it.value.toLong() }
-                PhaseProgressView(
-                    phaseId = phase.id,
-                    phaseName = phase.name,
-                    assigneeId = phase.assignee.id,
-                    phaseKind = phase.kind,
-                    deadline = phase.deadline?.toString(),
-                    status = phase.status,
-                    taskStatusCounts = taskStatusCounts,
-                    taskTotal = phase.tasks.size.toLong(),
-                )
-            }
-            IssueListView(
-                id = issue.id,
-                title = issue.title,
-                description = issue.description,
-                ownerId = issue.owner.id,
-                projectId = issue.projectId,
-                phaseCount = issue.phases.size.toLong(),
-                phaseStatusCounts = statusCounts,
-                phaseProgress = phaseProgress,
-                status = issue.status,
-            )
-        }
-        val assignedPhases = issues.flatMap { issue ->
-            issue.phases.filter { it.assignee.id == userId }.map { phase ->
-                PhaseWorkView(
-                    issueId = issue.id,
-                    phaseId = phase.id,
-                    phaseName = phase.name,
-                    status = phase.status,
-                )
-            }
-        }
-        val assignedTasks = issues.flatMap { issue ->
-            issue.phases.flatMap { phase ->
-                phase.tasks.filter { it.assignee?.id == userId }.map { task ->
-                    TaskWorkView(
-                        issueId = issue.id,
-                        phaseId = phase.id,
-                        taskId = task.id,
-                        taskTitle = task.title,
-                        status = task.status,
-                    )
-                }
-            }
-        }
-        return MyWorkView(owned, assignedPhases, assignedTasks)
+        issue.status = workflowService.deriveIssueStatus(issue).name
+        val saved = issueRepository.save(issue)
+        eventPublisher.publishEvent(IssueUpdatedEvent(saved.id))
+        activityRecorder.record(saved.id, "TASK_UPDATED", "Task updated")
+        return saved
     }
 
     private fun requireUser(userId: String): UserEntity {
@@ -595,53 +370,102 @@ class IssueService(
             .orElseThrow { NoSuchElementException("User $userId not found") }
     }
 
-    private fun deriveIssueStatus(issue: IssueEntity): IssueStatus {
-        if (issue.phases.isEmpty()) {
-            return IssueStatus.CREATED
+    private fun resolveDependencyChanges(
+        previous: List<TaskDependencyView>,
+        current: List<TaskDependencyView>,
+    ): DependencyChanges {
+        val previousKeys = previous.associateBy { dependencyKey(it) }
+        val currentKeys = current.associateBy { dependencyKey(it) }
+        val added = currentKeys.filterKeys { it !in previousKeys }.values.toList()
+        val removed = previousKeys.filterKeys { it !in currentKeys }.values.toList()
+        return DependencyChanges(added, removed)
+    }
+
+    private fun dependencyKey(dependency: TaskDependencyView) =
+        "${dependency.type}:${dependency.targetId}"
+
+    private fun recordDependencyChanges(
+        sourceIssue: IssueEntity,
+        task: TaskEntity,
+        added: List<TaskDependencyView>,
+        removed: List<TaskDependencyView>,
+    ) {
+        added.forEach { dependency ->
+            recordDependencyActivity(
+                sourceIssue = sourceIssue,
+                task = task,
+                dependency = dependency,
+                type = "DEPENDENCY_ADDED",
+                summaryPrefix = "Dependency added",
+            )
         }
-        val phaseStatuses = issue.phases.map { PhaseStatus.valueOf(it.status) }
-        val inProgressKinds = issue.phases
-            .filter { it.status == PhaseStatus.IN_PROGRESS.name }
-            .mapNotNull { PhaseKind.from(it.kind) }
-        val phaseKinds = issue.phases.mapNotNull { PhaseKind.from(it.kind) }
-        val requiredKindsPresent = PhaseKind.requiredKinds().all { required ->
-            phaseKinds.contains(required)
+        removed.forEach { dependency ->
+            recordDependencyActivity(
+                sourceIssue = sourceIssue,
+                task = task,
+                dependency = dependency,
+                type = "DEPENDENCY_REMOVED",
+                summaryPrefix = "Dependency removed",
+            )
         }
-        val nextPendingKind = listOf(
-            PhaseKind.INVESTIGATION,
-            PhaseKind.PROPOSE_SOLUTION,
-            PhaseKind.DEVELOPMENT,
-            PhaseKind.ACCEPTANCE_TEST,
-            PhaseKind.ROLLOUT,
-        ).firstOrNull { kind ->
-            issue.phases.any { phase ->
-                PhaseKind.from(phase.kind) == kind &&
-                    PhaseStatus.valueOf(phase.status) != PhaseStatus.DONE
+    }
+
+    private fun recordDependencyActivity(
+        sourceIssue: IssueEntity,
+        task: TaskEntity,
+        dependency: TaskDependencyView,
+        type: String,
+        summaryPrefix: String,
+    ) {
+        val targetIssueId = resolveDependencyIssueId(sourceIssue, dependency)
+        val targetLabel = "${dependency.type}:${dependency.targetId}"
+        val summary = "$summaryPrefix: ${sourceIssue.id} · ${task.title} -> $targetLabel"
+        activityRecorder.record(sourceIssue.id, type, summary)
+        if (targetIssueId != null && targetIssueId != sourceIssue.id) {
+            activityRecorder.record(targetIssueId, type, summary)
+        }
+    }
+
+    private fun resolveDependencyIssueId(
+        sourceIssue: IssueEntity,
+        dependency: TaskDependencyView,
+    ): String? {
+        return when (TaskDependencyType.valueOf(dependency.type)) {
+            TaskDependencyType.ISSUE -> dependency.targetId
+            TaskDependencyType.PHASE -> {
+                if (sourceIssue.phases.any { it.id == dependency.targetId }) {
+                    sourceIssue.id
+                } else {
+                    issueRepository.findIssueIdByPhaseId(dependency.targetId)
+                }
+            }
+            TaskDependencyType.TASK -> {
+                val inSource = sourceIssue.phases.any { phase ->
+                    phase.tasks.any { it.id == dependency.targetId }
+                }
+                if (inSource) {
+                    sourceIssue.id
+                } else {
+                    issueRepository.findIssueIdByTaskId(dependency.targetId)
+                }
             }
         }
-        return when {
-            phaseStatuses.any { it == PhaseStatus.FAILED } -> IssueStatus.FAILED
-            phaseStatuses.all { it == PhaseStatus.DONE } && requiredKindsPresent -> IssueStatus.DONE
-            inProgressKinds.contains(PhaseKind.ROLLOUT) -> IssueStatus.IN_ROLLOUT
-            inProgressKinds.contains(PhaseKind.ACCEPTANCE_TEST) -> IssueStatus.IN_TEST
-            inProgressKinds.contains(PhaseKind.DEVELOPMENT) -> IssueStatus.IN_DEVELOPMENT
-            inProgressKinds.any { it.isAnalysis() } -> IssueStatus.IN_ANALYSIS
-            nextPendingKind != null -> IssueStatus.NOT_ACTIVE
-            else -> IssueStatus.NOT_ACTIVE
-        }
     }
 
-    private fun requiredKindsPresent(issue: IssueEntity): Boolean {
-        val phaseKinds = issue.phases.mapNotNull { PhaseKind.from(it.kind) }
-        return PhaseKind.requiredKinds().all { required -> phaseKinds.contains(required) }
-    }
+    private data class DependencyChanges(
+        val added: List<TaskDependencyView>,
+        val removed: List<TaskDependencyView>,
+    )
 
-    private fun recordActivity(issueId: String, type: String, summary: String) {
-        historyService.recordActivity(
-            issueId = issueId,
-            type = type,
-            summary = summary,
-            actorId = currentUserService.currentUserId(),
+    private fun defaultDevelopmentPhase(issue: IssueEntity, assignee: UserEntity): PhaseEntity {
+        return PhaseEntity(
+            id = UUID.randomUUID().toString(),
+            name = "Development",
+            assignee = assignee,
+            status = PhaseStatus.NOT_STARTED.name,
+            kind = "DEVELOPMENT",
+            deadline = null,
+            issue = issue,
         )
     }
 
@@ -685,76 +509,23 @@ class IssueService(
         )
     }
 
-    private fun ensurePhaseDeadlineWithinIssue(issue: IssueEntity, deadline: LocalDate?) {
-        val issueDeadline = issue.deadline ?: return
-        if (deadline != null && deadline.isAfter(issueDeadline)) {
-            throw IllegalStateException("Phase deadline exceeds issue deadline")
-        }
+    @Transactional
+    fun closeIssue(issueId: String): IssueEntity {
+        return workflowService.closeIssue(issueId)
     }
 
-    private fun applyIssueDeadlineConstraints(issue: IssueEntity) {
-        val issueDeadline = issue.deadline ?: return
-        issue.phases.forEach { phase ->
-            if (phase.deadline != null && phase.deadline!!.isAfter(issueDeadline)) {
-                phase.deadline = issueDeadline
-            }
-            clampTaskDeadlines(issue, phase)
-        }
+    @Transactional
+    fun abandonIssue(issueId: String): IssueEntity {
+        return workflowService.abandonIssue(issueId)
     }
 
-    private fun clampTaskDeadlines(issue: IssueEntity, phase: PhaseEntity) {
-        val limit = listOfNotNull(issue.deadline, phase.deadline).minOrNull() ?: return
-        phase.tasks.forEach { task ->
-            if (task.dueDate != null && task.dueDate!!.isAfter(limit)) {
-                task.dueDate = limit
-            }
-            if (task.startDate != null && task.dueDate != null && task.startDate!!.isAfter(task.dueDate)) {
-                task.startDate = task.dueDate
-            }
-        }
+    @Transactional
+    fun failPhase(issueId: String, phaseId: String): IssueEntity {
+        return workflowService.failPhase(issueId, phaseId)
     }
 
-    private fun validateTaskDates(
-        issue: IssueEntity,
-        phase: PhaseEntity,
-        startDate: LocalDate?,
-        dueDate: LocalDate?,
-        dependencies: List<TaskDependencyView>,
-    ) {
-        if (startDate != null && dueDate != null && startDate.isAfter(dueDate)) {
-            throw IllegalStateException("Task start date must be before due date")
-        }
-        val maxDeadline = listOfNotNull(issue.deadline, phase.deadline).minOrNull()
-        if (dueDate != null && maxDeadline != null && dueDate.isAfter(maxDeadline)) {
-            throw IllegalStateException("Task due date exceeds deadline")
-        }
-        if (startDate != null) {
-            dependencies.forEach { dependency ->
-                val finishDate = resolveDependencyFinishDate(issue, dependency)
-                if (finishDate != null && startDate.isBefore(finishDate)) {
-                    throw IllegalStateException("Task start date precedes dependency completion")
-                }
-            }
-        }
-    }
-
-    private fun resolveDependencyFinishDate(issue: IssueEntity, dependency: TaskDependencyView): LocalDate? {
-        val targetId = dependency.targetId
-        val type = TaskDependencyType.valueOf(dependency.type)
-        return when (type) {
-            TaskDependencyType.TASK -> {
-                val task = issue.phases.asSequence()
-                    .flatMap { it.tasks.asSequence() }
-                    .firstOrNull { it.id == targetId }
-                    ?: throw NoSuchElementException("Task dependency $targetId not found")
-                task.dueDate ?: task.phase.deadline ?: issue.deadline
-            }
-            TaskDependencyType.PHASE -> {
-                val phase = issue.phases.firstOrNull { it.id == targetId }
-                    ?: throw NoSuchElementException("Phase dependency $targetId not found")
-                phase.deadline ?: issue.deadline
-            }
-            TaskDependencyType.ISSUE -> issue.deadline
-        }
+    @Transactional
+    fun reopenPhase(issueId: String, phaseId: String): IssueEntity {
+        return workflowService.reopenPhase(issueId, phaseId)
     }
 }

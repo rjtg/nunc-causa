@@ -63,7 +63,16 @@ class IssueSearchService(
         var hasClause = false
         val query = filters.query?.trim()
         if (!query.isNullOrBlank() && excluded != FacetField.QUERY) {
-            bool.must(f.simpleQueryString().fields("title", "description").matching(query))
+            bool.must(
+                f.bool()
+                    .should(f.match().field("id").matching(query))
+                    .should(
+                        f.simpleQueryString()
+                            .fields("title", "description", "id")
+                            .matching(query),
+                    )
+                    .minimumShouldMatchNumber(1),
+            )
             hasClause = true
         }
         if (!filters.projectId.isNullOrBlank() && excluded != FacetField.PROJECT) {

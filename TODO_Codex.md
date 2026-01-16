@@ -110,7 +110,7 @@ Use src/main/kotlin and src/test/kotlin.
 [ ] Re-enable SpotBugs for tests with targeted filters
     - Reduce global excludes
     - Add test-specific exclude rules if needed
-[ ] Refactor IssueService into focused services
+[x] Refactor IssueService into focused services
     - Extract workflow actions (close/abandon/fail/reopen) into IssueWorkflowService
     - Extract list/search/facet/work views into IssueQueryService
     - Extract deadline validation/propagation into IssueDeadlineService
@@ -152,6 +152,17 @@ Use src/main/kotlin and src/test/kotlin.
     - Extract IssueSearchFilters and IssueList components
     - Add useIssueSearch hook for filters + facets + data
     - Reuse IssueSummaryCard + IssueProgressBar consistently
+[ ] Add pagination to search results
+    - Extend backend search/list endpoints with paging params
+    - Update UI to request pages and render pagination controls
+[ ] Add progress statistics over time
+    - Provide per-day progress for project/issue/phase (since creation or since start)
+    - Include "last 3 work-days" summary view
+    - Expose API to fetch time-series stats for UI charts
+[ ] Add UI internationalization
+    - Introduce i18n framework (e.g., next-intl or react-intl)
+    - Extract UI strings into locale files
+    - Provide language switcher for users
 [ ] Split UI consistency tests by concern
     - Move icon checks, tooltip checks, hover checks, read-tracking into separate test files
 [ ] Consolidate action/permission mapping in controllers

@@ -53,25 +53,6 @@ class DevDataSeeder(
             TeamEntity(id = TEAM_RELIABILITY_ID, orgId = org.id, parentTeamId = null, name = "Reliability"),
         )
 
-        val alphaProject = projectRepository.save(
-            ProjectEntity(
-                id = PROJECT_ALPHA_ID,
-                key = "ALPHA",
-                orgId = org.id,
-                teamId = platformTeam.id,
-                name = "Alpha",
-            ),
-        )
-        val beaconProject = projectRepository.save(
-            ProjectEntity(
-                id = PROJECT_BEACON_ID,
-                key = "BEACON",
-                orgId = org.id,
-                teamId = reliabilityTeam.id,
-                name = "Beacon",
-            ),
-        )
-
         val baseUsers = listOf(
             UserEntity(id = "dev", displayName = "Dev User", email = "dev@causa.local"),
             UserEntity(id = "ada", displayName = "Ada Lovelace", email = "ada@causa.local"),
@@ -86,6 +67,27 @@ class DevDataSeeder(
             )
         }
         val users = userRepository.saveAll(baseUsers + extraUsers)
+
+        val alphaProject = projectRepository.save(
+            ProjectEntity(
+                id = PROJECT_ALPHA_ID,
+                key = "ALPHA",
+                orgId = org.id,
+                teamId = platformTeam.id,
+                ownerId = "dev",
+                name = "Alpha",
+            ),
+        )
+        val beaconProject = projectRepository.save(
+            ProjectEntity(
+                id = PROJECT_BEACON_ID,
+                key = "BEACON",
+                orgId = org.id,
+                teamId = reliabilityTeam.id,
+                ownerId = "dev",
+                name = "Beacon",
+            ),
+        )
 
         users.forEach { user ->
             orgMembershipRepository.save(

@@ -6,6 +6,7 @@ import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
 import { Typeahead } from "@/components/typeahead";
+import { UserBadgeSelect } from "@/components/user-badge-select";
 import { useHealth } from "@/lib/health/context";
 import { IssueSummaryCard } from "@/components/issue-summary-card";
 
@@ -15,6 +16,7 @@ type IssueSummary = {
   description?: string | null;
   ownerId: string;
   status: string;
+  deadline?: string | null;
   phaseCount: number;
   phaseStatusCounts?: Record<string, number> | null;
   phaseProgress?: {
@@ -52,6 +54,114 @@ type UserOption = {
 
 const userLabel = (users: UserOption[], userId: string) => {
   return users.find((user) => user.id === userId)?.displayName ?? userId;
+};
+
+const isPastDeadline = (deadline?: string | null) => {
+  if (!deadline) {
+    return false;
+  }
+  const deadlineDate = new Date(`${deadline}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return deadlineDate.getTime() < today.getTime();
+};
+
+const segmentColorHex = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "#10b981";
+    case "IN_PROGRESS":
+      return "#38bdf8";
+    case "PAUSED":
+      return "#fbbf24";
+    case "ABANDONED":
+      return "#fb7185";
+    case "FAILED":
+      return "#fb7185";
+    default:
+      return "#cbd5e1";
+  }
+};
+
+const segmentClass = (status: string) => {
+  switch (status) {
+    case "DONE":
+      return "bg-emerald-500";
+    case "FAILED":
+      return "bg-rose-400";
+    case "IN_PROGRESS":
+      return "bg-sky-400";
+    case "PAUSED":
+      return "bg-amber-400";
+    case "ABANDONED":
+      return "bg-rose-400";
+    default:
+      return "bg-slate-300";
+  }
+};
+
+const segmentStyle = (status: string, overdue: boolean) => {
+  if (!overdue) {
+    return { color: segmentClass(status) };
+  }
+  return {
+    color: segmentClass(status),
+    style: {
+      outline: "2px dotted #ef4444",
+      outlineOffset: "-1px",
+      backgroundImage: `linear-gradient(90deg, #fecaca 0%, #fca5a5 60%, ${segmentColorHex(
+        status,
+      )} 100%)`,
+    },
+  };
+};
+
+const buildPhaseTaskSegments = (
+  counts: Record<string, number>,
+  overdue: boolean,
+) => {
+  return [
+    { key: "DONE" },
+    { key: "IN_PROGRESS" },
+    { key: "PAUSED" },
+    { key: "ABANDONED" },
+    { key: "NOT_STARTED" },
+  ]
+    .map((segment) => {
+      const count = counts[segment.key] ?? 0;
+      if (count <= 0) {
+        return null;
+      }
+      return {
+        ...segmentStyle(segment.key, overdue),
+        count,
+      };
+    })
+    .filter(Boolean) as Array<ReturnType<typeof segmentStyle> & { count: number }>;
+};
+
+const issueOverdueClass = (status: string, deadline?: string | null) => {
+  if (status === "DONE" || status === "FAILED") {
+    return "";
+  }
+  if (!isPastDeadline(deadline)) {
+    return "";
+  }
+  const tone = (() => {
+    switch (status) {
+      case "IN_ANALYSIS":
+        return "to-amber-50";
+      case "IN_DEVELOPMENT":
+        return "to-sky-50";
+      case "IN_TEST":
+        return "to-violet-50";
+      case "IN_ROLLOUT":
+        return "to-emerald-50";
+      default:
+        return "to-slate-50";
+    }
+  })();
+  return `border-rose-500/80 bg-gradient-to-r from-rose-200 via-rose-100 ${tone}`;
 };
 
 type ProjectOption = {
@@ -194,22 +304,16 @@ const issuePhaseSegments = (
         </div>
       </div>
     );
+    const overdue =
+      isPastDeadline(phase.deadline) && phase.status !== "DONE" && phase.status !== "FAILED";
     if (!phase.taskTotal) {
-      const phaseTone = (() => {
-        switch (phase.status) {
-          case "DONE":
-            return "bg-emerald-500";
-          case "FAILED":
-            return "bg-rose-400";
-          case "IN_PROGRESS":
-            return "bg-sky-400";
-          default:
-            return "bg-slate-300";
-        }
-      })();
+      const phaseTone = overdue
+        ? segmentStyle(phase.status, true)
+        : { color: segmentClass(phase.status) };
       return [
         {
-          color: phaseTone,
+          color: phaseTone.color,
+          style: phaseTone.style,
           count: phaseWeight,
           tooltip,
           separator: phaseIndex > 0,
@@ -217,23 +321,15 @@ const issuePhaseSegments = (
       ];
     }
     const counts = phase.taskStatusCounts ?? {};
-    const total = phase.taskTotal;
-    const segments = [
-      { key: "DONE", color: "bg-emerald-500" },
-      { key: "IN_PROGRESS", color: "bg-sky-400" },
-      { key: "PAUSED", color: "bg-amber-400" },
-      { key: "ABANDONED", color: "bg-rose-400" },
-      { key: "NOT_STARTED", color: "bg-slate-300" },
-    ];
-    return segments.map((segment, index) => {
-      const count = counts[segment.key] ?? 0;
-      return {
-        color: segment.color,
-        count: phaseWeight * (count / total),
+    return [
+      {
+        color: "bg-transparent",
+        count: phaseWeight,
         tooltip,
-        separator: phaseIndex > 0 && index === 0,
-      };
-    });
+        separator: phaseIndex > 0,
+        segments: buildPhaseTaskSegments(counts, overdue),
+      },
+    ];
   });
 };
 
@@ -313,6 +409,7 @@ export default function IssuesPage() {
           description: issue.description ?? null,
           ownerId: issue.ownerId ?? "Unassigned",
           status: issue.status ?? "UNKNOWN",
+          deadline: issue.deadline ?? null,
           phaseCount: issue.phaseCount ?? 0,
           phaseStatusCounts: issue.phaseStatusCounts ?? null,
           phaseProgress: issue.phaseProgress ?? [],
@@ -321,6 +418,33 @@ export default function IssuesPage() {
       setLoading(false);
     },
     [api, isAuthed],
+  );
+
+  const updateIssueOwner = useCallback(
+    async (issueId: string, ownerId: string | null) => {
+      if (!ownerId) {
+        throw new Error("Owner is required.");
+      }
+      const { data, error: apiError } = await api.PATCH("/issues/{issueId}/owner", {
+        params: { path: { issueId } },
+        body: { ownerId },
+      });
+      if (apiError || !data) {
+        throw new Error("Unable to update owner.");
+      }
+      const updated = data as { id?: string; ownerId?: string };
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId
+            ? {
+                ...issue,
+                ownerId: updated.ownerId ?? issue.ownerId,
+              }
+            : issue,
+        ),
+      );
+    },
+    [api],
   );
 
   const queryFilters = useMemo(() => {
@@ -693,6 +817,7 @@ export default function IssuesPage() {
             id={issue.id}
             title={issue.title ?? issue.id}
             href={`/issues/${issue.id}`}
+            className={issueOverdueClass(issue.status, issue.deadline)}
             progressSegments={issuePhaseSegments(issue.phaseProgress, users)}
             progressTotal={1}
             progressTone={
@@ -707,9 +832,33 @@ export default function IssuesPage() {
             }
             right={
               <>
-                <span className="rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-violet-700">
-                  {userLabel(users, issue.ownerId)}
-                </span>
+                <UserBadgeSelect
+                  value={issue.ownerId}
+                  users={users}
+                  label="Owner"
+                  ariaLabel="Change owner"
+                  onRequestUsers={async () => {
+                    if (!ready || !isAuthed) {
+                      return;
+                    }
+                    const { data, error: apiError } = await api.GET("/users", {
+                      params: { query: {} },
+                    });
+                    if (apiError) {
+                      return;
+                    }
+                    setUsers(
+                      (data ?? []).map((user) => ({
+                        id: user.id ?? "unknown",
+                        displayName: user.displayName ?? "Unknown",
+                        openIssueCount: user.openIssueCount ?? 0,
+                        openPhaseCount: user.openPhaseCount ?? 0,
+                        openTaskCount: user.openTaskCount ?? 0,
+                      })),
+                    );
+                  }}
+                  onSave={(nextId) => updateIssueOwner(issue.id, nextId)}
+                />
                 <span
                   className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${issueStatusBadgeStyle(
                     issue.status,

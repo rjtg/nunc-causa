@@ -36,7 +36,8 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
             i.owner.id,
             i.projectId,
             count(distinct p.id),
-            i.status
+            i.status,
+            i.deadline
         )
         from IssueEntity i
         left join i.phases p
@@ -48,7 +49,7 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
           and (:memberId is null or i.owner.id = :memberId or p.assignee.id = :memberId or t.assignee.id = :memberId)
           and (:status is null or i.status = :status)
           and (:phaseKind is null or p.kind = :phaseKind)
-        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status
+        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status, i.deadline
         """
     )
     fun findListView(
@@ -72,6 +73,34 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
 
     @Query(
         """
+        select distinct i from IssueEntity i
+        left join i.phases p
+        where p.id is null
+        """
+    )
+    fun findWithoutPhases(): List<IssueEntity>
+
+    @Query(
+        """
+        select i.id from IssueEntity i
+        join i.phases p
+        where p.id = :phaseId
+        """
+    )
+    fun findIssueIdByPhaseId(@Param("phaseId") phaseId: String): String?
+
+    @Query(
+        """
+        select i.id from IssueEntity i
+        join i.phases p
+        join p.tasks t
+        where t.id = :taskId
+        """
+    )
+    fun findIssueIdByTaskId(@Param("taskId") taskId: String): String?
+
+    @Query(
+        """
         select new sh.nunc.causa.issues.IssueListView(
             i.id,
             i.title,
@@ -79,7 +108,8 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
             i.owner.id,
             i.projectId,
             count(distinct p.id),
-            i.status
+            i.status,
+            i.deadline
         )
         from IssueEntity i
         left join i.phases p
@@ -88,7 +118,7 @@ interface IssueRepository : JpaRepository<IssueEntity, String> {
             lower(i.title) like lower(concat('%', :query, '%'))
             or lower(i.description) like lower(concat('%', :query, '%'))
           )
-        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status
+        group by i.id, i.title, i.description, i.owner.id, i.projectId, i.status, i.deadline
         """
     )
     fun searchListView(

@@ -66,6 +66,7 @@ fun IssueListView.toListItem(): IssueListItem {
             )
         },
         status = status.toIssueStatusEnum(),
+        deadline = deadline?.let { date -> java.time.LocalDate.parse(date) },
     )
 }
 

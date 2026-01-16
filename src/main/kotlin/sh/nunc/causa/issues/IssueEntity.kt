@@ -31,6 +31,7 @@ import sh.nunc.causa.users.UserEntity
 @Table(name = "issues")
 class IssueEntity(
     @Id
+    @FullTextField(analyzer = "autocomplete", searchAnalyzer = "autocompleteSearch")
     @Column(name = "issue_id", nullable = false)
     var id: String,
 

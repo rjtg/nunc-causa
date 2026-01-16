@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-project-owner
+      author: codex
+      changes:
+        - addColumn:
+            tableName: projects
+            columns:
+              - column:
+                  name: project_owner_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: projects
+            baseColumnNames: project_owner_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            constraintName: fk_projects_owner

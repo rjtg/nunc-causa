@@ -65,6 +65,7 @@ class IssueApiMapperTest {
             projectId = null,
             phaseCount = 2,
             status = IssueStatus.DONE.name,
+            deadline = null,
         )
 
         val summary = issue.toListItem()

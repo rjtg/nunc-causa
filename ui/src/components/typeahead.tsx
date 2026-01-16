@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { Icon } from "@/components/icons";
 
 type Option = {
   value: string;
@@ -10,28 +12,39 @@ type Option = {
 type TypeaheadProps = {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (value: string) => void;
+  onQueryChange?: (value: string) => void;
   options: Option[];
   placeholder?: string;
   className?: string;
   inputClassName?: string;
   maxItems?: number;
+  disabled?: boolean;
+  leading?: ReactNode;
+  autoFocus?: boolean;
 };
 
 export function Typeahead({
   value,
   onChange,
+  onSelect,
+  onQueryChange,
   options,
   placeholder,
   className,
   inputClassName,
   maxItems = 8,
+  disabled = false,
+  leading,
+  autoFocus = false,
 }: TypeaheadProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
 
   useEffect(() => {
-    setQuery(value);
-  }, [value]);
+    const matched = options.find((option) => option.value === value)?.label;
+    setQuery(matched ?? value);
+  }, [options, value]);
 
   const visibleOptions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -50,6 +63,11 @@ export function Typeahead({
 
   return (
     <div className={`relative ${className ?? ""}`}>
+      {leading && (
+        <div className="pointer-events-none absolute left-3 top-2 text-xs text-slate-400">
+          {leading}
+        </div>
+      )}
       <input
         className={
           inputClassName ??
@@ -57,10 +75,16 @@ export function Typeahead({
         }
         placeholder={placeholder}
         value={query}
+        disabled={disabled}
+        autoFocus={autoFocus}
         onChange={(event) => {
           const nextValue = event.target.value;
           setQuery(nextValue);
-          onChange(nextValue);
+          if (onQueryChange) {
+            onQueryChange(nextValue);
+          } else {
+            onChange(nextValue);
+          }
           setOpen(true);
         }}
         onKeyDown={(event) => {
@@ -91,18 +115,25 @@ export function Typeahead({
                 className="flex w-full items-start justify-between rounded-lg px-3 py-2 text-left hover:bg-slate-50"
                 onMouseDown={(event) => {
                   event.preventDefault();
-                  onChange(option.value);
+                  if (onSelect) {
+                    onSelect(option.value);
+                  } else {
+                    onChange(option.value);
+                  }
                   setQuery(option.value);
                   setOpen(false);
                 }}
               >
-                <span>
-                  <span className="font-semibold">{label}</span>
-                  {option.description && (
-                    <span className="block text-[11px] text-slate-500">
-                      {option.description}
-                    </span>
-                  )}
+                <span className="flex items-start gap-2">
+                  <Icon name="arrow-right" size={12} />
+                  <span>
+                    <span className="font-semibold">{label}</span>
+                    {option.description && (
+                      <span className="block text-[11px] text-slate-500">
+                        {option.description}
+                      </span>
+                    )}
+                  </span>
                 </span>
                 <span className="flex items-center gap-2 text-[11px] text-slate-400">
                   {option.meta && (

@@ -29,6 +29,8 @@ class DevAccessPolicyService(
     override fun canModifyIssue(issueId: String): Boolean = true
     override fun canListIssues(projectId: String?): Boolean = true
     override fun canSearchIssues(projectId: String?): Boolean = true
+    override fun canModifyProject(projectId: String): Boolean = true
+    override fun canManageSearchIndex(): Boolean = true
     override fun canAccessWork(): Boolean = true
     override fun isAuthenticated(): Boolean = currentUserService.currentUserId() != null
 }

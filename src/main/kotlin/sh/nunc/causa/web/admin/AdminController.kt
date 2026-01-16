@@ -59,6 +59,7 @@ class AdminController(
             key = request.key,
             orgId = request.orgId,
             teamId = request.teamId,
+            ownerId = request.ownerId,
             name = request.name,
         )
         return ResponseEntity.status(HttpStatus.CREATED).body(projectRepository.save(project))
@@ -113,6 +114,7 @@ data class CreateProjectRequest(
     val orgId: String,
     val teamId: String,
     val name: String,
+    val ownerId: String?,
 )
 
 data class CreateOrgMembershipRequest(

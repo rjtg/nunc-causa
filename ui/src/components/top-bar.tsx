@@ -37,15 +37,6 @@ export default function TopBar() {
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div className="flex items-center gap-4">
           <span className="text-lg font-semibold tracking-tight">Causa</span>
-          <button
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm"
-            type="button"
-          >
-            <span className="inline-flex items-center gap-2">
-              Project: Alpha
-              <Icon name="chevron-down" size={12} />
-            </span>
-          </button>
         </div>
         <div className="flex flex-1 items-center justify-end gap-3">
           <form

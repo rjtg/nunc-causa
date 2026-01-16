@@ -601,7 +601,22 @@ paths:
       summary: List projects
       operationId: listProjects
       parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
         - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: teamId
           in: query
           required: false
           schema:
@@ -615,6 +630,65 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProjectSummary'
+  /projects/facets:
+    get:
+      tags:
+        - Projects
+      summary: List project facets
+      operationId: getProjectFacets
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: teamId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project facet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectFacetResponse'
+  /projects/{projectId}/owner:
+    patch:
+      tags:
+        - Projects
+      summary: Assign project owner
+      operationId: assignProjectOwner
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignProjectOwnerRequest'
+      responses:
+        '200':
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSummary'
   /users:
     get:
       tags:
@@ -968,6 +1042,9 @@ components:
             $ref: '#/components/schemas/PhaseProgressItem'
         status:
           $ref: '#/components/schemas/IssueStatus'
+        deadline:
+          type: string
+          format: date
     IssueDetail:
       type: object
       required:
@@ -1348,6 +1425,57 @@ components:
           type: string
         teamId:
           type: string
+        ownerId:
+          type: string
+          nullable: true
+        issueStatusCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        phaseStatusCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        phaseStatusByIssueStatus:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: integer
+              format: int64
+    ProjectFacetOption:
+      type: object
+      required:
+        - id
+        - count
+      properties:
+        id:
+          type: string
+        count:
+          type: integer
+          format: int64
+    ProjectFacetResponse:
+      type: object
+      required:
+        - owners
+        - teams
+      properties:
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFacetOption'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFacetOption'
+    AssignProjectOwnerRequest:
+      type: object
+      properties:
+        ownerId:
+          type: string
+          nullable: true
     UserSummary:
       type: object
       required:

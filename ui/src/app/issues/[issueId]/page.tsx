@@ -6,9 +6,10 @@ import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
 import { Tooltip } from "@/components/tooltip";
-import { Typeahead } from "@/components/typeahead";
+import { UserBadgeSelect } from "@/components/user-badge-select";
 import { useHealth } from "@/lib/health/context";
 import type { CommentThread, HistoryResponse, IssueDetail, UserOption } from "./types";
+import { buildIssuePhaseSegments, isPastDeadline } from "./progress";
 import { PhaseBoard } from "./components/PhaseBoard";
 import { IssueProgressBar } from "@/components/issue-progress-bar";
 
@@ -40,6 +41,30 @@ const issueStatusBadgeStyle = (status: string) => {
     default:
       return "border-slate-200 bg-slate-100 text-slate-700";
   }
+};
+
+const issueOverdueClass = (status: string, deadline?: string | null) => {
+  if (status === "DONE" || status === "FAILED") {
+    return "";
+  }
+  if (!isPastDeadline(deadline)) {
+    return "";
+  }
+  const tone = (() => {
+    switch (status) {
+      case "IN_ANALYSIS":
+        return "to-amber-50";
+      case "IN_DEVELOPMENT":
+        return "to-sky-50";
+      case "IN_TEST":
+        return "to-violet-50";
+      case "IN_ROLLOUT":
+        return "to-emerald-50";
+      default:
+        return "to-slate-50";
+    }
+  })();
+  return `border-rose-500/80 bg-gradient-to-r from-rose-200 via-rose-100 ${tone}`;
 };
 
 const userLabel = (users: UserOption[], userId?: string | null) => {
@@ -81,10 +106,6 @@ export default function IssueDetailPage() {
   const [issueEditError, setIssueEditError] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
-  const [ownerEditOpen, setOwnerEditOpen] = useState(false);
-  const [ownerDraft, setOwnerDraft] = useState("");
-  const [ownerSaving, setOwnerSaving] = useState(false);
-  const [ownerError, setOwnerError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
@@ -111,108 +132,19 @@ export default function IssueDetailPage() {
   const [loading, setLoading] = useState(false);
 
   const progressSegments = useMemo(() => {
-    if (!issue || issue.phases.length === 0) {
+    if (!issue) {
       return null;
     }
-    const phaseOrder = [
-      "INVESTIGATION",
-      "PROPOSE_SOLUTION",
-      "DEVELOPMENT",
-      "ACCEPTANCE_TEST",
-      "ROLLOUT",
-    ];
-    const sortedPhases = [...issue.phases].sort((a, b) => {
-      const orderA = phaseOrder.indexOf(a.kind ?? "");
-      const orderB = phaseOrder.indexOf(b.kind ?? "");
-      if (orderA === -1 && orderB === -1) {
-        return a.name.localeCompare(b.name);
-      }
-      if (orderA === -1) {
-        return 1;
-      }
-      if (orderB === -1) {
-        return -1;
-      }
-      return orderA - orderB;
-    });
-    const phaseWeight = 1 / sortedPhases.length;
-    return sortedPhases.flatMap((phase, phaseIndex) => {
-      const handleClick = () => {
-        const target = document.getElementById(`phase-${phase.id}`);
+    return buildIssuePhaseSegments(
+      issue,
+      (userId) => userLabel(users, userId),
+      (phaseId) => {
+        const target = document.getElementById(`phase-${phaseId}`);
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
         }
-      };
-      const tooltip = (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-800">{phase.name}</p>
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-violet-700">
-              {userLabel(users, phase.assigneeId)}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-600">
-              {phase.tasks?.length ?? 0} tasks
-            </span>
-            {phase.deadline && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-sky-700">
-                Due {phase.deadline}
-              </span>
-            )}
-          </div>
-        </div>
-      );
-      if (!phase.tasks || phase.tasks.length === 0) {
-        const phaseTone = (() => {
-          switch (phase.status) {
-            case "DONE":
-              return "bg-emerald-500";
-            case "FAILED":
-              return "bg-rose-400";
-            case "IN_PROGRESS":
-              return "bg-sky-400";
-            default:
-              return "bg-slate-300";
-          }
-        })();
-        return [
-          {
-            color: phaseTone,
-            count: phaseWeight,
-            tooltip,
-            separator: phaseIndex > 0,
-            onClick: handleClick,
-          },
-        ];
-      }
-      const counts = phase.tasks.reduce(
-        (acc, task) => {
-          acc[task.status] = (acc[task.status] ?? 0) + 1;
-          return acc;
-        },
-        {
-          NOT_STARTED: 0,
-          IN_PROGRESS: 0,
-          PAUSED: 0,
-          ABANDONED: 0,
-          DONE: 0,
-        } as Record<string, number>,
-      );
-      const total = phase.tasks.length;
-      const segments = [
-        { key: "DONE", color: "bg-emerald-500" },
-        { key: "IN_PROGRESS", color: "bg-sky-400" },
-        { key: "PAUSED", color: "bg-amber-400" },
-        { key: "ABANDONED", color: "bg-rose-400" },
-        { key: "NOT_STARTED", color: "bg-slate-300" },
-      ];
-      return segments.map((segment, index) => ({
-        color: segment.color,
-        count: phaseWeight * ((counts[segment.key] ?? 0) / total),
-        tooltip,
-        separator: phaseIndex > 0 && index === 0,
-        onClick: handleClick,
-      }));
-    });
+      },
+    );
   }, [issue, users]);
 
   useEffect(() => {
@@ -242,9 +174,6 @@ export default function IssueDetailPage() {
       if (!issueEditDirty) {
         setIssueTitleDraft(nextIssue.title ?? "");
         setIssueDescriptionDraft(nextIssue.description ?? "");
-      }
-      if (!ownerEditOpen) {
-        setOwnerDraft(nextIssue.ownerId ?? "");
       }
       if (historyResponse.data?.activity) {
         setHistoryCount(historyResponse.data.activity.length);
@@ -483,29 +412,6 @@ export default function IssueDetailPage() {
     setIssueEditSaving(false);
   };
 
-  const saveOwnerEdit = async () => {
-    if (!ownerDraft.trim()) {
-      setOwnerError("Owner is required.");
-      return;
-    }
-    setOwnerSaving(true);
-    setOwnerError(null);
-    const { data, error: apiError } = await api.PATCH("/issues/{issueId}", {
-      params: { path: { issueId } },
-      body: {
-        ownerId: ownerDraft.trim(),
-      },
-    });
-    if (apiError || !data) {
-      setOwnerError("Unable to update owner.");
-      setOwnerSaving(false);
-      return;
-    }
-    setIssue(data as IssueDetail);
-    setOwnerEditOpen(false);
-    setOwnerSaving(false);
-  };
-
   const runCloseIssue = async () => {
     setStatusSaving(true);
     setStatusError(null);
@@ -542,7 +448,12 @@ export default function IssueDetailPage() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-2xl border border-slate-200/60 bg-white/90 p-6">
+      <header
+        className={`rounded-2xl border border-slate-200/60 bg-white/90 p-6 ${issueOverdueClass(
+          issue.status,
+          issue.deadline,
+        )}`}
+      >
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
           Issue {issue.id}
         </p>
@@ -613,76 +524,28 @@ export default function IssueDetailPage() {
                   </Tooltip>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <Tooltip
-                      content={
-                        issue.ownerId
-                          ? `${userLabel(users, issue.ownerId)} · ${userWorkload(users, issue.ownerId) ?? "0 / 0 / 0"}`
-                          : "Unassigned"
+                  <UserBadgeSelect
+                    value={issue.ownerId}
+                    users={users}
+                    label="Owner"
+                    ariaLabel="Change owner"
+                    onRequestUsers={loadUsers}
+                    onSave={async (nextId) => {
+                      const { data, error: apiError } = await api.PATCH(
+                        "/issues/{issueId}",
+                        {
+                          params: { path: { issueId } },
+                          body: {
+                            ownerId: nextId ?? undefined,
+                          },
+                        },
+                      );
+                      if (apiError || !data) {
+                        throw new Error("Unable to update owner.");
                       }
-                    >
-                      <button
-                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                          issue.ownerId
-                            ? "border-violet-200 bg-violet-100 text-violet-700"
-                            : "border-slate-200 bg-white text-slate-500"
-                        }`}
-                        type="button"
-                        onClick={() => setOwnerEditOpen((open) => !open)}
-                      >
-                        <Icon name="user" size={12} />
-                        {userLabel(users, issue.ownerId)}
-                      </button>
-                    </Tooltip>
-                    {ownerEditOpen && (
-                      <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          Owner
-                        </p>
-                        <form
-                          className="mt-2 flex flex-wrap items-center gap-2"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void saveOwnerEdit();
-                          }}
-                        >
-                          <div className="min-w-[180px]">
-                            <Typeahead
-                              value={ownerDraft}
-                              onChange={setOwnerDraft}
-                              options={users.map((user) => ({
-                                value: user.id,
-                                label: user.displayName,
-                                meta: `${user.openIssueCount ?? 0} / ${user.openPhaseCount ?? 0} / ${user.openTaskCount ?? 0}`,
-                              }))}
-                              placeholder="Owner"
-                              inputClassName="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
-                            />
-                          </div>
-                          <button
-                            className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            type="submit"
-                            disabled={ownerSaving}
-                          >
-                            <Icon name="check" size={12} />
-                          </button>
-                          <button
-                            className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
-                            type="button"
-                            onClick={() => {
-                              setOwnerDraft(issue.ownerId ?? "");
-                              setOwnerEditOpen(false);
-                            }}
-                          >
-                            <Icon name="x" size={12} />
-                          </button>
-                          {ownerError && (
-                            <span className="text-rose-600">{ownerError}</span>
-                          )}
-                        </form>
-                      </div>
-                    )}
-                  </div>
+                      setIssue(data as IssueDetail);
+                    }}
+                  />
                   <div className="flex items-center gap-2">
                     <span
                       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${issueStatusBadgeStyle(

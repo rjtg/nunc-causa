@@ -11,3 +11,9 @@ spring:
               configurer: bean:luceneAnalysisConfigurer
           schema_management:
             strategy: drop-and-create
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,search-index,runtime-env

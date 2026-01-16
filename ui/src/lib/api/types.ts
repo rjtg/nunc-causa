@@ -347,6 +347,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List project facets */
+        get: operations["getProjectFacets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign project owner */
+        patch: operations["assignProjectOwner"];
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -584,6 +618,8 @@ export interface components {
             };
             phaseProgress?: components["schemas"]["PhaseProgressItem"][];
             status: components["schemas"]["IssueStatus"];
+            /** Format: date */
+            deadline?: string;
         };
         IssueDetail: {
             id: string;
@@ -737,6 +773,30 @@ export interface components {
             name: string;
             orgId: string;
             teamId: string;
+            ownerId?: string | null;
+            issueStatusCounts?: {
+                [key: string]: number;
+            };
+            phaseStatusCounts?: {
+                [key: string]: number;
+            };
+            phaseStatusByIssueStatus?: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        ProjectFacetOption: {
+            id: string;
+            /** Format: int64 */
+            count: number;
+        };
+        ProjectFacetResponse: {
+            owners: components["schemas"]["ProjectFacetOption"][];
+            teams: components["schemas"]["ProjectFacetOption"][];
+        };
+        AssignProjectOwnerRequest: {
+            ownerId?: string | null;
         };
         UserSummary: {
             id: string;
@@ -1471,7 +1531,10 @@ export interface operations {
     listProjects: {
         parameters: {
             query?: {
+                q?: string;
                 orgId?: string;
+                ownerId?: string;
+                teamId?: string;
             };
             header?: never;
             path?: never;
@@ -1486,6 +1549,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSummary"][];
+                };
+            };
+        };
+    };
+    getProjectFacets: {
+        parameters: {
+            query?: {
+                q?: string;
+                orgId?: string;
+                ownerId?: string;
+                teamId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project facet response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectFacetResponse"];
+                };
+            };
+        };
+    };
+    assignProjectOwner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProjectOwnerRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSummary"];
                 };
             };
         };

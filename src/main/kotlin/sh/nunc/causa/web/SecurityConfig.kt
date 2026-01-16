@@ -26,7 +26,9 @@ class SecurityConfig {
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                    .requestMatchers(EndpointRequest.to("health", "info", "runtime-env")).permitAll()
+                    .requestMatchers("/actuator/runtime-env").permitAll()
+                    .requestMatchers("/actuator/runtime-env/**").permitAll()
                     .requestMatchers("/auth/methods").permitAll()
                     .anyRequest().authenticated()
             }
