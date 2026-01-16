@@ -50,21 +50,21 @@ export function DatePicker({
         selected={selected}
         onSelect={(day) => onChange(formatIsoDate(day ?? undefined))}
         disabled={maxDate ? { after: maxDate } : undefined}
-        className="rounded-lg border border-slate-200 bg-white p-2 w-fit"
+        className="rounded-lg border border-slate-200 bg-white p-1 w-fit"
         classNames={{
           months: "flex flex-col",
-          month: "space-y-2",
+          month: "space-y-0.5",
           caption: "flex items-center justify-between text-xs font-semibold text-slate-600",
-          nav: "flex items-center gap-1",
+          nav: "flex items-center gap-[2px]",
           nav_button:
-            "h-6 w-6 rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
-          table: "w-full border-collapse",
-          head_row: "flex justify-between",
-          head_cell: "w-7 text-[10px] font-semibold text-slate-400",
-          row: "mt-1 flex justify-between",
-          cell: "h-7 w-7 text-center text-xs",
-          day: "h-7 w-7 rounded-full text-xs hover:bg-slate-100",
-          day_selected: "bg-slate-900 text-white hover:bg-slate-900",
+            "h-4 w-4 rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
+          table: "w-fit border-collapse",
+          head_row: "flex gap-[2px]",
+          head_cell: "w-5 text-[10px] font-semibold text-slate-400",
+          row: "mt-[2px] flex gap-[2px]",
+          cell: "h-5 w-5 text-center text-xs",
+          day: "h-5 w-5 rounded-full text-xs hover:bg-slate-100",
+          day_selected: "bg-slate-300 text-slate-900 hover:bg-slate-400",
           day_today: "border border-slate-300",
         }}
       />

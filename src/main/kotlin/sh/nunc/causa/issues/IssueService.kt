@@ -90,6 +90,7 @@ class IssueService(
         ownerId: String?,
         projectId: String?,
         description: String?,
+        clearDeadline: Boolean,
         deadline: java.time.LocalDate?,
     ): IssueEntity {
         val issue = getIssue(issueId)
@@ -108,10 +109,12 @@ class IssueService(
             }
             issue.projectId = projectId
         }
-        if (deadline != null) {
+        if (clearDeadline) {
+            issue.deadline = null
+        } else if (deadline != null) {
             issue.deadline = deadline
         }
-        if (deadline != null) {
+        if (!clearDeadline && deadline != null) {
             deadlineService.applyIssueDeadlineConstraints(issue)
         }
         val saved = issueRepository.save(issue)
@@ -175,6 +178,7 @@ class IssueService(
         completionComment: String?,
         completionArtifactUrl: String?,
         kind: String?,
+        clearDeadline: Boolean,
         deadline: java.time.LocalDate?,
     ): IssueEntity {
         val issue = getIssue(issueId)
@@ -217,11 +221,13 @@ class IssueService(
         if (kind != null) {
             phase.kind = kind
         }
-        if (deadline != null) {
+        if (clearDeadline) {
+            phase.deadline = null
+        } else if (deadline != null) {
             deadlineService.ensurePhaseDeadlineWithinIssue(issue, deadline)
             phase.deadline = deadline
         }
-        if (deadline != null) {
+        if (!clearDeadline && deadline != null) {
             deadlineService.clampTaskDeadlines(issue, phase)
         }
         issue.status = workflowService.deriveIssueStatus(issue).name

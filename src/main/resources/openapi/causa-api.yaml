@@ -908,6 +908,8 @@ components:
         deadline:
           type: string
           format: date
+        clearDeadline:
+          type: boolean
     AssignOwnerRequest:
       type: object
       required:
@@ -956,6 +958,8 @@ components:
         deadline:
           type: string
           format: date
+        clearDeadline:
+          type: boolean
     AddTaskRequest:
       type: object
       required:

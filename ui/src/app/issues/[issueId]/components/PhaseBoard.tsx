@@ -1355,7 +1355,7 @@ export function PhaseBoard({
                     </p>
                     <div className="relative" data-phase-deadline-popover={phase.id}>
                       <button
-                        className={`inline-flex items-center gap-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                           phase.deadline
                             ? "border-sky-200 bg-sky-100 text-sky-700"
                             : "border-slate-200 bg-white text-slate-500"
@@ -1401,13 +1401,16 @@ export function PhaseBoard({
                                 if (!isOnOrBefore(getPhaseDeadlineDraft(phase), issue.deadline)) {
                                   return;
                                 }
+                                const nextDeadline = getPhaseDeadlineDraft(phase);
+                                const clearDeadline = !nextDeadline;
                                 const before = issue;
                                 const { data, error: apiError } = await api.PATCH(
                                   "/issues/{issueId}/phases/{phaseId}",
                                   {
                                     params: { path: { issueId, phaseId: phase.id } },
                                     body: {
-                                      deadline: getPhaseDeadlineDraft(phase) || undefined,
+                                      deadline: clearDeadline ? undefined : nextDeadline || undefined,
+                                      clearDeadline,
                                     },
                                   },
                                 );

@@ -554,6 +554,7 @@ export interface components {
             description?: string;
             /** Format: date */
             deadline?: string;
+            clearDeadline?: boolean;
         };
         AssignOwnerRequest: {
             ownerId: string;
@@ -578,6 +579,7 @@ export interface components {
             kind?: components["schemas"]["PhaseKind"];
             /** Format: date */
             deadline?: string;
+            clearDeadline?: boolean;
         };
         AddTaskRequest: {
             title: string;

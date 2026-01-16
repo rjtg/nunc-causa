@@ -163,6 +163,10 @@ Use src/main/kotlin and src/test/kotlin.
     - Introduce i18n framework (e.g., next-intl or react-intl)
     - Extract UI strings into locale files
     - Provide language switcher for users
+[ ] Make DayPicker custom styles apply consistently
+    - Ensure selected range/day colors match the UI palette
+    - Remove any remaining default stylesheet overrides
+    - Verify compact spacing is applied in all date pickers
 [ ] Split UI consistency tests by concern
     - Move icon checks, tooltip checks, hover checks, read-tracking into separate test files
 [ ] Consolidate action/permission mapping in controllers

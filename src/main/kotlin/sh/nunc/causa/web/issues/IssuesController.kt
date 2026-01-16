@@ -143,6 +143,7 @@ class IssuesController(
                 updateIssueRequest.ownerId,
                 updateIssueRequest.projectId,
                 updateIssueRequest.description,
+                updateIssueRequest.clearDeadline == true,
                 updateIssueRequest.deadline,
             )
         }
@@ -238,6 +239,7 @@ class IssuesController(
                     updatePhaseRequest.completionComment,
                     updatePhaseRequest.completionArtifactUrl?.toString(),
                     updatePhaseRequest.kind?.name,
+                    updatePhaseRequest.clearDeadline == true,
                     updatePhaseRequest.deadline,
                 )
             }

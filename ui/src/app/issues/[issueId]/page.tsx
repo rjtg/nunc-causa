@@ -641,12 +641,14 @@ export default function IssueDetailPage() {
                               const nextDeadline = issueDeadlineDirty
                                 ? issueDeadlineDraft
                                 : issue.deadline ?? "";
+                              const clearDeadline = issueDeadlineDirty && !nextDeadline;
                               const { data, error: apiError } = await api.PATCH(
                                 "/issues/{issueId}",
                                 {
                                   params: { path: { issueId } },
                                   body: {
-                                    deadline: nextDeadline || undefined,
+                                    deadline: clearDeadline ? undefined : nextDeadline || undefined,
+                                    clearDeadline,
                                   },
                                 },
                               );
