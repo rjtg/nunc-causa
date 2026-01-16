@@ -13,14 +13,18 @@ export const isPastDeadline = (deadline?: string | null) => {
   return deadlineDate.getTime() < today.getTime();
 };
 
-export const isTaskOverdue = (task: Task) => {
-  if (!task.dueDate) {
+export const isTaskOverdue = (
+  task: Task,
+  fallbackDeadline?: string | null,
+) => {
+  const effectiveDeadline = task.dueDate ?? fallbackDeadline ?? null;
+  if (!effectiveDeadline) {
     return false;
   }
   if (task.status === "DONE" || task.status === "ABANDONED") {
     return false;
   }
-  return isPastDeadline(task.dueDate);
+  return isPastDeadline(effectiveDeadline);
 };
 
 const segmentColorHex = (status: string) => {
@@ -66,20 +70,23 @@ export const segmentStyle = (status: string, overdue: boolean) => {
     style: {
       outline: "2px dotted #ef4444",
       outlineOffset: "-1px",
-      backgroundImage: `linear-gradient(90deg, #fecaca 0%, #fca5a5 60%, ${segmentColorHex(
+      backgroundImage: `linear-gradient(90deg, ${segmentColorHex(
         status,
-      )} 100%)`,
+      )} 0%, #fca5a5 60%, #fecaca 100%)`,
     },
   };
 };
 
 const taskStatusOrder = ["DONE", "IN_PROGRESS", "PAUSED", "ABANDONED", "NOT_STARTED"];
 
-const taskStatusCounts = (tasks: Task[]) => {
+const taskStatusCounts = (
+  tasks: Task[],
+  fallbackDeadline?: string | null,
+) => {
   return tasks.reduce(
     (acc, task) => {
       acc.counts[task.status] = (acc.counts[task.status] ?? 0) + 1;
-      if (isTaskOverdue(task)) {
+      if (isTaskOverdue(task, fallbackDeadline)) {
         acc.overdue[task.status] = (acc.overdue[task.status] ?? 0) + 1;
       }
       return acc;
@@ -95,12 +102,14 @@ export const buildTaskSegments = (
   tasks: Task[],
   normalized = false,
   tooltip?: ReactNode,
+  options?: { phaseDeadline?: string | null; issueDeadline?: string | null },
 ) => {
   const total = tasks.length;
   if (total === 0) {
     return [];
   }
-  const { counts, overdue } = taskStatusCounts(tasks);
+  const fallbackDeadline = options?.phaseDeadline ?? options?.issueDeadline ?? null;
+  const { counts, overdue } = taskStatusCounts(tasks, fallbackDeadline);
   return taskStatusOrder.flatMap((status) => {
     const count = counts[status] ?? 0;
     if (count === 0) {
@@ -178,9 +187,10 @@ export const buildIssuePhaseSegments = (
     );
     const onClick = onPhaseClick ? () => onPhaseClick(phase.id) : undefined;
     if (phase.tasks.length === 0) {
+      const overdue = isPastDeadline(phase.deadline ?? detail.deadline ?? null);
       return [
         {
-          color: segmentClass(phase.status),
+          ...segmentStyle(phase.status, overdue),
           count: phaseWeight,
           tooltip,
           separator: phaseIndex > 0,
@@ -195,7 +205,10 @@ export const buildIssuePhaseSegments = (
         tooltip,
         separator: phaseIndex > 0,
         onClick,
-        segments: buildTaskSegments(phase.tasks, true, tooltip),
+        segments: buildTaskSegments(phase.tasks, true, tooltip, {
+          phaseDeadline: phase.deadline ?? null,
+          issueDeadline: detail.deadline ?? null,
+        }),
       },
     ];
   });
