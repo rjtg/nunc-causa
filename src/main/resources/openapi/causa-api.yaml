@@ -984,6 +984,10 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/TaskStatus'
+        clearStartDate:
+          type: boolean
+        clearDueDate:
+          type: boolean
         startDate:
           type: string
           format: date

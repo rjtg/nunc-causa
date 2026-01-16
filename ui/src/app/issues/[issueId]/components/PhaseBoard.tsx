@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Tooltip } from "@/components/tooltip";
 import { Typeahead } from "@/components/typeahead";
@@ -8,6 +8,8 @@ import { IssueSummaryCard } from "@/components/issue-summary-card";
 import { UserBadgeSelect } from "@/components/user-badge-select";
 import { StatusBadgeSelect } from "@/components/status-badge-select";
 import { IssueProgressBar } from "@/components/issue-progress-bar";
+import { DateRangePicker } from "@/components/date-range-picker";
+import { DatePicker } from "@/components/date-picker";
 import Link from "next/link";
 import type { IssueDetail, Phase, Task, UserOption } from "../types";
 import type { ReactNode } from "react";
@@ -346,10 +348,12 @@ const phaseStatusBadges = (progress: ReturnType<typeof phaseProgress>) => {
   );
 };
 
-const phaseProgressSegments = (phase: Phase) => {
+const phaseProgressSegments = (phase: Phase, issueDeadline?: string | null) => {
   if (phase.tasks.length === 0) {
     const overdue =
-      isPastDeadline(phase.deadline) && phase.status != "DONE" && phase.status != "FAILED";
+      isPastDeadline(phase.deadline ?? issueDeadline ?? null) &&
+      phase.status != "DONE" &&
+      phase.status != "FAILED";
     const visual = segmentStyle(phase.status, overdue);
     return {
       segments: [
@@ -363,7 +367,10 @@ const phaseProgressSegments = (phase: Phase) => {
     };
   }
   return {
-    segments: buildTaskSegments(phase.tasks).map((segment) => ({
+    segments: buildTaskSegments(phase.tasks, false, undefined, {
+      phaseDeadline: phase.deadline ?? null,
+      issueDeadline: issueDeadline ?? null,
+    }).map((segment) => ({
       ...segment,
       tooltip: phaseStatusBadges(phaseProgress(phase.tasks)),
     })),
@@ -666,7 +673,10 @@ const DependencyPicker = ({
                   </span>
                   <div className="w-36">
                     {(() => {
-                      const { segments, total } = phaseProgressSegments(phase);
+                      const { segments, total } = phaseProgressSegments(
+                        phase,
+                        issue.deadline ?? null,
+                      );
                       return (
                         <IssueProgressBar
                           progressSegments={segments}
@@ -813,7 +823,9 @@ export function PhaseBoard({
   const [taskStatusSaving, setTaskStatusSaving] = useState<Record<string, boolean>>({});
   const [statusError, setStatusError] = useState<string | null>(null);
   const [openPhaseDeadlinePopover, setOpenPhaseDeadlinePopover] = useState<string | null>(null);
+  const [phaseDeadlineShift, setPhaseDeadlineShift] = useState(0);
   const [phaseDeadlineDrafts, setPhaseDeadlineDrafts] = useState<Record<string, string>>({});
+  const [taskDateShift, setTaskDateShift] = useState(0);
   const [dependencySearch, setDependencySearch] = useState<Record<string, DependencySearchState>>({});
   const [dependencyIssues, setDependencyIssues] = useState<Record<string, IssueDetail>>({});
 
@@ -1112,6 +1124,72 @@ export function PhaseBoard({
     });
   }, [issue, dependencyIssues]);
 
+  const calcPopoverShift = (element: HTMLElement | null) => {
+    if (!element) {
+      return 0;
+    }
+    const rect = element.getBoundingClientRect();
+    const padding = 12;
+    let shift = 0;
+    if (rect.left < padding) {
+      shift = padding - rect.left;
+    } else if (rect.right > window.innerWidth - padding) {
+      shift = window.innerWidth - padding - rect.right;
+    }
+    return shift;
+  };
+
+  useLayoutEffect(() => {
+    if (!openPhaseDeadlinePopover) {
+      setPhaseDeadlineShift(0);
+      return;
+    }
+    const element = document.querySelector(
+      `[data-phase-deadline-popover-content="${openPhaseDeadlinePopover}"]`,
+    ) as HTMLElement | null;
+    setPhaseDeadlineShift(calcPopoverShift(element));
+  }, [openPhaseDeadlinePopover]);
+
+  useLayoutEffect(() => {
+    if (!openTaskDatePopover) {
+      setTaskDateShift(0);
+      return;
+    }
+    const element = document.querySelector(
+      `[data-task-date-popover-content="${openTaskDatePopover}"]`,
+    ) as HTMLElement | null;
+    setTaskDateShift(calcPopoverShift(element));
+  }, [openTaskDatePopover]);
+
+  useEffect(() => {
+    if (!openPhaseDeadlinePopover && !openTaskDatePopover) {
+      return;
+    }
+    const handler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        openPhaseDeadlinePopover &&
+        target?.closest(`[data-phase-deadline-popover="${openPhaseDeadlinePopover}"]`)
+      ) {
+        return;
+      }
+      if (
+        openTaskDatePopover &&
+        target?.closest(`[data-task-date-popover="${openTaskDatePopover}"]`)
+      ) {
+        return;
+      }
+      if (openPhaseDeadlinePopover) {
+        setOpenPhaseDeadlinePopover(null);
+      }
+      if (openTaskDatePopover) {
+        setOpenTaskDatePopover(null);
+      }
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [openPhaseDeadlinePopover, openTaskDatePopover]);
+
   const dependencyBadgeStyle = (kind: string, status?: string | null) => {
     if (!status) {
       return "border-slate-200 bg-white text-slate-600";
@@ -1207,7 +1285,12 @@ export function PhaseBoard({
             )}
             {phase.tasks.length > 0 && (
               <IssueProgressBar
-                progressSegments={buildTaskSegments(phase.tasks)}
+                progressSegments={buildTaskSegments(phase.tasks, false, undefined, {
+                  phaseDeadline: phase.deadline ?? null,
+                  issueDeadline:
+                    dependencyIndex.issueById[dependencyIndex.issueForPhase[targetId] ?? ""]?.deadline ??
+                    null,
+                })}
                 progressTotal={phase.tasks.length}
               />
             )}
@@ -1270,22 +1353,81 @@ export function PhaseBoard({
                     <p className="text-lg font-semibold text-slate-900">
                       {phaseLabel(phase)}
                     </p>
-                    <button
-                      className={`inline-flex items-center gap-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${
-                        phase.deadline
-                          ? "border-sky-200 bg-sky-100 text-sky-700"
-                          : "border-slate-200 bg-white text-slate-500"
-                      }`}
-                      type="button"
-                      onClick={() =>
-                        setOpenPhaseDeadlinePopover((current) =>
-                          current === phase.id ? null : phase.id,
-                        )
-                      }
-                    >
-                      <Icon name="calendar" size={12} />
-                      {phase.deadline ?? "Deadline"}
-                    </button>
+                    <div className="relative" data-phase-deadline-popover={phase.id}>
+                      <button
+                        className={`inline-flex items-center gap-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] ${
+                          phase.deadline
+                            ? "border-sky-200 bg-sky-100 text-sky-700"
+                            : "border-slate-200 bg-white text-slate-500"
+                        }`}
+                        type="button"
+                        onClick={() =>
+                          setOpenPhaseDeadlinePopover((current) =>
+                            current === phase.id ? null : phase.id,
+                          )
+                        }
+                      >
+                        <Icon name="calendar" size={12} />
+                        {phase.deadline ?? "Deadline"}
+                      </button>
+                      {openPhaseDeadlinePopover === phase.id && (
+                        <div
+                          className="absolute left-1/2 top-full z-20 mt-2 inline-block w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-lg"
+                          data-phase-deadline-popover-content={phase.id}
+                          style={{
+                            transform: `translateX(calc(-50% + ${phaseDeadlineShift}px))`,
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                              Phase deadline
+                            </p>
+                            <button
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+                              type="button"
+                              onClick={() => setOpenPhaseDeadlinePopover(null)}
+                            >
+                              <Icon name="x" size={12} />
+                            </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-end gap-3">
+                            <DatePicker
+                              value={getPhaseDeadlineDraft(phase)}
+                              max={issue.deadline ?? undefined}
+                              onChange={(value) => updatePhaseDeadlineDraft(phase.id, value)}
+                              onCancel={() => setOpenPhaseDeadlinePopover(null)}
+                              onClear={() => updatePhaseDeadlineDraft(phase.id, "")}
+                              onSave={async () => {
+                                if (!isOnOrBefore(getPhaseDeadlineDraft(phase), issue.deadline)) {
+                                  return;
+                                }
+                                const before = issue;
+                                const { data, error: apiError } = await api.PATCH(
+                                  "/issues/{issueId}/phases/{phaseId}",
+                                  {
+                                    params: { path: { issueId, phaseId: phase.id } },
+                                    body: {
+                                      deadline: getPhaseDeadlineDraft(phase) || undefined,
+                                    },
+                                  },
+                                );
+                                if (!apiError && data) {
+                                  const updated = data as IssueDetail;
+                                  onIssueUpdate(updated);
+                                  onDeadlineImpact?.(before, updated);
+                                  setOpenPhaseDeadlinePopover(null);
+                                }
+                              }}
+                            />
+                            {!isOnOrBefore(getPhaseDeadlineDraft(phase), issue.deadline) && (
+                              <p className="text-xs text-rose-600">
+                                Phase deadline must be on or before the issue deadline.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <StatusBadgeSelect
                       value={phase.status}
                       options={phaseStatuses}
@@ -1386,75 +1528,16 @@ export function PhaseBoard({
                   {phase.tasks.length} tasks
                 </div>
               </div>
-              {openPhaseDeadlinePopover === phase.id && (
-                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Phase deadline
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-end gap-3">
-                    <label className="text-[11px] text-slate-500">
-                      Deadline
-                      <input
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                        type="date"
-                        max={issue.deadline ?? undefined}
-                        value={getPhaseDeadlineDraft(phase)}
-                        onChange={(event) =>
-                          updatePhaseDeadlineDraft(phase.id, event.target.value)
-                        }
-                      />
-                    </label>
-                    {!isOnOrBefore(getPhaseDeadlineDraft(phase), issue.deadline) && (
-                      <p className="text-xs text-rose-600">
-                        Phase deadline must be on or before the issue deadline.
-                      </p>
-                    )}
-                    <button
-                      className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                      type="button"
-                      disabled={
-                        !isOnOrBefore(getPhaseDeadlineDraft(phase), issue.deadline)
-                      }
-                      onClick={async () => {
-                        const before = issue;
-                        const { data, error: apiError } = await api.PATCH(
-                          "/issues/{issueId}/phases/{phaseId}",
-                          {
-                            params: { path: { issueId, phaseId: phase.id } },
-                            body: {
-                              deadline: getPhaseDeadlineDraft(phase) || undefined,
-                            },
-                          },
-                        );
-                        if (!apiError && data) {
-                          const updated = data as IssueDetail;
-                          onIssueUpdate(updated);
-                          onDeadlineImpact?.(before, updated);
-                          setOpenPhaseDeadlinePopover(null);
-                        }
-                      }}
-                    >
-                      <Icon name="check" size={12} />
-                      Save
-                    </button>
-                    <button
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600"
-                      type="button"
-                      onClick={() => setOpenPhaseDeadlinePopover(null)}
-                    >
-                      <Icon name="x" size={12} />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
               {phase.tasks.length > 0 && (() => {
                 const progress = phaseProgress(phase.tasks);
                 const statusBadges = phaseStatusBadges(progress);
                 return (
                   <div className="mt-3">
                     <IssueProgressBar
-                      progressSegments={buildTaskSegments(phase.tasks, false, statusBadges)}
+                      progressSegments={buildTaskSegments(phase.tasks, false, statusBadges, {
+                        phaseDeadline: phase.deadline ?? null,
+                        issueDeadline: issue.deadline ?? null,
+                      })}
                       progressTotal={progress.total}
                     />
                     <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -1615,9 +1698,9 @@ export function PhaseBoard({
                     </div>
                   </div>
                 )}
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-0">
                 {phase.tasks.map((task) => (
-                  <div key={task.id} className="space-y-2">
+                  <div key={task.id}>
                     <div
                       className={`flex items-center justify-between rounded-xl border px-3 py-2 text-sm text-slate-700 ${taskCardClass(
                         task,
@@ -1628,32 +1711,141 @@ export function PhaseBoard({
                         <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-slate-500" />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Tooltip
-                          content={
-                            task.startDate || task.dueDate
-                              ? `Start: ${task.startDate ?? "—"} · Due: ${task.dueDate ?? "—"}`
-                              : "Set dates"
-                          }
-                        >
-                          <button
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
+                        <div className="relative" data-task-date-popover={task.id}>
+                          <Tooltip
+                            content={
                               task.startDate || task.dueDate
-                                ? "border-sky-200 bg-sky-100 text-sky-700"
-                                : "border-slate-200 bg-white text-slate-500"
-                            }`}
-                            type="button"
-                            onClick={() =>
-                              setOpenTaskDatePopover((current) =>
-                                current === task.id ? null : task.id,
-                              )
+                                ? `Start: ${task.startDate ?? "—"} · Due: ${task.dueDate ?? "—"}`
+                                : "Set dates"
                             }
                           >
-                            <Icon name="calendar" size={12} />
-                            {task.startDate || task.dueDate
-                              ? `${task.startDate ?? "—"} → ${task.dueDate ?? "—"}`
-                              : "Dates"}
-                          </button>
-                        </Tooltip>
+                            <button
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${
+                                task.startDate || task.dueDate
+                                  ? "border-sky-200 bg-sky-100 text-sky-700"
+                                  : "border-slate-200 bg-white text-slate-500"
+                              }`}
+                              type="button"
+                              onClick={() =>
+                                setOpenTaskDatePopover((current) =>
+                                  current === task.id ? null : task.id,
+                                )
+                              }
+                            >
+                              <Icon name="calendar" size={12} />
+                              {task.startDate || task.dueDate
+                                ? `${task.startDate ?? "—"} → ${task.dueDate ?? "—"}`
+                                : "Dates"}
+                            </button>
+                          </Tooltip>
+                          {openTaskDatePopover === task.id && (
+                            <div
+                              className="absolute left-1/2 top-full z-20 mt-2 inline-block w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-lg"
+                              data-task-date-popover-content={task.id}
+                              style={{
+                                transform: `translateX(calc(-50% + ${taskDateShift}px))`,
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                  Dates
+                                </p>
+                                <button
+                                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500"
+                                  type="button"
+                                  onClick={() => setOpenTaskDatePopover(null)}
+                                >
+                                  <Icon name="x" size={12} />
+                                </button>
+                              </div>
+                        <DateRangePicker
+                          startValue={getTaskMetaDraft(task).startDate}
+                          endValue={getTaskMetaDraft(task).dueDate}
+                          endMax={phaseDeadlineLimit ?? undefined}
+                          onChange={({ start, end }) =>
+                            updateTaskMetaDraft(task, {
+                              startDate: start,
+                              dueDate: end,
+                            })
+                          }
+                          onCancel={() => setOpenTaskDatePopover(null)}
+                          onClear={async () => {
+                            updateTaskMetaDraft(task, { startDate: "", dueDate: "" });
+                            const { data, error: apiError } = await api.PATCH(
+                              "/issues/{issueId}/phases/{phaseId}/tasks/{taskId}",
+                              {
+                                params: {
+                                  path: {
+                                    issueId,
+                                    phaseId: phase.id,
+                                    taskId: task.id,
+                                  },
+                                },
+                                body: {
+                                  startDate: null,
+                                  dueDate: null,
+                                  clearStartDate: true,
+                                  clearDueDate: true,
+                                },
+                              },
+                            );
+                            if (!apiError && data) {
+                              onIssueUpdate(data as IssueDetail);
+                            }
+                          }}
+                          onSave={async () => {
+                            const draft = getTaskMetaDraft(task);
+                            if (
+                              !isDateRangeValid(draft.startDate, draft.dueDate) ||
+                              !isOnOrBefore(draft.dueDate, phaseDeadlineLimit)
+                            ) {
+                              return;
+                            }
+                            const clearStartDate = !draft.startDate;
+                            const clearDueDate = !draft.dueDate;
+                            const { data, error: apiError } = await api.PATCH(
+                              "/issues/{issueId}/phases/{phaseId}/tasks/{taskId}",
+                              {
+                                params: {
+                                  path: {
+                                    issueId,
+                                    phaseId: phase.id,
+                                    taskId: task.id,
+                                  },
+                                },
+                                body: {
+                                  startDate: draft.startDate || null,
+                                  dueDate: draft.dueDate || null,
+                                  clearStartDate,
+                                  clearDueDate,
+                                },
+                              },
+                            );
+                            if (!apiError && data) {
+                              onIssueUpdate(data as IssueDetail);
+                              setOpenTaskDatePopover(null);
+                            }
+                          }}
+                        />
+                              {!isOnOrBefore(
+                                getTaskMetaDraft(task).dueDate,
+                                phaseDeadlineLimit,
+                              ) && (
+                                <p className="mt-2 text-xs text-rose-600">
+                                  Due date must be on or before the phase or issue deadline.
+                                </p>
+                              )}
+                              {!isDateRangeValid(
+                                getTaskMetaDraft(task).startDate,
+                                getTaskMetaDraft(task).dueDate,
+                              ) && (
+                                <p className="mt-2 text-xs text-rose-600">
+                                  Due date must be after the start date.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <UserBadgeSelect
                           value={task.assigneeId}
                           users={users}
@@ -1774,111 +1966,6 @@ export function PhaseBoard({
                         />
                       </div>
                     </div>
-                    {openTaskDatePopover === task.id && (
-                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          Dates
-                        </p>
-                        <div className="mt-2 grid gap-2 md:grid-cols-2">
-                          <label className="text-[11px] text-slate-500">
-                            Start
-                            <input
-                              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                              type="date"
-                              value={getTaskMetaDraft(task).startDate}
-                              onChange={(event) =>
-                                updateTaskMetaDraft(task, {
-                                  startDate: event.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <label className="text-[11px] text-slate-500">
-                            Due
-                            <input
-                              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                              type="date"
-                              max={phaseDeadlineLimit ?? undefined}
-                              value={getTaskMetaDraft(task).dueDate}
-                              onChange={(event) =>
-                                updateTaskMetaDraft(task, {
-                                  dueDate: event.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                        </div>
-                        {!isOnOrBefore(
-                          getTaskMetaDraft(task).dueDate,
-                          phaseDeadlineLimit,
-                        ) && (
-                          <p className="mt-2 text-xs text-rose-600">
-                            Due date must be on or before the phase or issue deadline.
-                          </p>
-                        )}
-                        {!isDateRangeValid(
-                          getTaskMetaDraft(task).startDate,
-                          getTaskMetaDraft(task).dueDate,
-                        ) && (
-                          <p className="mt-2 text-xs text-rose-600">
-                            Due date must be after the start date.
-                          </p>
-                        )}
-                        <div className="mt-2 flex justify-end gap-2">
-                          <button
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
-                            type="button"
-                            onClick={() => setOpenTaskDatePopover(null)}
-                          >
-                            <Icon name="x" size={12} />
-                            Close
-                          </button>
-                          <button
-                            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            type="button"
-                            disabled={
-                              !isDateRangeValid(
-                                getTaskMetaDraft(task).startDate,
-                                getTaskMetaDraft(task).dueDate,
-                              ) ||
-                              !isOnOrBefore(
-                                getTaskMetaDraft(task).dueDate,
-                                phaseDeadlineLimit,
-                              )
-                            }
-                            onClick={async () => {
-                              const draft = getTaskMetaDraft(task);
-                              if (!isDateRangeValid(draft.startDate, draft.dueDate)) {
-                                return;
-                              }
-                              const { data, error: apiError } = await api.PATCH(
-                                "/issues/{issueId}/phases/{phaseId}/tasks/{taskId}",
-                                {
-                                  params: {
-                                    path: {
-                                      issueId,
-                                      phaseId: phase.id,
-                                      taskId: task.id,
-                                    },
-                                  },
-                                  body: {
-                                    startDate: draft.startDate || undefined,
-                                    dueDate: draft.dueDate || undefined,
-                                  },
-                                },
-                              );
-                              if (!apiError && data) {
-                                onIssueUpdate(data as IssueDetail);
-                                setOpenTaskDatePopover(null);
-                              }
-                            }}
-                          >
-                            <Icon name="check" size={12} />
-                            Save
-                          </button>
-                        </div>
-                      </div>
-                    )}
                     {openTaskDependencyPopover === task.id && (
                       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -1982,38 +2069,96 @@ export function PhaseBoard({
                       }}
                     />
                     <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
-                      <Tooltip
-                        content={
-                          getTaskDraft(phase.id).startDate ||
-                          getTaskDraft(phase.id).dueDate
-                            ? `Start: ${getTaskDraft(phase.id).startDate || "—"} · Due: ${getTaskDraft(phase.id).dueDate || "—"}`
-                            : "Set dates"
-                        }
+                      <div
+                        className="relative"
+                        data-task-date-popover={`draft-${phase.id}`}
                       >
-                        <button
-                          className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                        <Tooltip
+                          content={
                             getTaskDraft(phase.id).startDate ||
                             getTaskDraft(phase.id).dueDate
-                              ? "border-sky-200 bg-sky-100 text-sky-700"
-                              : "border-slate-200 bg-white text-slate-500"
-                          }`}
-                          type="button"
-                          onClick={() =>
-                            setOpenTaskDatePopover((current) =>
-                              current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
-                            )
+                              ? `Start: ${getTaskDraft(phase.id).startDate || "—"} · Due: ${getTaskDraft(phase.id).dueDate || "—"}`
+                              : "Set dates"
                           }
                         >
-                          <Icon name="calendar" size={12} />
-                          {(getTaskDraft(phase.id).startDate ||
-                            getTaskDraft(phase.id).dueDate) && (
-                            <span className="ml-1 text-[11px]">
-                              {getTaskDraft(phase.id).startDate || "—"} →{" "}
-                              {getTaskDraft(phase.id).dueDate || "—"}
-                            </span>
-                          )}
-                        </button>
-                      </Tooltip>
+                          <button
+                            className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                              getTaskDraft(phase.id).startDate ||
+                              getTaskDraft(phase.id).dueDate
+                                ? "border-sky-200 bg-sky-100 text-sky-700"
+                                : "border-slate-200 bg-white text-slate-500"
+                            }`}
+                            type="button"
+                            onClick={() =>
+                              setOpenTaskDatePopover((current) =>
+                                current === `draft-${phase.id}` ? null : `draft-${phase.id}`,
+                              )
+                            }
+                          >
+                            <Icon name="calendar" size={12} />
+                            {(getTaskDraft(phase.id).startDate ||
+                              getTaskDraft(phase.id).dueDate) && (
+                              <span className="ml-1 text-[11px]">
+                                {getTaskDraft(phase.id).startDate || "—"} →{" "}
+                                {getTaskDraft(phase.id).dueDate || "—"}
+                              </span>
+                            )}
+                          </button>
+                        </Tooltip>
+                        {openTaskDatePopover === `draft-${phase.id}` && (
+                          <div
+                            className="absolute left-1/2 top-full z-20 mt-2 inline-block w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-lg"
+                            data-task-date-popover-content={`draft-${phase.id}`}
+                            style={{
+                              transform: `translateX(calc(-50% + ${taskDateShift}px))`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                Dates
+                              </p>
+                              <button
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500"
+                                type="button"
+                                onClick={() => setOpenTaskDatePopover(null)}
+                              >
+                                <Icon name="x" size={12} />
+                              </button>
+                            </div>
+                    <DateRangePicker
+                      startValue={getTaskDraft(phase.id).startDate}
+                      endValue={getTaskDraft(phase.id).dueDate}
+                      endMax={phaseDeadlineLimit ?? undefined}
+                      onChange={({ start, end }) =>
+                        updateTaskDraft(phase.id, {
+                          startDate: start,
+                          dueDate: end,
+                        })
+                      }
+                      onCancel={() => setOpenTaskDatePopover(null)}
+                      onClear={() =>
+                        updateTaskDraft(phase.id, { startDate: "", dueDate: "" })
+                      }
+                    />
+                            {!isOnOrBefore(
+                              getTaskDraft(phase.id).dueDate,
+                              phaseDeadlineLimit,
+                            ) && (
+                              <p className="mt-2 text-xs text-rose-600">
+                                Due date must be on or before the phase or issue deadline.
+                              </p>
+                            )}
+                            {!isDateRangeValid(
+                              getTaskDraft(phase.id).startDate,
+                              getTaskDraft(phase.id).dueDate,
+                            ) && (
+                              <p className="mt-2 text-xs text-rose-600">
+                                Due date must be after the start date.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <Tooltip
                         content={
                           getTaskDraft(phase.id).dependencies.length > 0 ? (
@@ -2078,58 +2223,6 @@ export function PhaseBoard({
                     </div>
                   </div>
                 </div>
-                {openTaskDatePopover === `draft-${phase.id}` && (
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      Dates
-                    </p>
-                    <div className="mt-2 grid gap-2 md:grid-cols-2">
-                      <label className="text-[11px] text-slate-500">
-                        Start
-                        <input
-                          className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                          type="date"
-                          value={getTaskDraft(phase.id).startDate}
-                          onChange={(event) =>
-                            updateTaskDraft(phase.id, {
-                              startDate: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                      <label className="text-[11px] text-slate-500">
-                        Due
-                        <input
-                          className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                          type="date"
-                          max={phaseDeadlineLimit ?? undefined}
-                          value={getTaskDraft(phase.id).dueDate}
-                          onChange={(event) =>
-                            updateTaskDraft(phase.id, {
-                              dueDate: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                    {!isOnOrBefore(
-                      getTaskDraft(phase.id).dueDate,
-                      phaseDeadlineLimit,
-                    ) && (
-                      <p className="mt-2 text-xs text-rose-600">
-                        Due date must be on or before the phase or issue deadline.
-                      </p>
-                    )}
-                    {!isDateRangeValid(
-                      getTaskDraft(phase.id).startDate,
-                      getTaskDraft(phase.id).dueDate,
-                    ) && (
-                      <p className="mt-2 text-xs text-rose-600">
-                        Due date must be after the start date.
-                      </p>
-                    )}
-                  </div>
-                )}
                 {openTaskDependencyPopover === `draft-${phase.id}` && (
                   <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">

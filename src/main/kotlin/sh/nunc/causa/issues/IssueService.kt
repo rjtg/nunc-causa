@@ -305,6 +305,8 @@ class IssueService(
         title: String?,
         assigneeId: String?,
         status: TaskStatus?,
+        clearStartDate: Boolean?,
+        clearDueDate: Boolean?,
         startDate: java.time.LocalDate?,
         dueDate: java.time.LocalDate?,
         dependencies: List<TaskDependencyView>?,
@@ -317,8 +319,10 @@ class IssueService(
         val effectiveDependencies = dependencies ?: task.dependencies.map {
             TaskDependencyView(type = it.type, targetId = it.targetId)
         }
-        val effectiveStartDate = startDate ?: task.startDate
-        val effectiveDueDate = dueDate ?: task.dueDate
+        val startCleared = clearStartDate == true
+        val dueCleared = clearDueDate == true
+        val effectiveStartDate = if (startCleared) null else startDate ?: task.startDate
+        val effectiveDueDate = if (dueCleared) null else dueDate ?: task.dueDate
         deadlineService.validateTaskDates(issue, phase, effectiveStartDate, effectiveDueDate, effectiveDependencies)
         if (title != null) {
             task.title = title
@@ -329,10 +333,14 @@ class IssueService(
         if (status != null) {
             task.status = status.name
         }
-        if (startDate != null) {
+        if (startCleared) {
+            task.startDate = null
+        } else if (startDate != null) {
             task.startDate = startDate
         }
-        if (dueDate != null) {
+        if (dueCleared) {
+            task.dueDate = null
+        } else if (dueDate != null) {
             task.dueDate = dueDate
         }
         if (dependencies != null) {

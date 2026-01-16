@@ -262,6 +262,8 @@ class IssuesController(
                     updateTaskRequest.title,
                     updateTaskRequest.assigneeId,
                     updateTaskRequest.status?.let { TaskStatus.valueOf(it.name) },
+                    updateTaskRequest.clearStartDate,
+                    updateTaskRequest.clearDueDate,
                     updateTaskRequest.startDate,
                     updateTaskRequest.dueDate,
                     updateTaskRequest.dependencies?.map {

@@ -592,6 +592,8 @@ export interface components {
             title?: string;
             assigneeId?: string;
             status?: components["schemas"]["TaskStatus"];
+            clearStartDate?: boolean;
+            clearDueDate?: boolean;
             /** Format: date */
             startDate?: string;
             /** Format: date */

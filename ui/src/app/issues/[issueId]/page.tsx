@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "@/lib/api/use-api";
 import { useAuth } from "@/lib/auth/context";
 import { Icon } from "@/components/icons";
@@ -12,6 +12,7 @@ import type { CommentThread, HistoryResponse, IssueDetail, UserOption } from "./
 import { buildIssuePhaseSegments, isPastDeadline } from "./progress";
 import { PhaseBoard } from "./components/PhaseBoard";
 import { IssueProgressBar } from "@/components/issue-progress-bar";
+import { DatePicker } from "@/components/date-picker";
 
 const issueStatusLabel = (value: string) => {
   if (value === "NOT_ACTIVE") {
@@ -99,6 +100,7 @@ export default function IssueDetailPage() {
   const [issueDeadlineDraft, setIssueDeadlineDraft] = useState("");
   const [issueDeadlineDirty, setIssueDeadlineDirty] = useState(false);
   const [issueDeadlineOpen, setIssueDeadlineOpen] = useState(false);
+  const [issueDeadlineShift, setIssueDeadlineShift] = useState(0);
   const [issueTitleDraft, setIssueTitleDraft] = useState("");
   const [issueDescriptionDraft, setIssueDescriptionDraft] = useState("");
   const [issueEditDirty, setIssueEditDirty] = useState(false);
@@ -196,6 +198,44 @@ export default function IssueDetailPage() {
       active = false;
     };
   }, [api, issueId, isAuthed, ready, recoveries]);
+
+  useEffect(() => {
+    if (!issueDeadlineOpen) {
+      return;
+    }
+    const handler = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest("[data-issue-deadline-popover]")) {
+        return;
+      }
+      setIssueDeadlineOpen(false);
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [issueDeadlineOpen]);
+
+  useLayoutEffect(() => {
+    if (!issueDeadlineOpen) {
+      setIssueDeadlineShift(0);
+      return;
+    }
+    const element = document.querySelector(
+      "[data-issue-deadline-popover-content]",
+    ) as HTMLElement | null;
+    if (!element) {
+      setIssueDeadlineShift(0);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    const padding = 12;
+    let shift = 0;
+    if (rect.left < padding) {
+      shift = padding - rect.left;
+    } else if (rect.right > window.innerWidth - padding) {
+      shift = window.innerWidth - padding - rect.right;
+    }
+    setIssueDeadlineShift(shift);
+  }, [issueDeadlineOpen]);
 
   const loadUsers = useCallback(async () => {
     if (!ready || !isAuthed || !issue) {
@@ -555,14 +595,75 @@ export default function IssueDetailPage() {
                       {issueStatusLabel(issue.status)}
                     </span>
                   </div>
-                  <button
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
-                    type="button"
-                    onClick={() => setIssueDeadlineOpen((open) => !open)}
-                  >
-                    <Icon name="calendar" size={12} />
-                    Deadline: {issue.deadline ?? "—"}
-                  </button>
+                  <div className="relative" data-issue-deadline-popover>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                      type="button"
+                      onClick={() => setIssueDeadlineOpen((open) => !open)}
+                    >
+                      <Icon name="calendar" size={12} />
+                      Deadline: {issue.deadline ?? "—"}
+                    </button>
+                    {issueDeadlineOpen && (
+                      <div
+                        className="absolute left-1/2 top-full z-20 mt-2 inline-block w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-lg"
+                        data-issue-deadline-popover-content
+                        style={{
+                          transform: `translateX(calc(-50% + ${issueDeadlineShift}px))`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Issue deadline
+                          </p>
+                          <button
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+                            type="button"
+                            onClick={() => setIssueDeadlineOpen(false)}
+                          >
+                            <Icon name="x" size={12} />
+                          </button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-end gap-3">
+                          <DatePicker
+                            value={issueDeadlineDirty ? issueDeadlineDraft : issue.deadline ?? ""}
+                            onChange={(value) => {
+                              setIssueDeadlineDirty(true);
+                              setIssueDeadlineDraft(value);
+                            }}
+                            onCancel={() => setIssueDeadlineOpen(false)}
+                            onClear={() => {
+                              setIssueDeadlineDirty(true);
+                              setIssueDeadlineDraft("");
+                            }}
+                            onSave={async () => {
+                              const before = issue;
+                              const nextDeadline = issueDeadlineDirty
+                                ? issueDeadlineDraft
+                                : issue.deadline ?? "";
+                              const { data, error: apiError } = await api.PATCH(
+                                "/issues/{issueId}",
+                                {
+                                  params: { path: { issueId } },
+                                  body: {
+                                    deadline: nextDeadline || undefined,
+                                  },
+                                },
+                              );
+                              if (!apiError && data) {
+                                const nextIssue = data as IssueDetail;
+                                setIssue(nextIssue);
+                                const warning = summarizeDeadlineImpact(before, nextIssue);
+                                setDeadlineWarning(warning);
+                                setIssueDeadlineDirty(false);
+                                setIssueDeadlineOpen(false);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -644,65 +745,7 @@ export default function IssueDetailPage() {
             </div>
           </div>
         )}
-        {issueDeadlineOpen && (
-          <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Issue deadline
-            </p>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <label className="text-[11px] text-slate-500">
-                Deadline
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-                  type="date"
-                  value={issueDeadlineDirty ? issueDeadlineDraft : issue.deadline ?? ""}
-                  onChange={(event) => {
-                    setIssueDeadlineDirty(true);
-                    setIssueDeadlineDraft(event.target.value);
-                  }}
-                />
-              </label>
-              <button
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
-                type="button"
-                onClick={async () => {
-                  const before = issue;
-                  const nextDeadline = issueDeadlineDirty
-                    ? issueDeadlineDraft
-                    : issue.deadline ?? "";
-                  const { data, error: apiError } = await api.PATCH(
-                    "/issues/{issueId}",
-                    {
-                      params: { path: { issueId } },
-                      body: {
-                        deadline: nextDeadline || undefined,
-                      },
-                    },
-                  );
-                  if (!apiError && data) {
-                    const nextIssue = data as IssueDetail;
-                    setIssue(nextIssue);
-                    const warning = summarizeDeadlineImpact(before, nextIssue);
-                    setDeadlineWarning(warning);
-                    setIssueDeadlineDirty(false);
-                    setIssueDeadlineOpen(false);
-                  }
-                }}
-              >
-                <Icon name="check" size={12} />
-                Save
-              </button>
-              <button
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600"
-                type="button"
-                onClick={() => setIssueDeadlineOpen(false)}
-              >
-                <Icon name="x" size={12} />
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
+        
       </header>
       {deadlineWarning && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">

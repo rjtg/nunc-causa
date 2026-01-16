@@ -259,6 +259,7 @@ const issueProgressTone = (status: string) => {
 const issuePhaseSegments = (
   phases: IssueSummary["phaseProgress"],
   users: UserOption[],
+  issueDeadline?: string | null,
 ) => {
   if (!phases || phases.length === 0) {
     return undefined;
@@ -305,7 +306,9 @@ const issuePhaseSegments = (
       </div>
     );
     const overdue =
-      isPastDeadline(phase.deadline) && phase.status !== "DONE" && phase.status !== "FAILED";
+      isPastDeadline(phase.deadline ?? issueDeadline ?? null) &&
+      phase.status !== "DONE" &&
+      phase.status !== "FAILED";
     if (!phase.taskTotal) {
       const phaseTone = overdue
         ? segmentStyle(phase.status, true)
@@ -818,7 +821,7 @@ export default function IssuesPage() {
             title={issue.title ?? issue.id}
             href={`/issues/${issue.id}`}
             className={issueOverdueClass(issue.status, issue.deadline)}
-            progressSegments={issuePhaseSegments(issue.phaseProgress, users)}
+            progressSegments={issuePhaseSegments(issue.phaseProgress, users, issue.deadline)}
             progressTotal={1}
             progressTone={
               issue.phaseCount > 0 ? undefined : issueProgressTone(issue.status)

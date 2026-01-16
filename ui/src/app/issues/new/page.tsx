@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/context";
 import { useHealth } from "@/lib/health/context";
 import { Icon } from "@/components/icons";
 import { Typeahead } from "@/components/typeahead";
+import { DatePicker } from "@/components/date-picker";
 
 type PhaseDraft = {
   enabled: boolean;
@@ -318,11 +319,10 @@ export default function NewIssuePage() {
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Issue deadline
             </label>
-            <input
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"
-              type="date"
+            <DatePicker
               value={issueDeadline}
-              onChange={(event) => setIssueDeadline(event.target.value)}
+              onChange={setIssueDeadline}
+              onClear={() => setIssueDeadline("")}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -406,21 +406,20 @@ export default function NewIssuePage() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Deadline
-                </label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
-                  type="date"
-                  max={issueDeadline || undefined}
+                <DatePicker
                   value={phase.deadline}
-                  disabled={!phase.enabled}
-                  onChange={(event) =>
+                  max={issueDeadline || undefined}
+                  onChange={(value) =>
                     setPhases((prev) =>
                       prev.map((item, idx) =>
-                        idx === index
-                          ? { ...item, deadline: event.target.value }
-                          : item,
+                        idx === index ? { ...item, deadline: value } : item,
+                      ),
+                    )
+                  }
+                  onClear={() =>
+                    setPhases((prev) =>
+                      prev.map((item, idx) =>
+                        idx === index ? { ...item, deadline: "" } : item,
                       ),
                     )
                   }

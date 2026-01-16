@@ -43,6 +43,11 @@ function findButtonLikeLinks(source: string): string[] {
   return blocks;
 }
 
+function extractClassName(block: string): string | null {
+  const match = block.match(/className=\{?\"([^\"]+)\"/);
+  return match ? match[1] : null;
+}
+
 describe("UI button icon consistency", () => {
   it("renders icons inside all buttons and button-like links", () => {
     const files = listTsxFiles(uiRoot).filter(
@@ -80,6 +85,26 @@ describe("UI read-tracking wiring", () => {
 });
 
 describe("UI hover affordances", () => {
+  it("adds hover styles on DateRangePicker buttons via className", () => {
+    const files = listTsxFiles(uiRoot).filter((file) =>
+      file.endsWith(`${path.sep}components${path.sep}date-range-picker.tsx`),
+    );
+    const missingHover: string[] = [];
+    files.forEach((file) => {
+      const source = fs.readFileSync(file, "utf8");
+      findButtonBlocks(source).forEach((block) => {
+        const className = extractClassName(block);
+        if (!className) {
+          return;
+        }
+        if (!className.includes("hover:")) {
+          missingHover.push(`${file}:button`);
+        }
+      });
+    });
+    expect(missingHover).toEqual([]);
+  });
+
   it("defines hover styles for buttons and button-like links", () => {
     const globals = path.join(uiRoot, "app", "globals.css");
     const source = fs.readFileSync(globals, "utf8");
