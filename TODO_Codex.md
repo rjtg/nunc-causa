@@ -140,18 +140,23 @@ Use src/main/kotlin and src/test/kotlin.
     - Show phase badges (assignee/task count/deadline) on hover
     - Click a segment to jump to the phase section
 [ ] Refactor Issue Detail UI composition
-    - Extract IssueHeader (title/description/owner/status/deadline controls)
-    - Extract IssueTabs (tab buttons + action controls)
-    - Extract IssueActivityPanel and IssueCommentsPanel
-    - Add useIssueDetailData hook for fetching + mutations
+    - [ ] Extract IssueHeader (title/description/owner/status/deadline controls)
+    - [ ] Extract IssueTabs (tab buttons + action controls)
+    - [x] Extract IssueActivityPanel and IssueCommentsPanel
+    - [ ] Add useIssueDetailData hook for fetching + mutations
 [ ] Refactor PhaseBoard into smaller components
-    - Extract PhaseCard/PhaseHeader/PhaseProgressBar/TaskRow
-    - Move DependencyPicker + DependencyBadge into shared components
-    - Consolidate assignee/deadline popovers into reusable widgets
+    - [ ] Extract PhaseCard
+    - [x] Extract PhaseHeader
+    - [x] Extract PhaseProgressBar
+    - [x] Extract TaskRow
+    - [x] Extract PhaseProgress + PhaseCompletionPanel components
+    - [x] Move DependencyPicker + DependencyBadge into shared components
+    - [x] Consolidate assignee/deadline popovers into reusable widgets
+    - [x] Move shared helpers into `phase-board-utils`
 [ ] Refactor Issue List page into composable pieces
-    - Extract IssueSearchFilters and IssueList components
-    - Add useIssueSearch hook for filters + facets + data
-    - Reuse IssueSummaryCard + IssueProgressBar consistently
+    - [x] Extract IssueSearchFilters and IssueList components
+    - [x] Add useIssueSearch hook for filters + facets + data
+    - [x] Reuse IssueSummaryCard + IssueProgressBar consistently
 [ ] Add pagination to search results
     - Extend backend search/list endpoints with paging params
     - Update UI to request pages and render pagination controls

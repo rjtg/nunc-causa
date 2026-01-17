@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icons";
 
@@ -40,6 +40,7 @@ export function Typeahead({
 }: TypeaheadProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const matched = options.find((option) => option.value === value)?.label;
@@ -62,13 +63,22 @@ export function Typeahead({
   }, [options, query, maxItems]);
 
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div
+      className={`relative ${className ?? ""}`}
+      onMouseDown={(event) => {
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+      }}
+    >
       {leading && (
         <div className="pointer-events-none absolute left-3 top-2 text-xs text-slate-400">
           {leading}
         </div>
       )}
       <input
+        ref={inputRef}
         className={
           inputClassName ??
           "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700"
@@ -77,6 +87,9 @@ export function Typeahead({
         value={query}
         disabled={disabled}
         autoFocus={autoFocus}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
         onChange={(event) => {
           const nextValue = event.target.value;
           setQuery(nextValue);
@@ -93,7 +106,10 @@ export function Typeahead({
             event.currentTarget.form?.requestSubmit();
           }
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={(event) => {
+          setOpen(true);
+          event.currentTarget.select();
+        }}
         onBlur={() => {
           setTimeout(() => setOpen(false), 120);
         }}
@@ -115,6 +131,7 @@ export function Typeahead({
                 className="flex w-full items-start justify-between rounded-lg px-3 py-2 text-left hover:bg-slate-50"
                 onMouseDown={(event) => {
                   event.preventDefault();
+                  event.stopPropagation();
                   if (onSelect) {
                     onSelect(option.value);
                   } else {

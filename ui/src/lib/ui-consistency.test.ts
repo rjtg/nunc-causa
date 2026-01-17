@@ -75,12 +75,13 @@ describe("UI button icon consistency", () => {
 
 describe("UI read-tracking wiring", () => {
   it("uses comment read tracking endpoints and unread metadata", () => {
-    const issuePage = path.join(uiRoot, "app", "issues", "[issueId]", "page.tsx");
-    const source = fs.readFileSync(issuePage, "utf8");
-    expect(source).toContain("/issues/{issueId}/comments/read");
-    expect(source).toContain("unreadCount");
-    expect(source).toContain("firstUnreadCommentId");
-    expect(source).toContain("readByCount");
+    const issueDir = path.join(uiRoot, "app", "issues", "[issueId]");
+    const files = listTsxFiles(issueDir);
+    const sources = files.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+    expect(sources).toContain("/issues/{issueId}/comments/read");
+    expect(sources).toContain("unreadCount");
+    expect(sources).toContain("firstUnreadCommentId");
+    expect(sources).toContain("readByCount");
   });
 });
 

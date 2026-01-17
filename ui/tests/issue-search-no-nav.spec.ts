@@ -15,7 +15,11 @@ test("issue search owner badge does not navigate away", async ({ page }) => {
   await expect(issueCard).toBeVisible({ timeout: 15000 });
   const ownerButton = issueCard.getByRole("button", { name: /change owner/i }).first();
   await expect(ownerButton).toBeVisible();
-  await ownerButton.dispatchEvent("click");
+  await ownerButton.click();
+
+  const ownerInput = page.getByPlaceholder("Owner").first();
+  await expect(ownerInput).toBeFocused();
+  await ownerInput.type("dev");
 
   await expect(page).toHaveURL(/\/issues$/);
 });
