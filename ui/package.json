@@ -4,11 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k \"npm:dev:api\" \"next dev\"",
+    "dev:ui": "next dev",
     "dev:api": "chokidar ../src/main/resources/openapi/causa-api.yaml -c \"npm run gen:api\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "mock:api": "prism mock ../src/main/resources/openapi/causa-api.yaml -p 4011 -h 0.0.0.0",
+    "test:e2e:mock": "concurrently -k \"npm:mock:api\" \"npm:test:e2e\"",
     "gen:api": "openapi-typescript ../src/main/resources/openapi/causa-api.yaml -o src/lib/api/types.ts"
   },
   "dependencies": {
@@ -23,6 +27,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@playwright/test": "^1.50.0",
+    "@stoplight/prism-cli": "^5.11.2",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "eslint": "^9",

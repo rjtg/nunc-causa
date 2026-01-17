@@ -69,6 +69,10 @@ export function IssueSummaryCard({
       {...wrapperProps}
       className={`block rounded-lg border px-3 py-2 ${toneClasses} hover:border-slate-300 ${className ?? ""}`}
       onClick={(event) => {
+        if ((event.target as HTMLElement | null)?.closest("[data-no-link]")) {
+          event.preventDefault();
+          return;
+        }
         if (event.defaultPrevented) {
           return;
         }

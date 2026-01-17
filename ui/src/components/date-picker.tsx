@@ -50,21 +50,21 @@ export function DatePicker({
         selected={selected}
         onSelect={(day) => onChange(formatIsoDate(day ?? undefined))}
         disabled={maxDate ? { after: maxDate } : undefined}
-        className="rounded-lg border border-slate-200 bg-white p-1 w-fit"
+        className="rounded-lg border border-slate-200 bg-white p-1.5 w-fit"
         classNames={{
           months: "flex flex-col",
-          month: "space-y-0.5",
+          month: "space-y-1",
           caption: "flex items-center justify-between text-xs font-semibold text-slate-600",
           nav: "flex items-center gap-[2px]",
           nav_button:
-            "h-4 w-4 rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
+            "h-5 w-5 rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
           table: "w-fit border-collapse",
           head_row: "flex gap-[2px]",
-          head_cell: "w-5 text-[10px] font-semibold text-slate-400",
+          head_cell: "w-6 text-[10px] font-semibold text-slate-400",
           row: "mt-[2px] flex gap-[2px]",
-          cell: "h-5 w-5 text-center text-xs",
-          day: "h-5 w-5 rounded-full text-xs hover:bg-slate-100",
-          day_selected: "bg-slate-300 text-slate-900 hover:bg-slate-400",
+          cell: "h-6 w-6 text-center text-xs",
+          day: "h-6 w-6 rounded-full text-xs hover:bg-slate-100",
+          day_selected: "bg-slate-600 text-white hover:bg-slate-600",
           day_today: "border border-slate-300",
         }}
       />

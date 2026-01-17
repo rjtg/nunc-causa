@@ -167,6 +167,18 @@ Use src/main/kotlin and src/test/kotlin.
     - Ensure selected range/day colors match the UI palette
     - Remove any remaining default stylesheet overrides
     - Verify compact spacing is applied in all date pickers
+[ ] Plan backend rewrite in Rust (inventory + replacements)
+    - Web framework: replace Spring Boot (consider Axum or Actix-Web)
+    - DI/config: replace Spring config (consider config-rs + env/figment)
+    - Persistence: replace Hibernate ORM + Envers (consider SeaORM/Diesel + audit tables)
+    - Migrations: replace Liquibase (consider sqlx-cli or refinery)
+    - OpenAPI: replace springdoc + openapi generator (consider utoipa or aide)
+    - Security/auth: replace Spring Security + Basic auth (consider axum-login or tower-http auth)
+    - Scheduling/background tasks: replace Spring scheduling (consider tokio cron/intervals)
+    - SSE/streaming: replace Spring SSE (consider axum SSE)
+    - Validation: replace Jakarta validation (consider validator crate)
+    - Testing: replace JUnit + MockK (consider cargo test + mockall)
+    - Search: replace Hibernate Search (consider Meilisearch/OpenSearch or Tantivy)
 [ ] Split UI consistency tests by concern
     - Move icon checks, tooltip checks, hover checks, read-tracking into separate test files
 [ ] Consolidate action/permission mapping in controllers

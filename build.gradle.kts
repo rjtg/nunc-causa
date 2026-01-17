@@ -131,6 +131,13 @@ openApiGenerate {
             "useSpringBoot3" to "true",
             "dateLibrary" to "java8",
             "serializationLibrary" to "jackson",
+            "apiNameSuffix" to "Api",
+        ),
+    )
+    globalProperties.set(
+        mapOf(
+            "apis" to "Issues,Projects,Users,Auth,Work,Search,Updates,Admin",
+            "models" to "",
         ),
     )
 }

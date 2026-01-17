@@ -4,6 +4,8 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { IssueDetail } from "../types";
 import { PhaseBoard } from "./PhaseBoard";
+import { Icon } from "@/components/icons";
+import { IssueSummaryCard } from "@/components/issue-summary-card";
 
 describe("PhaseBoard", () => {
   afterEach(() => {
@@ -335,5 +337,40 @@ describe("PhaseBoard", () => {
     expect(popover?.style.transform).toContain("calc(-50% + 112px)");
 
     HTMLElement.prototype.getBoundingClientRect = originalRect;
+  });
+
+  it("does not navigate when clicking in a no-link region", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <IssueSummaryCard
+          id="BEACON-1"
+          title="Beacon issue"
+          href="/issues/BEACON-1"
+          right={
+            <div data-no-link>
+              <button type="button">
+                <Icon name="user" size={12} />
+                Change owner
+              </button>
+            </div>
+          }
+        />,
+      );
+    });
+
+    const anchor = container.querySelector('a[href="/issues/BEACON-1"]') as HTMLAnchorElement;
+    expect(anchor).toBeTruthy();
+    const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true });
+    const preventSpy = vi.spyOn(clickEvent, "preventDefault");
+    const button = container.querySelector("button");
+    act(() => {
+      button?.dispatchEvent(clickEvent);
+    });
+
+    expect(preventSpy).toHaveBeenCalled();
   });
 });

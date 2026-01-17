@@ -75,6 +75,29 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IssueListItem'
+              examples:
+                default:
+                  value:
+                    - id: "BEACON-1"
+                      title: "Example issue"
+                      description: "Mocked issue description used for UI tests."
+                      ownerId: "dev"
+                      projectId: "project-alpha"
+                      phaseCount: 1
+                      phaseStatusCounts:
+                        IN_PROGRESS: 1
+                      phaseProgress:
+                        - phaseId: "phase-1"
+                          phaseName: "Development"
+                          assigneeId: "dev"
+                          phaseKind: "DEVELOPMENT"
+                          deadline: "2026-01-20"
+                          status: "IN_PROGRESS"
+                          taskStatusCounts:
+                            IN_PROGRESS: 1
+                          taskTotal: 1
+                      status: "IN_PROGRESS"
+                      deadline: "2026-01-22"
   /issues/similar:
     get:
       tags:
@@ -151,6 +174,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IssueFacetResponse'
+              examples:
+                default:
+                  value:
+                    owners:
+                      - id: "dev"
+                        count: 1
+                    assignees:
+                      - id: "dev"
+                        count: 1
+                    projects:
+                      - id: "project-alpha"
+                        count: 1
+                    statuses:
+                      - id: "IN_PROGRESS"
+                        count: 1
+                    phaseKinds:
+                      - id: "DEVELOPMENT"
+                        count: 1
   /issues/{issueId}:
     get:
       tags:
@@ -170,6 +211,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IssueDetail'
+              examples:
+                default:
+                  value:
+                    id: "BEACON-1"
+                    title: "Example issue"
+                    description: "Mocked issue description used for UI tests."
+                    ownerId: "dev"
+                    projectId: "project-alpha"
+                    status: "IN_PROGRESS"
+                    deadline: "2026-01-22"
+                    version: 1
+                    phases:
+                      - id: "phase-1"
+                        name: "Development"
+                        assigneeId: "dev"
+                        status: "IN_PROGRESS"
+                        kind: "DEVELOPMENT"
+                        deadline: "2026-01-20"
+                        tasks:
+                          - id: "task-1"
+                            title: "Implement mocked flow"
+                            assigneeId: "dev"
+                            status: "IN_PROGRESS"
         '404':
           description: Issue not found
     patch:
@@ -594,6 +658,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthMethodsResponse'
+              examples:
+                default:
+                  value:
+                    methods:
+                      - type: "basic"
+                        label: "Basic auth"
+  /actuator/health:
+    get:
+      tags:
+        - Actuator
+      summary: Health status
+      operationId: getHealth
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+              examples:
+                default:
+                  value:
+                    status: "UP"
+  /actuator/runtime-env:
+    get:
+      tags:
+        - Actuator
+      summary: Runtime environment descriptor
+      operationId: getRuntimeEnv
+      responses:
+        '200':
+          description: Runtime environment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  environment:
+                    type: string
+                  label:
+                    type: string
+              examples:
+                default:
+                  value:
+                    environment: "dev"
+                    label: "Development"
+  /actuator/search-index:
+    post:
+      tags:
+        - Actuator
+      summary: Trigger search reindex
+      operationId: triggerSearchReindex
+      responses:
+        '200':
+          description: Reindex triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+              examples:
+                default:
+                  value:
+                    status: "accepted"
   /projects:
     get:
       tags:
@@ -630,6 +763,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProjectSummary'
+              examples:
+                default:
+                  value:
+                    - id: "project-alpha"
+                      key: "ALPHA"
+                      name: "Project Alpha"
+                      orgId: "org-1"
+                      teamId: "team-1"
   /projects/facets:
     get:
       tags:
@@ -715,6 +856,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UserSummary'
+              examples:
+                default:
+                  value:
+                    - id: "dev"
+                      displayName: "Dev User"
+                      openIssueCount: 1
+                      openPhaseCount: 1
+                      openTaskCount: 1
   /search:
     get:
       tags:
